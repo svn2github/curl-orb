@@ -1,0 +1,518 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author ucai.zhang
+|||
+
+{import CounterDto, StringDto, DoubleDto, LongDto, NullIndexDto from TESTS1}
+{import * from TESTS2}
+{import * from TESTS3}
+{import * from TESTS4}
+
+{import * from COM.CURLAP.ORB}
+{import * from CURL.DATA-ACCESS.BASE}
+
+{include "resources/support-types.scurl"}
+
+|||
+||| This test case is to check the some types serialization.
+||| (All type tests is included in curl-serializer.jar tests except RecordSet.)
+|||
+{TestSuite "orb types",
+
+    || DateTime
+    {test-case "date time",
+        let foo:Foo2 = {Foo2}
+        || DateTime
+        let dt1:DateTime = {DateTime}
+        let dt2:DateTime = {foo.echo-date {DateTime}}
+        {TestCondition.assert dt1.data.epoch-second == dt2.data.epoch-second}
+        {foo.destroy-instance}
+    },
+
+    || FastArray of user defined type
+    {test-case "FastArray of user defined class",
+        let foo:Foo2 = {Foo2}
+        def in-1 = {{FastArray-of #CounterDto}} || empty
+        def in-2 = {{FastArray-of #StringDto}
+                       {StringDto "A"},
+                       {StringDto "2008"},
+                       {StringDto "A"},
+                       {StringDto "A"}
+                   }
+        def in-3 = {{FastArray-of #DoubleDto}}
+        def in-4 = {{FastArray-of #LongDto}}
+        def in-5 = {{FastArray-of #NullIndexDto}
+                       {NullIndexDto 1},
+                       {NullIndexDto 2},
+                       {NullIndexDto 1},
+                       {NullIndexDto 1}
+                   }
+
+        def out =
+            {foo.exec-service
+                "ProcName",
+                in-1,
+                in-2,
+                in-3,
+                in-4,
+                in-5
+            } asa FastArray
+        {TestCondition.assert out[0] == "ProcName"}
+        {TestCondition.assert out[1] isa {FastArray-of #CounterDto}}
+        {TestCondition.assert (out[1] asa {FastArray-of #CounterDto}).size == 0}
+        {TestCondition.assert out[2] isa {FastArray-of #StringDto}}
+        def out-2 = out[2] asa {FastArray-of #StringDto}
+        {TestCondition.assert out-2.size == 4}
+        {TestCondition.assert out-2[0].data == "A"}
+        {TestCondition.assert out-2[1].data == "2008"}
+        {TestCondition.assert out-2[2].data == "A"}
+        {TestCondition.assert out-2[3].data == "A"}
+        {TestCondition.assert out[3] isa {FastArray-of #DoubleDto}}
+        {TestCondition.assert (out[3] asa {FastArray-of #DoubleDto}).size == 0}
+        {TestCondition.assert out[4] isa {FastArray-of #LongDto}}
+        {TestCondition.assert (out[4] asa {FastArray-of #LongDto}).size == 0}
+        {TestCondition.assert out[5] isa {FastArray-of #NullIndexDto}}
+        def out-5 = out[5] asa {FastArray-of #NullIndexDto}
+        {TestCondition.assert out-5.size == 4}
+        {TestCondition.assert out-5[0].data == 1}
+        {TestCondition.assert out-5[1].data == 2}
+        {TestCondition.assert out-5[2].data == 1}
+        {TestCondition.assert out-5[3].data == 1}
+
+        || size 64 issue
+        def len = 64
+        def in64-2 = {{FastArray-of #StringDto} max-size = len}
+        {for i = 0 below len do
+            {in64-2.append {StringDto "X"}}
+        }
+        def out64 =
+            {foo.exec-service
+                "ProcName",
+                in-1,
+                in64-2,
+                in-3,
+                in-4,
+                in-5
+            } asa {FastArray-of any}
+        {TestCondition.assert (out64[2] asa {FastArray-of #StringDto}).size == len}
+        
+        {foo.destroy-instance}
+    },
+
+    || Array of user defined type
+    {test-case "Array of user defined class",
+        let foo:Foo2 = {Foo2}
+        def in-1 = {Array} || empty
+        def in-2 = {Array
+                       {StringDto "A"},
+                       {StringDto "2008"},
+                       {StringDto "A"},
+                       {StringDto "A"}
+                   }
+        def in-3 = {Array}
+        def in-4 = {Array}
+        def in-5 = {Array
+                       {NullIndexDto 1},
+                       {NullIndexDto 2},
+                       {NullIndexDto 1},
+                       {NullIndexDto 1}
+                   }
+
+        def out =
+            {foo.exec-service-for-list
+                "ProcName",
+                in-1,
+                in-2,
+                in-3,
+                in-4,
+                in-5
+            } asa {Array-of any}
+        {TestCondition.assert out[0] == "ProcName"}
+        {TestCondition.assert out[1] isa Array}
+        {TestCondition.assert (out[1] asa Array).size == 0}
+        {TestCondition.assert out[2] isa Array}
+        def out-2 = out[2] asa Array
+        {TestCondition.assert out-2.size == 4}
+        {TestCondition.assert out-2[0].data == "A"}
+        {TestCondition.assert out-2[1].data == "2008"}
+        {TestCondition.assert out-2[2].data == "A"}
+        {TestCondition.assert out-2[3].data == "A"}
+        {TestCondition.assert out[3] isa Array}
+        {TestCondition.assert (out[3] asa Array).size == 0}
+        {TestCondition.assert out[4] isa Array}
+        {TestCondition.assert (out[4] asa Array).size == 0}
+        {TestCondition.assert out[5] isa Array}
+        def out-5 = out[5] asa Array
+        {TestCondition.assert out-5.size == 4}
+        {TestCondition.assert out-5[0].data == 1}
+        {TestCondition.assert out-5[1].data == 2}
+        {TestCondition.assert out-5[2].data == 1}
+        {TestCondition.assert out-5[3].data == 1}
+
+        || size 64 issue
+        def len = 64
+        def in64-2 = {Array}
+        {for i = 0 below len do
+            {in64-2.append {StringDto "X"}}
+        }
+        def out64 =
+            {foo.exec-service-for-list
+                "ProcName",
+                in-1,
+                in64-2,
+                in-3,
+                in-4,
+                in-5
+            } asa Array
+        {TestCondition.assert (out64[2] asa Array).size == len}
+        
+        {foo.destroy-instance}
+    },
+
+    || HashTable of user defined type
+    {test-case "HashTable of user defined class",
+        let foo:Foo2 = {Foo2}
+        def in-1 = {HashTable} || empty
+        def in-2 = {HashTable
+                       "k1", {StringDto "A"},
+                       "k2", {StringDto "2008"},
+                       "k3", {StringDto "A"},
+                       "k4", {StringDto "A"}
+                   }
+
+        def out =
+            {foo.exec-service-for-map
+                "ProcName",
+                in-1,
+                in-2
+            } asa HashTable
+        {TestCondition.assert out["v0"] == "ProcName"}
+        {TestCondition.assert out["v1"] isa HashTable}
+        {TestCondition.assert (out["v1"] asa HashTable).size == 0}
+        {TestCondition.assert out["v2"] isa HashTable}
+        def out-2 = out["v2"] asa HashTable
+        {TestCondition.assert out-2.size == 4}
+        {TestCondition.assert out-2["k1"].data == "A"}
+        {TestCondition.assert out-2["k2"].data == "2008"}
+        {TestCondition.assert out-2["k3"].data == "A"}
+        {TestCondition.assert out-2["k4"].data == "A"}
+
+        || size 64 issue
+        def len = 64
+        def in64-2 = {HashTable}
+        {for i = 0 below len do
+            {in64-2.set "k" & i, {StringDto "X"}}
+        }
+        def out64 =
+            {foo.exec-service-for-map
+                "ProcName",
+                in-1,
+                in64-2
+            } asa HashTable
+        {TestCondition.assert (out64["v2"] asa HashTable).size == len}
+        
+        {foo.destroy-instance}
+    },
+    
+    || advanced types
+    {test-case "advanced type (BigInteger)",
+        let ct:ComplexTypeService = {ComplexTypeService}
+        || BigInteger
+        {if-non-null big-integer = {ct.echo-big-integer {BigInteger.from-int 123}} then
+            {TestCondition.assert {big-integer.to-int} == 123}
+         else
+            {TestCondition.fail message = "Not return BigInteger"}
+        }
+    },
+
+    {test-case "advanced type (BigDecimal)",
+        let ct:ComplexTypeService = {ComplexTypeService}
+        || BigDecimal
+        {if-non-null big-decimal = {ct.echo-big-decimal {BigDecimal.from-double 123.10}} then
+            {TestCondition.assert {big-decimal.to-double} == 123.10}
+         else
+            {TestCondition.fail message = "Not return BigDecimal"}
+        }
+
+        || List<BigDecimal>
+        let input-big-decimals:Array = {Array}
+        {input-big-decimals.append {BigDecimal.from-double 123.123}}
+        {input-big-decimals.append {BigDecimal.from-double 456.456}}
+        {if-non-null big-decimals = {ct.echo-big-decimals input-big-decimals} then
+            {TestCondition.assert big-decimals.size == 2}
+            {TestCondition.assert {big-decimals[0].to-double} == 123.123}
+            {TestCondition.assert {big-decimals[1].to-double} == 456.456}
+         else
+            {TestCondition.fail message = "Not return List<BigDecimal>"}
+        }
+    },
+
+    {test-case "advanced type (Date, Timestamp..etc)",
+        let ct:ComplexTypeService = {ComplexTypeService}
+        || Date
+        let inputDate:Date = {Date}
+        {if-non-null date:Date = {ct.echo-date inputDate} then
+            {TestCondition.assert {date.to-GMTString} == {inputDate.to-GMTString}}
+         else
+            {TestCondition.fail message = "Not return Date"}
+        }
+
+        || CDate instead of Date
+        let inputCDate:CDate = {CDate 20000}
+        {if-non-null date:CDate = {ct.echo-cdate inputCDate} then
+            {TestCondition.assert {date.to-GMTString} == {inputCDate.to-GMTString}}
+         else
+            {TestCondition.fail message = "Not return Date"}
+        }
+
+        || CTime instead of Time
+        let inputTime:CTime = {CTime 20000}
+        {if-non-null time:CTime = {ct.echo-ctime inputTime} then
+            {TestCondition.assert {time.to-GMTString} == {inputTime.to-GMTString}}
+         else
+            {TestCondition.fail message = "Not return Time"}
+        }
+        
+        || CTimestamp instead of Timestamp
+        let inputTimestamp:CTimestamp = {CTimestamp 40000}
+        {if-non-null timestamp:CTimestamp = {ct.echo-ctimestamp inputTimestamp} then
+            {TestCondition.assert {timestamp.to-GMTString} == {inputTimestamp.to-GMTString}}
+         else
+            {TestCondition.fail message = "Not return Timestamp"}
+        }
+    },
+
+    {test-case "advanced type (Blob, Clob)",
+        let ct:ComplexTypeService = {ComplexTypeService}
+        || Blob
+        let inputBlob:Blob = {Blob {{Array-of byte} 'a', 'b', 'c'}}
+        {if-non-null blob:Blob = {ct.echo-blob inputBlob} then
+            {TestCondition.assert blob.length == 3}
+         else
+            {TestCondition.fail message = "Not return Blob"}
+        }
+        
+        || Clob
+        let inputClob:Clob = {Clob {{Array-of char} 'a', 'b', 'c'}}
+        {if-non-null clob:Clob = {ct.echo-clob inputClob} then
+            {TestCondition.assert clob.length == 3}
+         else
+            {TestCondition.fail message = "Not return Clob"}
+        }
+    },
+    
+    {test-case "advanced type (mixed)",
+        let ct:ComplexTypeService = {ComplexTypeService}
+        || ComplexType1
+        let inputDto:ComplexTypeDto = {ComplexTypeDto}
+        set inputDto.big-integer = {BigInteger.from-String "10000"}
+        set inputDto.big-decimal = {BigDecimal.from-double 1000.00}
+        set inputDto.date = {Date}
+        set inputDto.sql-date = {CDate 20000}
+        set inputDto.sql-time = {CTime 20000}
+        set inputDto.sql-timestamp = {CTimestamp 20000}
+        {if-non-null dto:ComplexTypeDto = {ct.echo-complex-type inputDto} then
+            {TestCondition.assert-isa BigInteger, dto.big-integer}
+            {TestCondition.assert-isa BigDecimal, dto.big-decimal}
+            {TestCondition.assert-isa Date, dto.date}
+            {TestCondition.assert-isa CDate, dto.sql-date}
+            {TestCondition.assert-isa CTime, dto.sql-time}
+            {TestCondition.assert-isa CTimestamp, dto.sql-timestamp}
+         else
+            {TestCondition.fail message = "Not return complex types"}
+        }
+
+        || ComplexType2 (some date types)
+        let date-dto:DateDto = {non-null {{DateTest}.get-dto}}
+        {TestCondition.assert-isa Date, date-dto.date}
+        {TestCondition.assert-isa CDate, date-dto.cdate}
+        {TestCondition.assert-isa CTime, date-dto.ctime}
+        {TestCondition.assert-isa CTimestamp, date-dto.ctimestamp}
+        {TestCondition.assert-isa Date, date-dto.date1}
+        {TestCondition.assert-isa Date, date-dto.date2}
+        {TestCondition.assert-isa Date, date-dto.date3}
+        {TestCondition.assert-isa DateTime, date-dto.datetime}
+    },
+
+    ||
+    || RecordSet
+    ||
+    {test-case "get recordset",
+        let rst:RecordSetTest = {RecordSetTest}
+        let rs:#SerializableRecordSet = {rst.create-record-set}
+        {TestCondition.assert {assert-recorset rs asa SerializableRecordSet}} 
+    },
+    {test-case "get recordset array one",
+        let rst:RecordSetTest = {RecordSetTest}
+        let rsArrayOne:#{FastArray-of #SerializableRecordSet} = {rst.create-record-set-array-one}
+        {for item in rsArrayOne asa {FastArray-of #SerializableRecordSet} do
+            {TestCondition.assert {assert-recorset item asa SerializableRecordSet}} 
+        }
+    },
+    {test-case "get recordset array two",
+        let rst:RecordSetTest = {RecordSetTest}
+        let rsArrayTwo:#{FastArray-of #{FastArray-of #SerializableRecordSet}} = {rst.create-record-set-array-two}
+        {for rsArrayOne in rsArrayTwo asa {FastArray-of #{FastArray-of #SerializableRecordSet}} do
+            {for item in rsArrayOne asa {FastArray-of #SerializableRecordSet} do
+                {TestCondition.assert {assert-recorset item asa SerializableRecordSet}} 
+            }
+        }
+    },
+    {test-case "get recordset hash",
+        let rst:RecordSetTest = {RecordSetTest}
+        let rsHash:#HashTable = {rst.create-record-set-hash}
+        {TestCondition.assert {rsHash.get 1} == 1}
+        {TestCondition.assert {rsHash.get 2} == true}
+        {TestCondition.assert {rsHash.get 3} == null}
+        {TestCondition.assert {rsHash.get 4} == "O.K"}
+        {TestCondition.assert {assert-recorset {rsHash.get 5} asa SerializableRecordSet}} 
+        let list:#Array = {rsHash.get 6}
+        {TestCondition.assert list[0] == 1}
+        {TestCondition.assert list[1] == null}
+        {TestCondition.assert list[2] == false}
+        {TestCondition.assert list[3] == "string"}
+        {TestCondition.assert {assert-recorset list[4] asa SerializableRecordSet}}
+    },
+    {test-case "get recordset list",
+        let rst:RecordSetTest = {RecordSetTest}
+        let list:#Array = {rst.create-record-set-list}
+        {TestCondition.assert list[0] == 1}
+        {TestCondition.assert list[1] == null}
+        {TestCondition.assert list[2] == false}
+        {TestCondition.assert list[3] == "string"}
+        {TestCondition.assert {assert-recorset list[4] asa SerializableRecordSet}} 
+        
+    },
+    {test-case "get recordset set",
+        let rst:RecordSetTest = {RecordSetTest}
+        let rset:#Set = {rst.create-record-set-set} asa Set
+        {TestCondition.assert {rset.get-member 1} == 1}
+        {rset.remove 1}
+        {TestCondition.assert {rset.get-member null} == null}
+        {rset.remove null}
+        {TestCondition.assert {rset.get-member true} == true}
+        {rset.remove true}
+        {TestCondition.assert {rset.get-member "O.K"} == "O.K"}
+        {rset.remove "O.K"}
+        let leftElements = {rset.to-Iterator}       
+        let returnObj = {leftElements.read-one}
+        {if {type-of returnObj} == SerializableRecordSet then
+            {TestCondition.assert {assert-recorset returnObj asa SerializableRecordSet}}
+            let list = {leftElements.read-one}
+            {TestCondition.assert list[0] == 1}
+            {TestCondition.assert list[1] == null}
+            {TestCondition.assert list[2] == false}
+            {TestCondition.assert list[3] == "string"}
+            {TestCondition.assert {assert-recorset list[4] asa SerializableRecordSet}}
+         else
+            {TestCondition.assert returnObj[0] == 1}
+            {TestCondition.assert returnObj[1] == null}
+            {TestCondition.assert returnObj[2] == false}
+            {TestCondition.assert returnObj[3] == "string"}
+            {TestCondition.assert {assert-recorset returnObj[4] asa SerializableRecordSet}}
+            {TestCondition.assert {assert-recorset {leftElements.read-one} asa SerializableRecordSet}}
+        }                           
+    },
+    {test-case "get included record set object",
+        let rst:RecordSetTest = {RecordSetTest}
+        def foo:#Foo = {rst.create-included-record-set-object}
+        {assert-foo foo asa Foo}
+        
+    },
+    {test-case "echo for client/recordset",        
+        let rst:RecordSetTest = {RecordSetTest}
+        let rs:#SerializableRecordSet =
+            {rst.echo-record-set {rst.create-record-set} asa SerializableRecordSet}
+        {TestCondition.assert {assert-recorset rs asa SerializableRecordSet}}
+    },
+    {test-case "echo for client/recordset array one",        
+        let rst:RecordSetTest = {RecordSetTest}
+        let rsArrayOne:#{FastArray-of #SerializableRecordSet} =
+            {rst.echo-record-set {rst.create-record-set-array-one}}
+        {for item in {non-null rsArrayOne} do
+            {TestCondition.assert {assert-recorset item asa SerializableRecordSet}} 
+        }
+    },
+    {test-case "echo for client/recordset array two",        
+        let rst:RecordSetTest = {RecordSetTest}
+        let rsArrayTwo:#{FastArray-of #{FastArray-of #SerializableRecordSet}} =
+            {rst.echo-record-set {rst.create-record-set-array-two}}
+        {for rsArrayOne in {non-null rsArrayTwo} do
+            {for item in rsArrayOne asa {FastArray-of #SerializableRecordSet} do
+                {TestCondition.assert {assert-recorset item asa SerializableRecordSet}} 
+            }
+        }
+    },
+    {test-case "echo for client/recordset Hash",        
+        let rst:RecordSetTest = {RecordSetTest}
+        let rsHash:#HashTable = {rst.echo-record-set {rst.create-record-set-hash}}
+        {TestCondition.assert {rsHash.get 1} == 1}
+        {TestCondition.assert {rsHash.get 2} == true}
+        {TestCondition.assert {rsHash.get 3} == null}
+        {TestCondition.assert {rsHash.get 4} == "O.K"}
+        {TestCondition.assert {assert-recorset {rsHash.get 5} asa SerializableRecordSet}} 
+        let list:#Array = {rsHash.get 6}
+        {TestCondition.assert list[0] == 1}
+        {TestCondition.assert list[1] == null}
+        {TestCondition.assert list[2] == false}
+        {TestCondition.assert list[3] == "string"}
+        {TestCondition.assert {assert-recorset list[4] asa SerializableRecordSet}} 
+    },
+    {test-case "echo for client/recordset List",        
+        let rst:RecordSetTest = {RecordSetTest}
+        let list:#Array = {rst.echo-record-set {rst.create-record-set-list}}
+        {TestCondition.assert list[0] == 1}
+        {TestCondition.assert list[1] == null}
+        {TestCondition.assert list[2] == false}
+        {TestCondition.assert list[3] == "string"}
+        {TestCondition.assert {assert-recorset list[4] asa SerializableRecordSet}} 
+    },
+    {test-case "echo for client/recordset Set",        
+        let rst:RecordSetTest = {RecordSetTest}
+        let rset:#Set = {rst.echo-record-set {rst.create-record-set-set}}
+        {TestCondition.assert {rset.get-member 1} == 1}
+        {rset.remove 1}
+        {TestCondition.assert {rset.get-member null} == null}
+        {rset.remove null}
+        {TestCondition.assert {rset.get-member true} == true}
+        {rset.remove true}
+        {TestCondition.assert {rset.get-member "O.K"} == "O.K"}
+        {rset.remove "O.K"}
+        let leftElements = {rset.to-Iterator}       
+        let returnObj = {leftElements.read-one}
+        {if {type-of returnObj} == SerializableRecordSet then
+            {TestCondition.assert {assert-recorset returnObj asa SerializableRecordSet}}
+            let list = {leftElements.read-one}
+            {TestCondition.assert list[0] == 1}
+            {TestCondition.assert list[1] == null}
+            {TestCondition.assert list[2] == false}
+            {TestCondition.assert list[3] == "string"}
+            {TestCondition.assert {assert-recorset list[4] asa SerializableRecordSet}}
+         else
+            {TestCondition.assert returnObj[0] == 1}
+            {TestCondition.assert returnObj[1] == null}
+            {TestCondition.assert returnObj[2] == false}
+            {TestCondition.assert returnObj[3] == "string"}
+            {TestCondition.assert {assert-recorset returnObj[4] asa SerializableRecordSet}}
+            {TestCondition.assert {assert-recorset {leftElements.read-one} asa SerializableRecordSet}}
+        }                           
+    },
+    {test-case "echo for client/Foo object",        
+        let rst:RecordSetTest = {RecordSetTest}
+        let foo:#Foo = {rst.echo-record-set {rst.create-included-record-set-object}}
+        {assert-foo foo asa Foo}
+    }
+}

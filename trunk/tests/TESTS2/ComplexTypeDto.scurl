@@ -1,0 +1,80 @@
+ 
+{import * from COM.CURLAP.ORB} 
+
+{define-class public serializable ComplexTypeDto 
+ 
+  field private _big-integer:#BigInteger 
+  field private _big-decimal:#BigDecimal 
+  field private _date:#Date 
+  field private _sql-date:#CDate 
+  field private _sql-time:#CTime 
+  field private _sql-timestamp:#CTimestamp 
+  field private _blob:#Blob 
+  field private _clob:#Clob 
+
+  {getter public {date}:#Date 
+    {return self._date}
+  } 
+
+  {getter public {sql-date}:#CDate 
+    {return self._sql-date}
+  } 
+
+  {getter public {sql-time}:#CTime 
+    {return self._sql-time} 
+  } 
+
+  {getter public {sql-timestamp}:#CTimestamp 
+    {return self._sql-timestamp} 
+  } 
+
+  {getter public {blob}:#Blob 
+    {return self._blob} 
+  } 
+
+  {getter public {clob}:#Clob 
+    {return self._clob} 
+  } 
+
+  {getter public {big-decimal}:#BigDecimal 
+    {return self._big-decimal} 
+  } 
+
+  {getter public {big-integer}:#BigInteger 
+    {return self._big-integer} 
+  } 
+
+  {setter public {big-integer v:BigInteger}:void 
+    set self._big-integer = v 
+  } 
+
+  {setter public {big-decimal v:BigDecimal}:void 
+    set self._big-decimal = v 
+  } 
+
+  {setter public {date v:Date}:void 
+    set self._date = v 
+  } 
+
+  {setter public {sql-date v:CDate}:void 
+    set self._sql-date = v 
+  } 
+
+  {setter public {sql-time v:CTime}:void 
+    set self._sql-time = v 
+  } 
+
+  {setter public {sql-timestamp v:CTimestamp}:void 
+    set self._sql-timestamp = v 
+  } 
+
+  {setter public {blob v:Blob}:void 
+    set self._blob = v 
+  } 
+
+  {setter public {clob v:Clob}:void 
+    set self._clob = v 
+  } 
+
+  {constructor public {default} }
+} 

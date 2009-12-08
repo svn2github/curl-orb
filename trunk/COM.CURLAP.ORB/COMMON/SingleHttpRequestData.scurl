@@ -1,0 +1,94 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+
+|| - - package classes - -
+
+||
+|| SingleStringHttpRequestData (Never use for now.)
+||
+||--{define-class package SingleStringHttpRequestData 
+||--  {inherits HttpRequestData}
+||--  
+||--  field constant string-request-data:String
+||--  field constant character-encoding:CharEncoding 
+||--  field constant _content-type:String 
+||--
+||--  || @Override
+||--  {getter public {content-type}:String
+||--    {return self._content-type}
+||--  }
+||--  
+||--  {constructor package {default
+||--                           request-data:String,
+||--                           character-encoding:CharEncoding = CharEncoding.utf8,
+||--                           content-type:String = "text/html; charset=UTF-8"
+||--                       }
+||--    
+||--    set self.string-request-data = request-data
+||--    set self.character-encoding = character-encoding
+||--    set self._content-type = content-type
+||--  }
+||--
+||--  || @Override
+||--  {method public final {request-data}:ByteArray
+||--    
+||--    def out-max-size = 
+||--        (self.character-encoding.transcode-max-expansion-factor * self.string-request-data.size) + 1
+||--    def bytes = {{Array-of byte} efficient-size = out-max-size} || TODO: {FastArray-of byte}
+||--    {encode-characters 
+||--        self.string-request-data, 
+||--        bytes.underlying-FastArray, 
+||--        self.character-encoding,
+||--        out-end = out-max-size
+||--    }
+||--    {return bytes}
+||--  }
+||--}
+
+||
+|| SingleByteArrayHttpRequestData
+||
+{define-class package SingleByteArrayHttpRequestData 
+  {inherits HttpRequestData}
+  
+  field constant bytes-request-data:ByteArray
+  field constant character-encoding:CharEncoding 
+  field constant _content-type:String 
+
+  || @Override
+  {getter public {content-type}:String
+    {return self._content-type}
+  }
+  
+  {constructor package {default
+                           request-data:ByteArray,
+                           character-encoding:CharEncoding = CharEncoding.utf8,  ||CharEncoding.ucs2-big-endian, 
+                           content-type:String = "application/octet-stream; charset=UTF-8"
+                       }
+    
+    set self.bytes-request-data = request-data
+    set self.character-encoding = character-encoding
+    set self._content-type = content-type
+  }
+
+  || @Override
+  {method public final {request-data}:ByteArray
+    {return self.bytes-request-data}
+  }
+}

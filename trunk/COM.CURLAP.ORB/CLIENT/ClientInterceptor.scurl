@@ -1,0 +1,225 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+||| Interceptor functionality
+||| since 0.6
+
+|| NOTE:
+||  1. The class procedure doesn't work.
+||  2. When creating new AbstractClient, all interceptors are set to AbstractClient.
+{doc-next {purpose ClientInterceptor class}}
+{define-class public abstract ClientInterceptor
+
+  || ClientInterceptors
+  def package interceptors = {{Array-of ClientInterceptor}}
+
+  {doc-next
+    {purpose register ClientInterceptor}
+    {parameter interceptor, ClinetInterceptor}
+  }
+  {define-proc public inline {register interceptor:ClientInterceptor}:void
+    {ClientInterceptor.interceptors.append interceptor}
+  }
+
+  {doc-next
+    {purpose Unregister the ClientInterceptor.}
+    {parameter interceptor, ClientInterceptor}
+  }
+  {define-proc public inline {unregister interceptor:ClientInterceptor}:void
+    def interceptors = ClientInterceptor.interceptors
+    def index = {interceptors.find interceptor}
+    {if index != -1 then
+        {interceptors.remove index}
+    }
+  }
+
+  {doc-next {purpose clear all}}
+  {define-proc public inline {clear}:void
+    {ClientInterceptor.interceptors.clear}
+  }
+  
+  || This proc is called in Abstract constructor
+  {define-proc package {register-inteceptors client:AbstractClient}:void
+    {for interceptor in ClientInterceptor.interceptors do
+        {interceptor.register-interceptor client}
+    }
+  }
+
+  || AbstractClient filter
+  field protected client-filter:{proc-type {AbstractClient}:bool}
+  
+  {doc-next
+    {purpose create new instance}
+    {parameter client-filter, filter for AbstractClient}
+  }
+  {constructor protected {default
+                             client-filter:{proc-type {AbstractClient}:bool} =
+                                 {fn client => true}
+                         }
+    set self.client-filter = client-filter
+  }
+
+  {doc-next
+    {purpose register an interceptor to AbstractClient's interceptor}
+    {parameter client, AbstractClient}
+  }
+  {method protected open {register-interceptor
+                             client:AbstractClient
+                         }:void
+    {if not {self.client-filter client} then
+        {return}
+    }
+    {client.interceptor.append self}
+  }
+
+  
+  {method protected open {build-server-url
+                             server-url:Url
+                         }:Url
+    {return server-url}
+  }
+
+  {method protected open {build-http-request-headers
+                             headers:#HttpRequestHeaders
+                         }:#HttpRequestHeaders
+    {return headers}
+  }
+  
+  {method protected open {build-orb-request-headers
+                             headers:#HashTable
+                         }:#HashTable
+    {return headers}
+  }
+
+  {method protected open {handle-http-response-headers
+                             headers:#HttpResponseHeaders
+                         }:void }
+
+  || Support since 0.7
+  {method protected open {handle-orb-response-headers
+                             headers:#HashTable
+                         }:void }
+  
+  || like BeforeAdvice (only method)
+  {method protected open {handle-before-request ||before-advice
+                             method-name:String,
+                             arguments:#FastArray
+                         }:void }
+
+  || like AfterReturning (only method)
+  {method protected open {handle-after-response ||after-returning-advice
+                             method-name:String,
+                             arguments:#FastArray,
+                             return-value:#any
+                         }:void }
+
+  || like ThrowAdvice (only method)
+  {method protected open {handle-exception ||throw-advice
+                             method-name:String,
+                             arguments:#FastArray,
+                             exception:Exception
+                         }:void }
+}
+
+
+|| ClientInterceptorChain
+{define-class package ClientInterceptorChain
+  {inherits {Array-of ClientInterceptor}}
+
+  {method package {build-server-url
+                      server-url:Url
+                  }:Url
+    let u:Url = server-url
+    {for interceptor in self do
+        set u = {interceptor.build-server-url u}
+    }
+    {return u}
+  }
+
+  {method package {build-http-request-headers
+                      headers:#HttpRequestHeaders
+                  }:#HttpRequestHeaders
+    let h:#HttpRequestHeaders = headers
+    {for interceptor in self do
+        set h = {interceptor.build-http-request-headers h}
+    }
+    {return h}
+  }
+
+  {method package {build-orb-request-headers
+                      headers:#HashTable
+                  }:#HashTable
+    let h:#HashTable = headers
+    {for interceptor in self do
+        set h = {interceptor.build-orb-request-headers h}
+    }
+    {return h}
+  }
+  
+  {method package {handle-http-response-headers
+                      headers:#HttpResponseHeaders
+                  }:void
+    {for interceptor in self do
+        {interceptor.handle-http-response-headers headers}
+    }
+  }
+
+  || Support next version(0.7)
+  {method package {handle-orb-response-headers
+                      headers:#HashTable
+                  }:void
+    {for interceptor in self do
+        {interceptor.handle-orb-response-headers headers}
+    }
+  }
+
+  {method package {handle-before-request
+                      method-name:String,
+                      arguments:#FastArray
+                  }:void
+    {for interceptor in self do
+        {interceptor.handle-before-request
+            method-name, arguments
+        }
+    }
+  }
+
+  {method package {handle-after-response
+                      method-name:String,
+                      arguments:#FastArray,
+                      return-value:#any
+                  }:void
+    {for interceptor in self do
+        {interceptor.handle-after-response
+            method-name, arguments, return-value
+        }
+    }
+  }
+
+  {method package {handle-exception 
+                      method-name:String,
+                      arguments:#FastArray,
+                      exception:Exception
+                  }:void
+    {for interceptor in self do
+        {interceptor.handle-exception
+            method-name, arguments, exception
+        }
+    }
+  }
+}

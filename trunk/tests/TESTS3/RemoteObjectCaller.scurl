@@ -1,0 +1,37 @@
+
+{import * from COM.CURLAP.ORB} 
+
+{define-class public RemoteObjectCaller {inherits HttpSessionClient}
+ 
+  {constructor public {default v0:RemoteObjectCallee} 
+    {construct-super.HttpSessionClient "tests3.RemoteObjectCaller", arguments = {FastArray v0}} 
+  } 
+
+  {method public {set-remote-object-callee1 v0:RemoteObjectCallee}:void 
+    {self.invoke "setRemoteObjectCallee1", arguments = {FastArray v0}} 
+  } 
+
+  {method public {set-remote-object-callee2 v0:String, v1:RemoteObjectCallee, v2:int}:void 
+    {self.invoke "setRemoteObjectCallee2", arguments = {FastArray v0, v1, v2}} 
+  } 
+
+  {method public {set-remote-object-callee3 v0:RemoteObjectCallee, v1:RemoteObjectCallee}:void 
+    {self.invoke "setRemoteObjectCallee3", arguments = {FastArray v0, v1}} 
+  } 
+
+  {method public {get-name}:#String 
+    {return {self.invoke "getName"}} 
+  } 
+
+  {method public {get-id}:int 
+    {return {self.invoke "id"}} 
+  } 
+
+  {method public {get-status}:#String 
+    {return {self.invoke "getStatus"}} 
+  } 
+ 
+  {method public {get-all-status}:#{FastArray-of #String} 
+    {return {self.invoke "getAllStatus"}} 
+  } 
+} 

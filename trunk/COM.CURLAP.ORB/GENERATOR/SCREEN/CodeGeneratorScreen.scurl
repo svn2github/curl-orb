@@ -1,0 +1,142 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author ucai zhang
+|||
+
+||
+|| CodeGeneratorScreen
+||
+{define-class CodeGeneratorScreen
+  {inherits AbstractScreen}
+  
+  field private radioFrame:#RadioFrame
+  field private _screen-container:{Array-of AbstractPanel} =
+      {{Array-of AbstractPanel}}
+  
+  {constructor {default ...}
+    {construct-super
+        background = BACK-GROUND1,
+        {splice ...}
+    }
+  }
+  
+  {setter public {header header:#Graphic}:void
+    set self._header = header
+  }
+
+  {getter public {header}:Graphic
+    {if {equal? self._header,null} then
+        || screen header
+        let r:RolledRandom = {RolledRandom.default 0, 2}
+        let ri:int = {r.next-roll}
+        set self._header =
+            {Frame
+                {HBox                    
+                    valign = "center",
+                    {TextFlowBox
+                        width = 80mm,
+                        font-family = "Arial Rounded MT Bold",
+                        color = FONT-COLOR,
+                        font-size = 16pt,
+                        font-weight = "bold",
+                        "Code Generator Wizard"
+                    },
+                    {Fill width = {make-elastic minimum-size = 2mm}},
+                    {image
+                        source =
+                            {if ri == 0 then
+                                {url "./images/orb.png"}
+                             elseif ri == 1 then
+                                {url "./images/orb_white.png"}
+                             else
+                                {url "./images/orb_red.png"}
+                            },
+                        width = 40mm,
+                        height = 18mm
+                    }                    
+                }
+            }
+    }
+    {return self._header}
+  }
+
+  {setter public {body body:#Graphic}:void
+    set self._body = body
+  }
+
+  {getter public {body}:Graphic
+    {if {equal? self._body, null} then
+        {return {Frame}}
+    }
+    {return self._body}
+  }
+
+  {setter public {footer footer:#Graphic}:void
+    set self._footer = footer
+  }
+
+  {getter public {footer}:Graphic
+    {if {equal? self._footer,null} then
+        {return {Frame}}
+    }
+    {return self._footer}
+  }
+
+  {method public {change-body
+                     body:Graphic,
+                     transfer-data:any = null,
+                     add?:bool = true
+                 }:bool
+    def (exist?,screen) =
+        {self.screen-exist? body asa AbstractPanel, add?}
+    set self.body = screen
+    {screen.handle-data transfer-data}
+    {self.layout-graphic}   
+    {return true}
+  }
+
+  {method public {change-dialog
+                     v:AbstractDialog,
+                     transfer-data:any = null,
+                     title:String = ""
+                 }:bool
+    {if {v.handle-data data = transfer-data} then
+        {v.layout-graphic}
+        {v.show title = title}
+        {return true}
+    }
+    {return false}
+  }
+
+  {method private {screen-exist?
+                      screen:AbstractPanel,
+                      add?:bool
+                  }:(bool, AbstractPanel)
+    {if self._screen-container.empty? and add? then
+        {self._screen-container.append screen}
+     else       
+        {for v in self._screen-container do
+            {if {type-of v} == {type-of screen} then
+                {return (true, v)}
+            }
+        }
+        {if add? then
+            {self._screen-container.append screen}
+        }
+    }
+    {return (false, screen)}
+  }
+}

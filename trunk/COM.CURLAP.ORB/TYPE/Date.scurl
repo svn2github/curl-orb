@@ -1,0 +1,375 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Ucai zhang
+|||
+
+{doc-next
+    {purpose
+        Date Class ,correspond to the type java.util.Date in Java.                
+    }
+    {details
+        Notice:Because of the utc-offset-minutes ,the factory from-argument
+        and the contructor from-year-month-day can not be called by outer.        
+    }
+    {notes
+        The detail,please see the Java API Document.
+    }
+}
+||
+|| Date,correspond to the type java.util.Date
+||
+{define-class public serializable Date {inherits AbstractExtraSerializableType }
+
+  {doc-next
+    {purpose
+        it is a int64 value,it is the millsec of this Date object.
+    }    
+  }
+  || mili second
+  field private _time:int64
+
+  {doc-next
+    {purpose
+        Constructs this object.    
+    }
+    {details
+        The default constructor,when call this constructor,
+        The Date class will just express the your computer
+        current system date
+    }
+    {notes
+        The detail,please see the Java API Document.
+    }
+  }
+  {constructor public {default}
+    def now = {DateTime}
+    set self.time = (((now - {DateTime zone = DateTimeZone.local, "1970-01-01 00:00:00.000000 +0000"} ) * 1000) / 1s ) asa int64
+  }
+
+  {doc-next
+    {purpose
+        Constructs this object. But it is a factory.       
+    }
+    {details
+        When user give especial value to year,month and day,
+        The Date class will  express date which you want.
+    }
+    {parameter year,
+        int value which express the year you want.
+    }
+    {parameter month,
+        int value which express the month you want.        
+    }
+    {parameter  day ,
+        int value which express the day you want. 
+    }
+  }
+  {factory package {from-year-month-day year:int, month:int, day:int}:Date
+    {return {Date.from-argument year, month, day, 0, 0, 0}}
+  }
+  
+  {doc-next
+    {purpose
+        Constructs this object.     
+    }
+    {details
+        When user give especial value to year,month,day,hour,minute and second,
+        The Date class will  express date which you want.
+    }
+    {parameter year,
+        int value which express the year you want.
+    }
+    {parameter month,
+        int value which express the month you want.        
+    }
+    {parameter day ,
+        int value which express the day you want.
+    }
+    {parameter hrs ,
+        int value which express the hour you want.
+    }
+    {parameter min ,
+        int value which express the minute you want.
+    }
+    {parameter sec ,
+        int value which express the second you want.
+    }    
+  }
+  {constructor package {from-argument
+                           year:int,
+                           month:int,
+                           day:int,
+                           hrs:int,
+                           min:int,
+                           sec:int
+                       }
+    {try
+        def new-date =
+            {DateTime
+                year = year,
+                month = month,
+                day = day,
+                hour = hrs,
+                minute = min,
+                second = sec
+            }
+        def base-date =
+            {DateTime.date
+                year = 1970,
+                month = 1,
+                day = 1
+            }
+        set self.time = (((new-date - base-date) * 1000) / 1s) asa int64
+     catch dte:DateTimeException do
+        {error dte.message}
+    }    
+  }
+
+  {doc-next
+    {purpose
+        Constructs this object.     
+    }
+    {details
+        When user give especial millsec value to the constructor as a argument,
+        the millsec will be treated as the especial date which it is.
+    }
+    {parameter millsec,
+        int64 value which is the millsec value from the date you want to express to
+        1970-01-01 00:00:00.000000 +0000 .
+    }
+  }
+  {constructor public {from-millsecond millsec:int64}
+    set self.time = millsec  
+  }
+
+  {doc-next
+    {purpose
+        get the millsec time which the current object represents     
+    }
+    {return-vals int64,
+        int64.the millsec of the current Date object expresses.
+    }
+  }
+  || see getTime/setTime in javadoc
+  {getter public open {time}:int64
+    {return self._time}
+  }
+
+  {doc-next
+    {purpose
+        set millsec time to the current object     
+    }   
+    {parameter time,
+        int64 value which is the millsec value of the current object.
+    }
+  }
+  {setter public open {time time:int64}:void
+    set self._time = time
+  }
+
+  {doc-next
+    {purpose
+        Convert current Date object to DateTime object   
+    }
+    {return-vals DateTime,
+        A DateTime object.Returning the object which the current Date as  DateTime
+        according to the local date zone
+    }
+  }  
+  || to DateTime
+  {method public open {to-DateTime}:DateTime
+    {return {self.to-LocaleDateTime}}
+  }
+
+  {doc-next
+    {purpose
+        Convert current GMT Date object to DateTime object   
+    }
+    {return-vals
+        A DateTime object.Returning the object which the current Date as  DateTime
+        according to the GMT date zone
+    }
+  }  
+  || to GMTDateTime
+  {method public open {to-GMTDateTime}:DateTime
+    {return
+        {DateTime.date  year = 1970} + {truncate self.time * 0.001}*1s
+    }
+  }
+  
+  {doc-next
+    {purpose
+        Convert current Local Date object to DateTime object   
+    }
+    {return-vals DateTime,
+        A DateTime object.Returning the object which the current Date as  DateTime
+        according to the local date zone
+    }
+  }  
+  || to LocalDateTime
+  {method public open {to-LocaleDateTime}:DateTime
+    def date = {DateTime.date  year = 1970}
+    set date.zone =
+        {DateTimeZone
+            mode = "utc",
+            utc-offset-minutes = {DateTime}.info.utc-offset-minutes
+        }
+    {return date + {truncate self.time * 0.001} * 1s}
+  }
+
+  {doc-next
+    {purpose
+        Convert the given string value to Date object   
+    }
+    {details
+        Convert the given string value to Date object.
+        Notice:When call the method,the utc-offset-minutes will not added to
+        Date
+    }
+    {parameter s,
+        s is a string representing a date in the format "yyyy-mm-dd"
+    }
+    {return-vals Date,
+        A Date object value.Returning the object which the s argument represents
+    }
+  }  
+  || a String object representing a date in in the format "yyyy-mm-dd"
+  {define-proc public inline {value-of s:String}:Date
+    def dt = {DateTime s}.info
+    {return {Date.from-argument dt.year, dt.month, dt.day, 0, 0, 0}}
+  }
+  
+  {doc-next
+    {purpose
+        Formats a date in the date escape format yyyy-mm-dd.
+    }
+    {details
+        Formats a date in the date escape format yyyy-mm-dd.
+        Notice:its value be added the utc-offset-minutes.
+    }
+    {return-vals String,
+        String value.Returning a String in yyyy-mm-dd format
+    }
+  }  
+  ||
+  ||   Formats a date in the date escape format yyyy-mm-dd.  
+  ||    return a String in yyyy-mm-dd format
+  ||  
+  {method public open {to-String}:String
+    {return {self.to-SpecialDateTimeString {self.to-LocaleDateTime}}}
+  }  
+
+  {doc-next
+    {purpose
+        Formats a date in the date escape format yyyy-mm-dd.
+    }
+    {details
+        Formats a date in the date escape format yyyy-mm-dd.
+        Notice:its usage is the same as to-String.But its value
+        is less than to-String by {DateTime}.info.utc-offset-minutes
+    }
+    {return-vals String,
+        String value.Returning a String in yyyy-mm-dd format
+    }
+  }
+  {method public open {to-String-for-GMT}:String
+    {return {self.to-SpecialDateTimeString {self.to-GMTDateTime}}}
+  } 
+
+  {doc-next
+    {purpose
+        Formats a date using the special TimeZone DateTime
+        Notice:it is a private method
+    }
+    {parameter time,
+        a DateTime object who will be expressed by String
+    }
+    {return-vals String,
+        String value.Returning a String in yyyy-mm-dd format
+    }
+  }
+  {method private {to-SpecialDateTimeString time:DateTime}:String
+    def year = time.info.year
+    def month = time.info.month
+    def day = time.info.day
+    def buf = {{Array-of String} "2","0","0","0","-","0","0","-","0","0"}
+    set buf[0] = {if  year div 1000 > 0 and year div 1000 < 10 then  year div 1000 & ""  else "0"}
+    set buf[1] = {if  (year div 100) rem 10 > 0 and (year div 100) rem 10 < 10 then ( (year div 100) rem 10 ) & ""  else "0"}
+    set buf[2] = {if  (year div 10) rem 10 > 0 and (year div 10) rem 10 < 10 then  ((year div 10) rem 10) & ""  else "0"}
+    set buf[3] = {if  year rem 10 > 0 and year rem 10 < 10 then  year rem 10 & ""  else "0"}
+
+    set buf[5] = {if  month div 10 > 0 and month div 10 < 10 then  month div 10 & ""  else "0"}
+    set buf[6] = {if  month rem 10 > 0 and month rem 10 < 10 then  month rem 10 & ""  else "0"}
+
+    set buf[8] = {if  day div 10 > 0 and day / 10 < 10 then  day div 10 & ""  else "0"}
+    set buf[9] = {if  day rem 10 > 0 and day rem 10 < 10 then  day rem 10 & ""  else "0"}
+
+    let return-string:String = ""
+    {for item in buf do
+        set return-string = return-string & item
+    }
+    {return return-string}
+  }
+
+  {doc-next
+    {purpose
+        Creates a string representation of this Date object of
+        the form: d mon yyyy hh:mm:ss GMT
+    }
+    {return-vals String,
+        String value.The result does not depend on the local time zone.
+        a string representation of this date, using the Internet GMT
+        conventions.
+    }
+  }
+  {method public open {to-GMTString}:String
+    let return-string = ""
+    def months = {{FastArray-of String}
+                     "Jan","Feb","Mar","Apr","May","Jue",
+                     "Jul","Aug","Sep","Oct","Nov","Dec"
+                 }
+    def time = {self.to-GMTDateTime}
+    || yyyy-mm-dd
+    def date-strings = {{self.to-SpecialDateTimeString time}.split  split-chars = '-'}
+    
+    def hour = time.info.hour
+    def minute = time.info.minute
+    def second = time.info.second
+
+    set return-string = date-strings[2] & " " & months[{date-strings[1].to-int} - 1] & " " & date-strings[0] & " "
+
+    {if hour < 10 then
+        set return-string = return-string & "0" & hour & ":"
+     else
+        set return-string = return-string & hour & ":"
+    }
+
+    {if minute < 10 then
+        set return-string = return-string & "0" & minute & ":"
+     else
+        set return-string = return-string & minute & ":"
+    }
+
+    {if second < 10 then
+        set return-string = return-string & "0" & second & " "
+     else
+        set return-string = return-string & second & " "
+    }
+    {return return-string & "GMT"}
+  }
+}
+
+

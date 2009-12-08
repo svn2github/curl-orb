@@ -1,0 +1,9 @@
+
+{define-class public serializable CounterDto 
+ 
+  {constructor public {default data:int64} 
+    set self.data = data
+  }
+  
+  field public data:int64 
+}

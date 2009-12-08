@@ -1,0 +1,186 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+{import * from TESTS1}
+{import * from TESTS2}
+{import * from TESTS3}
+{import * from TESTS5}
+
+{import * from COM.CURLAP.ORB}
+
+|||
+||| This test case is to comfirm the security.
+|||
+{TestSuite "security cases",
+
+    ||
+    || Illegal access
+    ||
+    {test-case "illegal access (HttpSession)",
+        || illegal access (HttpSession/ApplicationContext)
+        ||   "COM.CURLAP.ORB.SECURITY.AccessException"
+        {require-exception ORBServerException do
+            let non-access-foo:NonAccessFoo = {NonAccessFoo}
+            {non-access-foo.disable-access}
+        }
+        {require-exception ORBServerException do
+            {NonAccessFoo.disable-static-access}
+        }
+    },
+    {test-case "illegal access (DI)",
+        {require-exception ORBServerException do
+            let non-access-foo:NonAccessFooDI = {NonAccessFooDI}
+            {non-access-foo.disable-access}
+        }
+        
+        {require-exception ORBServerException do
+            {NonAccessFooDI.disable-static-access}
+        }
+    },
+
+    ||
+    || Non accessible DTO
+    ||
+    {test-case "illegal access using package DTO as argument",
+        let service:AccesibleService = {AccesibleService}
+        let dto:NonAccesibleDataClass = {NonAccesibleDataClass}
+        set dto.i = 100
+        set dto.s = "non-accesible"
+        {require-exception ORBServerException do
+            {service.deserialize dto}
+        }
+
+        let dtos:Array = {Array}
+        {for i = 0 below 3 do
+            let v:NonAccesibleDataClass = {NonAccesibleDataClass}
+            set v.i = 100 * i
+            set v.s = "non-accesible" & i
+            {dtos.append v}
+        }
+        {require-exception ORBServerException do
+            {service.deserialize-list dtos}
+        }
+    },
+    {test-case "illegal access using package DTO as return value",
+        || NOTE: EndOfStreamException will happen due to fail to serialize.
+        let service:AccesibleService = {AccesibleService}
+        {require-exception EndOfStreamException do
+            let dto:#NonAccesibleDataClass = {service.serialize}
+        }
+
+        {require-exception EndOfStreamException do
+            let dto:#Array = {service.serialize-list}
+        }
+    },
+    {test-case "illegal access using package DTO",
+        let service:AccesibleService = {AccesibleService}
+        let dto1:NonAccesibleDataClass = {NonAccesibleDataClass}
+        set dto1.i = 100
+        set dto1.s = "non-accesible"
+        {require-exception ORBServerException do
+            {service.echo dto1}
+        }
+    },
+
+    ||
+    || Non accessible classes
+    ||
+    {test-case "illegal access to package class(HttpSession)",
+        {require-exception ORBServerException do
+            let service:NonAccesibleServiceHS = {NonAccesibleServiceHS}
+            ||{service.do-something}
+        }
+    },
+    {test-case "illegal access to package class(DI)",
+        let service:NonAccesibleService = {NonAccesibleService}
+        {require-exception ORBServerException do
+            {service.do-something}
+        }
+    },
+    
+    ||
+    || Non accessible methods
+    ||
+    {test-case "illegal access to private method",
+        let foo:Foo = {Foo}
+        {try
+            {foo.invoke "privateMethod"}
+            {TestCondition.fail}
+         catch e:ORBServerException do
+            {TestCondition.assert
+                {e.message.prefix?
+                    "No such accessible method: privateMethod() on object"
+                }, message = e.message}
+        }
+    },
+    {test-case "illegal access to package method",
+        let foo:Foo = {Foo}
+        {try
+            {foo.invoke "packageMethod"}
+            {TestCondition.fail}
+         catch e:ORBServerException do
+            {TestCondition.assert
+                {e.message.prefix?
+                    "No such accessible method: packageMethod() on object"
+                }, message = e.message}
+        }
+    },
+    {test-case "illegal access to protected method",
+        let foo:Foo = {Foo}
+        {try
+            {foo.invoke "protectedMethod"}
+            {TestCondition.fail}
+         catch e:ORBServerException do
+            {TestCondition.assert
+                {e.message.prefix?
+                    "No such accessible method: protectedMethod() on object"
+                }, message = e.message}
+        }
+    },
+
+    ||
+    || Authentication
+    ||
+    {test-case "fail to login(auth)",
+        {clear-exceptions}
+        {bind-exception "tests5.AuthException", AuthException}
+        
+        || failed to authenticate with spring framework
+        def login-service = {LoginService}
+        {TestCondition.assert not {login-service.login "no user", "no pass"}}
+        def secure-service = {SecureService}
+        {require-exception AuthException do
+            {secure-service.do-something}
+        }
+
+        {clear-jsessionid-in-cookies}
+    },
+    {test-case "succeed to login(auth)",
+        {clear-exceptions}
+        {bind-exception "tests5.AuthException", AuthException}
+
+        def login-service = {LoginService}
+        || succeeded to authenticate with spring framework
+        {TestCondition.assert {login-service.login "user01", "pass"}}
+        def secure-service = {SecureService}
+        {TestCondition.assert {secure-service.do-something} == "Did something!!"}
+        {TestCondition.assert {secure-service.do-something} == "Did something!!"}
+
+        {clear-jsessionid-in-cookies}
+    }
+}

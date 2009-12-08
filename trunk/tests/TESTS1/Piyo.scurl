@@ -1,0 +1,17 @@
+ 
+{import * from COM.CURLAP.ORB}
+
+{define-class public Piyo {inherits ApplicationContextClient}
+
+  {constructor public {default} 
+    {construct-super.ApplicationContextClient "piyo"} 
+  } 
+
+  {method public {interface-method1}:void 
+    {self.invoke "interfaceMethod1"} 
+  } 
+
+  {method public {interface-method2}:#String 
+    {return {self.invoke "interfaceMethod2"}} 
+  } 
+} 

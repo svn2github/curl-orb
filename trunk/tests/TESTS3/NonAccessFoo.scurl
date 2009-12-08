@@ -1,0 +1,47 @@
+ 
+{import * from COM.CURLAP.ORB}
+
+{define-class public NonAccessFoo {inherits HttpSessionClient}
+ 
+  {constructor public {default} 
+    {construct-super.HttpSessionClient "tests3.NonAccessFoo"} 
+  } 
+
+  {method public {disable-access}:#String 
+    {return {self.invoke "disableAccess"}} 
+  } 
+
+  {method public {async-disable-access
+                     ...:EventHandler
+                 }:AsyncWorker 
+    {return {self.async-invoke "disableAccess", {splice ...}}} 
+  } 
+
+  {define-proc public {disable-static-access}:#String 
+    {return {invoke-static "tests3.NonAccessFoo", "disableStaticAccess"}} 
+  } 
+} 
+
+||
+|| NonAccessFooDI
+||
+{define-class public NonAccessFooDI {inherits ApplicationContextClient}
+ 
+  {constructor public {default} 
+    {construct-super.ApplicationContextClient "nonAccessFoo"} 
+  } 
+
+  {method public {disable-access}:#String 
+    {return {self.invoke "disableAccess"}} 
+  } 
+
+  {method public {async-disable-access
+                     ...:EventHandler
+                 }:AsyncWorker 
+    {return {self.async-invoke "disableAccess", {splice ...}}} 
+  } 
+
+  {define-proc public {disable-static-access}:#String 
+    {return {ApplicationContextClient.invoke-static "nonAccessFoo", "disableStaticAccess"}} 
+  } 
+} 

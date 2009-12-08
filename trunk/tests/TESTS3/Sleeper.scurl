@@ -1,0 +1,13 @@
+ 
+{import * from COM.CURLAP.ORB}
+
+{define-class public Sleeper {inherits HttpSessionClient}
+ 
+  {constructor public {default} 
+    {construct-super.HttpSessionClient "tests3.Sleeper"} 
+  } 
+
+  {method public {sleep v0:int64}:void 
+    {self.invoke "sleep", arguments = {FastArray v0}} 
+  }
+} 

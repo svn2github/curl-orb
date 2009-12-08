@@ -1,0 +1,95 @@
+||-- 
+||--{import * from COM.CURLAP.ORB}
+||--
+||--{define-class public StreamTest {inherits HttpSessionClient}
+||--
+||--  {constructor public {default} 
+||--    {construct-super.HttpSessionClient "tests1.StreamTest"} 
+||--  } 
+||--
+||--  || method1
+||--  {method public {method1 str:String, i:int}:Array
+||--    {return
+||--        {self.invoke
+||--            "method1",
+||--            arguments = {{FastArray-of any} str, i},
+||--            is-stream-response? = true
+||--        }
+||--    } 
+||--  } 
+||--
+||--  || method2
+||--  {method public {method2}:Array
+||--    {return
+||--        {self.invoke
+||--            "method2",
+||--            is-stream-response? = true
+||--        }
+||--    } 
+||--  }
+||--
+||--  || async method1
+||--  {method public {async-method1
+||--                     str:String, i:int,
+||--                     ...:EventHandler
+||--                 }:AsyncWorker
+||--    {return
+||--        {self.async-invoke
+||--            "method1",
+||--            arguments = {{FastArray-of any} str, i},
+||--            is-stream-response? = true,
+||--            {splice ...}
+||--        }
+||--    }
+||--  }
+||--
+||--  || async method2
+||--  {method public {async-method2
+||--                     ...:EventHandler
+||--                 }:AsyncWorker
+||--    {return
+||--        {self.async-invoke
+||--            "method2",
+||--            is-stream-response? = true,
+||--            {splice ...}
+||--        }
+||--    }
+||--  }
+||--
+||--  || static method3
+||--  {define-proc public {method3
+||--                          str:String
+||--                      }:Array
+||--    {return 
+||--        {invoke-static "tests1.StreamTest", "method3",
+||--            arguments = {{FastArray-of any} str},
+||--            is-stream-response? = true
+||--        }
+||--    }
+||--  }
+||--
+||--  || static async method3
+||--  {method public {async-method3
+||--                     str:String,
+||--                     ...:EventHandler
+||--                 }:AsyncWorker
+||--    {return
+||--        {async-invoke-static
+||--            "tests1.StreamTest", "method3",
+||--            arguments = {{FastArray-of any} str},
+||--            is-stream-response? = true,
+||--            {splice ...}
+||--        }
+||--    }
+||--  }
+||--
+||--  || download
+||--  {method public {download}:Array
+||--    {return
+||--        {self.invoke
+||--            "download",
+||--            is-stream-response? = true
+||--        }
+||--    } 
+||--  }
+||--}

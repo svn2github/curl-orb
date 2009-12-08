@@ -1,0 +1,50 @@
+
+{import * from COM.CURLAP.ORB} 
+
+|| DI
+{define-class public PerfTestServiceDI {inherits ApplicationContextClient}
+
+  {constructor public {default server-url:#Url = null} 
+    {construct-super.ApplicationContextClient "perfTestService", server-url = server-url} 
+  } 
+
+  {method public {get-large-dto v0:int}:#Array 
+    {return {self.invoke "getLargeDto", arguments = {FastArray v0}} asa #Array} 
+  } 
+
+  {method public {get-small-dto v0:int}:#Array 
+    {return {self.invoke "getSmallDto", arguments = {FastArray v0}} asa #Array} 
+  }
+  
+  {method public {async-get-large-dto v0:int, ...:EventHandler}:AsyncWorker 
+    {return {self.async-invoke "getLargeDto", arguments = {FastArray v0}, {splice ...}} asa AsyncWorker} 
+  } 
+  
+  {method public {async-get-small-dto v0:int, ...:EventHandler}:AsyncWorker 
+    {return {self.async-invoke "getSmallDto", arguments = {FastArray v0}, {splice ...}} asa AsyncWorker} 
+  } 
+}
+
+|| HttpSession
+{define-class public PerfTestServiceHS {inherits HttpSessionClient}
+
+  {constructor public {default server-url:#Url = null} 
+    {construct-super.HttpSessionClient "tests4.PerfTestService", server-url = server-url} 
+  }
+
+  {method public {get-large-dto v0:int}:#Array 
+    {return {self.invoke "getLargeDto", arguments = {FastArray v0}} asa #Array} 
+  }
+
+  {method public {get-small-dto v0:int}:#Array 
+    {return {self.invoke "getSmallDto", arguments = {FastArray v0}} asa #Array} 
+  }
+
+  {method public {async-get-large-dto v0:int, ...:EventHandler}:AsyncWorker 
+    {return {self.async-invoke "getLargeDto", arguments = {FastArray v0}, {splice ...}} asa AsyncWorker} 
+  } 
+  
+  {method public {async-get-small-dto v0:int, ...:EventHandler}:AsyncWorker 
+    {return {self.async-invoke "getSmallDto", arguments = {FastArray v0}, {splice ...}} asa AsyncWorker} 
+  }
+}

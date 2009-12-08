@@ -1,0 +1,33 @@
+{curl 6.0, 7.0 package}
+{package TESTS1||,
+    ||{compiler-directives careful? = true}
+}
+
+{include
+    "Foo.scurl",
+    "Piyo.scurl",
+    "Fuga.scurl",
+    "InheritedFugaImpl.scurl",
+    "Fuga2.scurl",
+    "HogeImpl.scurl",
+    "Person.scurl",
+    "PersonAkira.scurl",
+    "Phone.scurl",
+    
+    "CounterDto.scurl",
+    "DoubleDto.scurl",
+    "LongDto.scurl",
+    "NullIndexDto.scurl",
+    "StringDto.scurl",
+
+    "StreamTest.scurl",
+    "FileTest.scurl",
+    "TestCastCompression.scurl",
+    "TestException.scurl",
+    "NestDto.scurl",
+    "NestTester.scurl",
+    "ChildDto.scurl",
+    "GrandChildDto.scurl",
+
+    "TestTestTest.scurl"
+}

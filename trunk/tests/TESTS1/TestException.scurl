@@ -1,0 +1,54 @@
+
+||
+|| Exceptions
+||
+
+|| -- 1
+{define-class public TestException1
+  {inherits Exception}
+
+  field private _ex-string:#String
+  field private _ex-int:int
+  field private _ex-null:#String
+
+  {getter public {ex-string}:#String
+    {return self._ex-string}
+  }
+  {getter public {ex-int}:int
+    {return self._ex-int}
+  }
+  {getter public {ex-null}:#String
+    {return self._ex-null}
+  }
+  {setter public {ex-string v:#String}:void
+    set self._ex-string = v
+  }
+  {setter public {ex-int v:int}:void
+    set self._ex-int = v
+  }
+  {setter public {ex-null v:#String}:void
+    set self._ex-null = v
+  }
+  
+  {constructor public {default message:String}
+    {construct-super message}
+  }
+}
+
+|| -- 2
+{define-class public TestException2
+  {inherits Exception}
+
+  {constructor public {default message:String}
+    {construct-super message}
+  }
+}
+
+|| -- 3
+{define-class public TestException3
+  {inherits Exception}
+
+  {constructor public {default message:String}
+    {construct-super message}
+  }
+}

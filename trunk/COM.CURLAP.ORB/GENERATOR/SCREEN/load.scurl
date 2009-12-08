@@ -1,0 +1,84 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author ucai zhang
+|||
+
+{curl 6.0, 7.0 package}
+{package COM.CURLAP.ORB.GENERATOR.SCREEN,
+    {compiler-directives careful? = true}
+}
+{import * from CURL.GUI.BASE}
+{import * from CURL.GUI.CONTROL-BASE}
+{import * from CURL.GRAPHICS.MAP}
+{import * from CURL.GUI.CONTROLS}
+{import * from CURL.GUI.STANDARD }
+{import * from CURL.LANGUAGE.REGEXP}
+{import * from CURL.GUI.TEXT-FORMATS}
+{import * from CURL.GUI.DIALOGS}
+{import * from CURL.ENGINE.APPLET}
+{import * from CURL.UTIL.OBSERVER}
+{import * from CURL.GUI.STANDARD}
+
+{import * from CURL.IO.SERIALIZE}
+
+{import * from COM.CURLAP.ORB}
+{import * from COM.CURLAP.ORB.GENERATOR}
+
+|| For version 7.0
+{api-version-switch
+ case "7.0+" do
+    || do nothing
+ case "6.0+" do
+    {import * from COM.CURL.GUI.STYLED-CONTROLS}
+ else
+    {error "No support version"}
+}
+{include
+    "CodeGeneratorControl.scurl",
+    "CodeGeneratorScreen.scurl",
+    "AbstractScreen.scurl",
+    "AbstractDialog.scurl",
+    "proc.scurl",
+    "Control.scurl",
+    "ClassModifierPanel.scurl",
+    "ClassSelectionPanel.scurl",
+    "InterfacesSelectionScreen.scurl",
+    "InputClassScreen.scurl",
+    "ErrorMessages.scurl",
+    "ConfigurationScreen.scurl",
+    "AutocompleteSearchControlScreen.scurl"
+}
+{let constant BACK-GROUND:String = "#696969"}
+{let constant BACK-GROUND1:Url = {url "./images/background1.jpg"}}
+{let constant BACK-GROUND2:Url = {url "./images/background2.jpg"}}
+{let constant LABEL-FONT-SIZE:any = 13pt}
+{let constant FONT-COLOR:FillPattern = "white"}
+
+{let constant SERVICE-ClASS-DI:String = "Service Class (DI)"}
+{let constant SERVICE-ClASS-HTTPSESSION:String = "Service Class (HttpSession)"}
+{let constant DATA-CLASS:String = "Data Class"}
+{let constant EXCEPTION-CLASS:String="Exception Class"}
+{let constant INTERFACES-SELECTION:String = "interfaces-selection"}
+
+{let constant DEFAULT-SERVER-URL:String = "http://localhost:8080/curl-orb-server"}
+
+{let HEIGHT:Distance =  20pt}
+{let WIDTH:Distance = 65pt}
+{let FONT-SIZE:Distance = 10pt}
+
+{let server-url:#Url = null}
+{let base-dir:String = ""}
+{let rte-version:#{HashTable-of String, bool} = null}

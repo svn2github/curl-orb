@@ -1,0 +1,13 @@
+
+{import * from COM.CURLAP.ORB} 
+
+{define-class public DateTest {inherits HttpSessionClient}
+
+  {constructor public {default server-url:#Url = null} 
+    {construct-super.HttpSessionClient "tests3.DateTest", server-url = server-url} 
+  } 
+
+  {method public {get-dto}:#DateDto 
+    {return {self.invoke "getDto"}} 
+  }
+}

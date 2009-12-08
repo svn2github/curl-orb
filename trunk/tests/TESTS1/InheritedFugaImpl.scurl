@@ -1,0 +1,13 @@
+
+{import * from COM.CURLAP.ORB} 
+
+{define-class public InheritedFugaImpl {inherits ApplicationContextClient}
+
+  {constructor public {default server-url:#Url = null} 
+    {construct-super.ApplicationContextClient "inherited-fuga", server-url = server-url} 
+  } 
+
+  {method public {method1}:#String 
+    {return {self.invoke "method1"} asa #String} 
+  } 
+}

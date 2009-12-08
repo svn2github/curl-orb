@@ -1,0 +1,22 @@
+
+{import * from COM.CURLAP.ORB}
+
+{define-class public Fuga {inherits HttpSessionClient}
+
+  {constructor public {default} 
+    {construct-super.HttpSessionClient "tests1.FugaImpl"} 
+  } 
+
+  {method public {method1}:#String 
+    {return {self.invoke "method1"}} 
+  } 
+
+  {method public {method2 v0:String, v1:int, v2:bool}:#String 
+    {return {self.invoke "method2", arguments = {FastArray v0, v1, v2}}} 
+  } 
+ 
+  || added by hokada (Illegal access error)
+  {method public {method3}:#String
+    {return {self.invoke "method3"}} 
+  }
+} 

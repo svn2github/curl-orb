@@ -1,0 +1,54 @@
+
+{import * from COM.CURLAP.ORB} 
+
+{define-class public RecordSetTest {inherits HttpSessionClient}
+ 
+
+  {constructor public {default server-url:#Url = null} 
+    {construct-super.HttpSessionClient "tests4.RecordSetTest", server-url = server-url} 
+  } 
+
+  {method public {echo-record-set v0:any}:any 
+    {return {self.invoke "echoFromClient", arguments = {FastArray v0}}} 
+  } 
+
+  {method public {create-record-set}:#SerializableRecordSet 
+    {return {self.invoke "createRecordSet"} asa #SerializableRecordSet} 
+  } 
+
+  {method public {create-record-set-to-test-large-data v0:int}:#SerializableRecordSet 
+    {return {self.invoke "createRecordSetToTestLargeData", arguments = {FastArray v0}} asa #SerializableRecordSet} 
+  } 
+
+  {method public {create-test-large-data v0:int}:#Array 
+    {return {self.invoke "createTestLargeData", arguments = {FastArray v0}} asa #Array} 
+  } 
+
+  {method public {create-record-set-array-one}:#{FastArray-of #SerializableRecordSet} 
+    {return {self.invoke "createRecordSetArrayOne"} asa #{FastArray-of #SerializableRecordSet}} 
+  } 
+
+  {method public {create-record-set-array-two}:#{FastArray-of #{FastArray-of #SerializableRecordSet}} 
+    {return {self.invoke "createRecordSetArrayTwo"} asa #{FastArray-of #{FastArray-of #SerializableRecordSet}}} 
+  } 
+
+  {method public {create-record-set-list}:#Array 
+    {return {self.invoke "createRecordSetList"} asa #Array} 
+  } 
+
+  {method public {create-record-set-hash}:#HashTable 
+    {return {self.invoke "createRecordSetHash"} asa #HashTable} 
+  } 
+
+  {method public {create-record-set-set}:#Set 
+    {return {self.invoke "createRecordSetSet"} asa #Set} 
+  } 
+
+  {method public {create-included-record-set-object}:#Foo 
+    {return {self.invoke "createIncludedRecordSetObject"} asa #Foo} 
+  } 
+
+  {method package {new-hoge-with-data}:#Hoge 
+    {return {self.invoke "newHogeWithData"} asa #Hoge} 
+  }
+}

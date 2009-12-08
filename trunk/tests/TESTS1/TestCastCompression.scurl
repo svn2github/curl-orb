@@ -1,0 +1,82 @@
+
+{import * from COM.CURLAP.ORB} 
+
+|| for compression
+{define-class public TestCastCompression {inherits ApplicationContextClient}
+  
+  {constructor public {default server-url:#Url = null} 
+    {construct-super.ApplicationContextClient "testCastCompression", server-url = server-url} 
+  } 
+
+  {method public {async-set-field-name v0:String, ...:EventHandler}:AsyncWorker 
+    {return {self.async-invoke "setFieldName", arguments = {FastArray v0}, {splice ...}} asa AsyncWorker} 
+  } 
+
+  {method public {set-field-name v0:String}:void 
+    {self.invoke "setFieldName", arguments = {FastArray v0}} 
+  } 
+
+  {method public {async-get-person ...:EventHandler}:AsyncWorker 
+    {return {self.async-invoke "getPerson", {splice ...}} asa AsyncWorker} 
+  } 
+
+  {method public {get-person}:#Person 
+    {return {self.invoke "getPerson"} asa #Person} 
+  } 
+
+  {method public {async-test-hash-map ...:EventHandler}:AsyncWorker 
+    {return {self.async-invoke "testHashMap", {splice ...}} asa AsyncWorker} 
+  } 
+
+  {method public {test-hash-map}:#HashTable 
+    {return {self.invoke "testHashMap"} asa #HashTable} 
+  } 
+
+  {method public {async-test-list ...:EventHandler}:AsyncWorker 
+    {return {self.async-invoke "testList", {splice ...}} asa AsyncWorker} 
+  } 
+
+  {method public {test-list}:#Array 
+    {return {self.invoke "testList"} asa #Array} 
+  } 
+
+  {method public {async-testdouble-array ...:EventHandler}:AsyncWorker 
+    {return {self.async-invoke "testdoubleArray", {splice ...}} asa AsyncWorker} 
+  } 
+
+  {method public {testdouble-array}:#{FastArray-of double} 
+    {return {self.invoke "testdoubleArray"} asa #{FastArray-of double}} 
+  } 
+
+  {method public {async-test-set ...:EventHandler}:AsyncWorker 
+    {return {self.async-invoke "testSet", {splice ...}} asa AsyncWorker} 
+  } 
+
+  {method public {test-set}:#Set 
+    {return {self.invoke "testSet"} asa #Set} 
+  } 
+
+  {method public {async-test-two-string ...:EventHandler}:AsyncWorker 
+    {return {self.async-invoke "testTwoString", {splice ...}} asa AsyncWorker} 
+  } 
+
+  {method public {test-two-string}:#{FastArray-of #{FastArray-of #String}} 
+    {return {self.invoke "testTwoString"} asa #{FastArray-of #{FastArray-of #String}}} 
+  } 
+
+  {method public {async-get-field-name ...:EventHandler}:AsyncWorker 
+    {return {self.async-invoke "getFieldName", {splice ...}} asa AsyncWorker} 
+  } 
+
+  {method public {get-field-name}:#String 
+    {return {self.invoke "getFieldName"} asa #String} 
+  } 
+
+  {method public {throw-test-exception1}:void
+    {self.invoke "throwTestException1"}
+  }
+
+  {method public {async-throw-test-exception1 ...:EventHandler}:AsyncWorker 
+    {return {self.async-invoke "throwTestException1", {splice ...}} asa AsyncWorker} 
+  } 
+}

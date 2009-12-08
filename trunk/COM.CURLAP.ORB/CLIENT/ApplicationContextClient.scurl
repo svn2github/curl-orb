@@ -1,0 +1,147 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+||
+|| ApplicationContextClient (AppicationContext ORB Client)
+||   NOTE: Can invoke the object's methhod in DI Container.
+||
+{doc-next
+    {purpose ApplicationContextClient}
+    {notes This class is not used by developers.} 
+}
+{define-class public open ApplicationContextClient
+  {inherits AbstractClient}
+
+  || new instance
+  {constructor public {default
+                          server-url:#Url = null,
+                          class-name:String||,
+                          ||arguments:#FastArray = null
+                      }
+    {construct-super server-url = server-url, class-name}
+  }
+  
+  || invoke
+  {method public open {invoke 
+                          method-name:String,
+                          arguments:#FastArray = null,
+                          request-header:#HashTable = null
+                      }:any
+    def interceptor = super.interceptor
+    {interceptor.handle-before-request method-name, arguments}
+    {try
+        def (return-value, http-response-headers, orb-response-headers) =
+            {send 
+                {self.server-url.concat INVOKE-APPLICATION-CONTEXT-PATH},
+                {InvokeApplicationContextRequest
+                    self.class-name,
+                    method-name,
+                    arguments = arguments,
+                    request-header = {interceptor.build-orb-request-headers request-header}
+                },
+                http-request-headers = {interceptor.build-http-request-headers null}
+            }
+        {interceptor.handle-http-response-headers http-response-headers} 
+        {interceptor.handle-orb-response-headers orb-response-headers} 
+        {interceptor.handle-after-response method-name, arguments, return-value}
+        {return return-value}
+     catch e:Exception do
+        {interceptor.handle-exception method-name, arguments, e}
+        {throw e}
+    }
+  }
+
+  || invoke async
+  {method public open {async-invoke 
+                          method-name:String,
+                          arguments:#FastArray = null,
+                          request-header:#HashTable = null,
+                          ...:EventHandler
+                      }:AsyncWorker
+    def interceptor = super.interceptor
+    {interceptor.handle-before-request method-name, arguments}
+    {return
+        {async-send 
+            {self.server-url.concat INVOKE-APPLICATION-CONTEXT-PATH},
+            {InvokeApplicationContextRequest
+                self.class-name,
+                method-name,
+                arguments = arguments,
+                request-header = {interceptor.build-orb-request-headers request-header}
+            },
+            http-request-headers = {interceptor.build-http-request-headers null},
+            {splice ...},
+            {on e:AsyncCallbackEvent do
+                {if-non-null ex = e.exception then
+                    {interceptor.handle-exception method-name, arguments, ex}
+                 else
+                    {interceptor.handle-http-response-headers e.http-response-headers}
+                    {interceptor.handle-orb-response-headers e.orb-response-headers} 
+                    {interceptor.handle-after-response method-name, arguments, e.obj}
+                }
+            }
+        }
+    }
+  }
+
+  || invoke-static
+  {define-proc public inline {invoke-static
+                                 server-url:#Url = null,
+                                 class-name:String,
+                                 method-name:String,
+                                 arguments:#FastArray = null,
+                                 request-header:#HashTable = null
+                             }:any
+    
+    {return 
+        {send 
+            {{get-server-url server-url}.concat INVOKE-APPLICATION-CONTEXT-PATH},
+            {InvokeApplicationContextRequest
+                class-name,
+                method-name,
+                arguments = arguments,
+                request-header = request-header
+            }
+        }
+    }
+  }
+  
+  || invoke-static
+  {define-proc public inline {async-invoke-static
+                                 server-url:#Url = null,
+                                 class-name:String,
+                                 method-name:String,
+                                 arguments:#FastArray = null,
+                                 request-header:#HashTable = null,
+                                 ...:EventHandler
+                             }:AsyncWorker
+    {return
+        {async-send 
+            {{get-server-url server-url}.concat INVOKE-APPLICATION-CONTEXT-PATH},
+            {InvokeApplicationContextRequest
+                class-name,
+                method-name,
+                arguments = arguments,
+                request-header = request-header
+            },
+            {splice ...}
+        }
+    }
+  }
+}
+

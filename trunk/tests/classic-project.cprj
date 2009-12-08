@@ -1,0 +1,24 @@
+|| **********************************************************
+|| *** THIS FILE IS AUTOMATICALLY UPDATED BY THE CURL IDE ***
+|| ***              DO NOT MODIFY IT BY HAND              ***
+|| **********************************************************
+{project
+    version = 2,
+    manifest-location = "manifest.mcurl",
+    api-version = "6.0",
+    compiler-directives = "careful? = true",
+    use-style-sheets? = false,
+    style-package-name = "COM.CURL.GUI.STYLED-CONTROLS",
+    style-sheet-name = "DEFAULT-STYLE-SHEET",
+    {target
+        name = "\u30C7\u30A3\u30D5\u30A9\u30EB\u30C8",
+        target-url-name = "deploy-default",
+        {assembly-transform "COM.CURL.CDU", use-path? = true},
+        {package-transform "TESTS3\u0000package\u0000TESTS3/load.scurl", copy? = true},
+        {resource-transform "start-tests.curl\u0000file\u0000start-tests.curl", copy? = true},
+        {assembly-transform "COM.CURLAP.ORB", use-path? = true},
+        {package-transform "TESTS2\u0000package\u0000TESTS2/load.scurl", copy? = true},
+        {package-transform "TESTS4\u0000package\u0000TESTS4/load.scurl", copy? = true},
+        {package-transform "TESTS1\u0000package\u0000TESTS1/load.scurl", copy? = true}
+    }
+}

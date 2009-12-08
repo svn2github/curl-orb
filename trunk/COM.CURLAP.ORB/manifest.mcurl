@@ -1,0 +1,52 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada, ucai zhang
+|||
+
+{curl 6.0, 7.0 manifest}
+{manifest COM.CURLAP.ORB,
+    version = "0.7"
+}
+
+|| ORB packages
+{component package COM.CURLAP.ORB,
+    location = "load.scurl"
+}
+{component package COM.CURLAP.ORB.COMMON,
+    location = "COMMON/load.scurl"
+}
+{component package COM.CURLAP.ORB.CLIENT,
+    location = "CLIENT/load.scurl"
+}
+{component package COM.CURLAP.ORB.TYPE,
+    location = "TYPE/load.scurl"
+}
+
+|| GENERATOR and SCREEN packages
+{component package COM.CURLAP.ORB.GENERATOR,
+    location = "GENERATOR/load.scurl"
+}
+
+{delegate-to COM.CURL.GUI.STYLED,
+    location = "GENERATOR/SCREEN/COM.CURL.GUI.STYLED/manifest.mcurl",
+    version = "6.0" || only 6.0 
+}
+{component file orb-style,
+    location = "GENERATOR/SCREEN/stylesheet/orb-style.scurl"
+}
+{component package COM.CURLAP.ORB.GENERATOR.SCREEN,
+    location = "GENERATOR/SCREEN/load.scurl"
+}

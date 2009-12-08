@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>COM.CURLAP.ORB</name>
+	<comment>Curl Projects</comment>
+	<projects>
+	</projects>
+	<buildSpec>
+	</buildSpec>
+	<natures>
+		<nature>com.curl.eclipse.plugin.CurlNature</nature>
+	</natures>
+</projectDescription>

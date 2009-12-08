@@ -1,0 +1,176 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+{import * from TESTS1}
+{import * from TESTS2}
+{import * from TESTS3}
+
+{import * from COM.CURLAP.ORB}
+
+|||
+||| This test case is for extra functionalities. 
+|||
+{TestSuite "extra feature cases",
+
+    ||
+    || Service Container
+    ||
+    {test-case "service container",
+        || service container
+        ||  (get-service-from-container, set-service-to-container)
+        {set-service-to-container "ServiceA", Foo}
+        let s1:Foo = {get-service-from-container "ServiceA"}
+        let s2:Foo = {get-service-from-container "ServiceA"}
+        {TestCondition.assert s1 == s2}
+
+        {set-service-to-container "ServiceB", Foo}
+        {TestCondition.assert s1 != {get-service-from-container "ServiceB"}}
+
+        || error-if-exists? arg
+        {require-exception ORBClientException do
+            {set-service-to-container "ServiceB", Foo}
+        }
+        {set-service-to-container
+            "ServiceB", Foo, error-if-exists? = false
+        }
+
+        || indicate URL (but it's bad url, as there are not a few orb server.)
+        {set-service-to-container
+            "ServiceC", Foo, server-url = {url "http://nothing-url.com"}
+        }
+        let s3:Foo = {get-service-from-container "ServiceC"}
+        {require-exception Exception do
+            {s3.echo "echo!"}
+        }
+
+        || invoke method
+        {set-service-to-container "ServiceD", Foo}
+        let s4:Foo = {get-service-from-container "ServiceD"}
+        {TestCondition.assert {s4.echo "echo!!"} == "echo!!"}
+
+        || names
+        let names:{Iterator-of String} = {get-service-names-from-container}
+        {for name in names do    }
+
+        || remove
+        {remove-service-from-container "ServiceD"}
+        {require-exception Exception do
+            {get-service-from-container "ServiceD"}
+        }
+        {clear-container}
+    },
+
+    ||
+    || ORB headers
+    ||
+    {test-case "orb headers",
+        || global header/local header (NOTE: check with your eyes)
+        {set-global-header "global-k", "global-v"}
+        let orb4:HttpSessionClient =
+            {HttpSessionClient
+                "tests1.Foo",
+                request-header = {HashTable "test-header-k", "test-header-v"}
+            }
+        {orb4.invoke
+            "echo",
+            arguments = {FastArray "orb-test4"},
+            request-header = {HashTable "username", "hokada", "password", "pass1234"}
+        }
+        {orb4.destroy-instance}
+    }
+
+    ||
+    || The streaming response (Deplicated)
+    ||
+||--    {test-case "streaming response",
+||--        || stream response
+||--        let stream-test:StreamTest = {StreamTest}
+||--        let stream-array1:#Array = {stream-test.method1 "strs", 123456}
+||--        {TestCondition.assert stream-array1[0] == "strs"}
+||--        {TestCondition.assert stream-array1[1] == 123456}
+||--        let stream-array2:#Array = {stream-test.method2}
+||--        {TestCondition.assert stream-array2[0] == "non-arguments' method"}
+||--        {TestCondition.assert stream-array2[1] == 10000}
+||--        {TestCondition.assert stream-array2[2] == 20000}
+||--        let stream-array3:#Array = {StreamTest.method3 "strs"}
+||--        {TestCondition.assert stream-array3[0] == "static strs"}
+||--        {TestCondition.assert stream-array3[1] == 30000}
+||--        {stream-test.async-method1 "async-strs", 98765,
+||--            {on e:AsyncCallbackEvent do
+||--                let obj:Array = e.obj asa Array
+||--                {TestCondition.assert obj[0] == "async-strs"}
+||--                {TestCondition.assert obj[1] == 98765}
+||--            }
+||--        }
+||--        {stream-test.async-method2
+||--            {on e:AsyncCallbackEvent do
+||--                let obj:Array = e.obj asa Array
+||--                {TestCondition.assert obj[0] == "non-arguments' method"}
+||--                {TestCondition.assert obj[1] == 10000}
+||--                {TestCondition.assert obj[2] == 20000}
+||--            }
+||--        }
+||--        {stream-test.async-method3 "async-strs",
+||--            {on e:AsyncCallbackEvent do
+||--                let obj:Array = e.obj asa Array
+||--                {TestCondition.assert obj[0] == "static async-strs"}
+||--                {TestCondition.assert obj[1] == 30000}
+||--            }
+||--        }
+||--    }
+
+    ||
+    || Others
+    ||
+    
+    || Deplicated
+||--    {test-case "download",
+||--        let stream-test:StreamTest = {StreamTest}
+||--        || File test (stream)
+||--        || Download
+||--        let stream-bin-url:Url = {url "resources/tmp1.jpg"}
+||--        {with-open-streams bos = {write-open-byte stream-bin-url} do
+||--            {for b in {stream-test.download} do
+||--                {bos.write b}
+||--            }
+||--        }
+||--        {delete stream-bin-url}
+||--
+||--        || File test (No stream)
+||--        let bin-com:FileTest = {FileTest}
+||--
+||--        || Download binary
+||--        let bin-url:Url = {url "file:///c:/tmp2.jpg"}
+||--        {if-non-null bin-file:SerializableBinaryFile = {bin-com.get-binary-file} then
+||--            {bin-file.write bin-url}
+||--        }
+||--        || Upload binary (NOTE:"Download with stream" is not support)
+||--        {bin-com.set-binary-file {SerializableBinaryFile.from-url bin-url}} 
+||--        {delete bin-url}
+||--
+||--        || Download text
+||--        let txt-url:Url = {url "file:///c:/tmp1.txt"}
+||--        {if-non-null txt-file:SerializableTextFile = {bin-com.get-text-file} then
+||--            {txt-file.write txt-url}
+||--        }
+||--        || Upload text
+||--        {bin-com.set-text-file {SerializableTextFile.from-url txt-url}}
+||--        {delete txt-url}
+||--    },
+    
+}

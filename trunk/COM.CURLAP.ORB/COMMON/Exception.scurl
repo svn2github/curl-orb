@@ -1,0 +1,223 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+
+|| 
+|| bind server and client exception
+|| 
+{def package exceptions-map:{HashTable-of String, ClassType} = {{HashTable-of String, ClassType}}}
+
+{doc-next
+    {purpose bind a server exception to a client exception.}
+    {parameter server-exception, server exception}
+    {parameter client-exception, client exception}
+    {details
+        Be thrown the client exception binded by this procedure,
+        when the exception occur on server-side.
+    }
+}
+{define-proc public inline {bind-exception
+                               server-exception:String,
+                               client-exception:ClassType
+                           }:void
+    {exceptions-map.set server-exception, client-exception}
+}
+
+|| bind some exceptions (since 0.6)
+{doc-next
+    {purpose bind server exceptions to client exceptions.}
+    {parameter exceptions-map, client and server exceptions' map}
+    {parameter clear-before-set?, clear before exceptions are set}
+    {details
+        Be thrown the client exception binded by this procedure,
+        when the exception occur on server-side.
+    }
+}
+{define-proc public inline {bind-exceptions
+                               exceptions-map:{HashTable-of String, ClassType},
+                               clear-before-set?:bool = true
+                           }:void
+    {if clear-before-set? then
+        {exceptions-map.clear}
+    }
+    {for v:ClassType key k:String in exceptions-map do
+        {exceptions-map.set k, v}
+    }
+}
+
+|| get exceptions 
+{doc-next {purpose get binded exception from exception name}}
+{define-proc public inline {get-exception
+                               server-exception:String
+                           }:ClassType
+    {return exceptions-map[server-exception]}
+}
+
+|| get all exceptions (since 0.6)
+{doc-next {purpose get all binded exceptions}}
+{define-proc public inline {get-exceptions
+                           }:{HashTable-of String, ClassType}
+    {return exceptions-map}
+}
+
+|| TODO: rename to "unbind"
+{doc-next {purpose unbind exception.}}
+{define-proc public inline {remove-exception
+                               server-exception:String
+                           }:void
+    {exceptions-map.remove server-exception}
+}
+
+|| clear all exceptions (since 0.6)
+{doc-next {purpose unbind all exceptions.}}
+{define-proc public inline {clear-exceptions
+                           }:void
+    {exceptions-map.clear}
+}
+
+
+||
+|| ORBClientException
+||
+{doc-next {purpose CurlORB's exception}}
+{define-class public open ORBClientException
+  {inherits Exception}
+
+  {constructor public {default message:String}
+    {construct-super message}
+  }
+}
+
+
+||
+|| ORBServerException
+||
+{doc-next {purpose CurlORB or server-side program's exception}}
+{define-class public open ORBServerException
+  {inherits Exception}
+
+  {doc-next {purpose exception on server-side}}
+  field public-get private-set exception-content:ExceptionContent
+
+  {constructor public {default
+                          exception-content:ExceptionContent
+                      }
+    
+    set self.exception-content = exception-content
+    {construct-super
+        {if-non-null message = exception-content.message then
+            message
+         else
+            "Unexpected Server Error. " &
+            {if-non-null exception-name = exception-content.exception-name then
+                exception-name
+             else
+                ""
+            }
+        }
+    }
+  }
+
+  {doc-next
+    {purpose print the stack trace of server-side exception to console.}
+  }
+  {method public open {print-stack-trace}:void
+    {self.inner-print-stack-trace self.exception-content}
+  }
+
+  {method private {inner-print-stack-trace ec:ExceptionContent}:void
+    {output ec.exception-name}
+    {output "  " & ec.message}
+    {if-non-null cause = ec.cause then
+        {output "caused by "}
+        {self.inner-print-stack-trace cause}
+    }
+  }
+}
+
+
+||
+|| ExceptionContent
+||
+{doc-next
+    {purpose server transport content for exception on server side.}
+}
+{define-class public open serializable ExceptionContent
+
+  field private _exception-name:String = {uninitialized-value-for-type String}
+  field private _message:#String
+  field private _cause:#ExceptionContent
+  field private _exception-fields:#Array
+
+  {constructor public {default}
+    || do nothing
+  }
+
+  {doc-next {purpose name of server-side exception}}
+  {setter public open {exception-name exception-name:String}:void
+    set self._exception-name = exception-name
+  }
+  {doc-next {purpose name of server-side exception}}
+  {getter public open {exception-name}:String
+    {return self._exception-name}
+  }
+
+  {doc-next
+    {purpose uppercase name of server-side exception}
+  }
+  {getter public open {exception-name-as-curl-style}:#String
+    || NOTE: convert to upper case except java and javax packages.
+    def en = self._exception-name
+    {return
+        {if not ({en.prefix? "java."} or {en.prefix? "javax."}) then
+            def dot-pos = {en.find-char-class '.', search-direction = SearchDirection.backward}
+            {{en.substr 0, dot-pos}.to-upper-clone} & {en.substr dot-pos, en.size - dot-pos}
+         else
+            self._exception-name
+        }
+    }
+  }
+  
+  {doc-next {purpose message}}
+  {setter public open {message message:#String}:void
+    set self._message = message
+  }
+  {doc-next {purpose message}}
+  {getter public open {message}:#String
+    {return self._message}
+  }
+
+  {doc-next {purpose cause}}
+  {setter public open {cause cause:#ExceptionContent}:void
+    set self._cause = cause
+  }
+  {doc-next {purpose cause}}
+  {getter public open {cause}:#ExceptionContent
+    {return self._cause}
+  }
+
+  {doc-next {purpose exception's fields of server-side exception}}
+  {setter public open {exception-fields exception-fields:#Array}:void
+    set self._exception-fields = exception-fields
+  }
+  {doc-next {purpose exception's fields of server-side exception}}
+  {getter public open {exception-fields}:#Array
+    {return self._exception-fields}
+  }
+}
+

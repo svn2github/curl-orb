@@ -1,0 +1,56 @@
+{curl 6.0, 7.0 applet}
+{applet manifest = "manifest.mcurl"}
+
+{import * from TESTS1}
+{import * from TESTS2}
+{import * from TESTS3}
+||--{import * from TESTS4}
+||--{import * from TESTS5}
+{import * from COM.CURLAP.ORB}
+
+
+{define-class public Abc
+  {inherits Abcd}
+
+}
+
+{value
+||--    def foo = {Foo}
+||--    || RecordSet
+||--    def rs1 = {unchecked-non-null {foo.create-record-set}}
+||--
+||--    || large RecordSet
+||--        def count = 50000 
+||--        def rs2 = {unchecked-non-null {foo.create-record-set-to-test-large-data count}}
+||--||--        {TestCondition.assert rs2.size == count}
+||--
+||--    || echo RecordSet
+||--    def rs3 = {foo.echo-record-set rs1}
+||--    {popup-message rs3.size}
+
+
+    def v = {TestTestTest}
+    {RecordGrid
+        record-source = {v.get-shop-master "", ""}
+    }
+||--    {spaced-vbox
+||--        {CommandButton
+||--            label = "go!",
+||--            {on Action do
+||--                let foo:Foo = {Foo}
+||--                {foo.async-sleeping
+||--                    3000,
+||--                    {on e:AsyncCallbackEvent do
+||--                        {popup-message e.obj}
+||--                    }
+||--                }
+||--            }
+||--        },
+||--        {CommandButton
+||--            label = "test",
+||--            {on Action do
+||--                {popup-message "yahoo"}
+||--            }
+||--        }
+||--    }
+}

@@ -1,0 +1,124 @@
+
+{import * from COM.CURLAP.ORB}
+
+{define-class public Foo {inherits ApplicationContextClient}
+
+  field private _person:#Person
+  field private _field-name:#String 
+  field public public-test-field:#String 
+  let public static-test-field:#String 
+
+  {constructor public {default} 
+    {construct-super.ApplicationContextClient "foo1"} 
+  } 
+
+  {method public {get-field-name}:#String 
+    {return {self.invoke "getFieldName"}} 
+  } 
+
+  {method public {set-field-name v0:#String}:void 
+    {self.invoke "setFieldName", arguments = {{FastArray-of any} v0}} 
+  } 
+
+  {method public {get-person}:#Person 
+    {return {self.invoke "getPerson"}} 
+  } 
+
+  {method public {get-person-akira v0:#String, v1:#String}:#PersonAkira 
+    {return {self.invoke "getPersonAkira", arguments = {{FastArray-of any} v0, v1}}} 
+  } 
+
+  {method public {echo-record-set v0:SerializableRecordSet}:#SerializableRecordSet 
+    {return {self.invoke "echoRecordSet", arguments = {{FastArray-of any} v0}}}
+  }
+
+  {method public {create-record-set}:#SerializableRecordSet 
+    {return {self.invoke "createRecordSet"}} 
+  }
+
+  {method public {create-record-set-to-test-large-data v0:int}:#SerializableRecordSet 
+    {return {self.invoke "createRecordSetToTestLargeData", arguments = {{FastArray-of any} v0}}} 
+  }
+
+  {method public {create-test-large-data v0:int}:#{Array-of any}
+    {return {self.invoke "createTestLargeData", arguments = {{FastArray-of any} v0}}} 
+  }
+
+  || added by hokada
+  {method public {async-create-record-set-to-test-large-data
+                     v0:int,
+                     ...:EventHandler
+                 }:AsyncWorker
+    {return
+        {self.async-invoke
+            "createRecordSetToTestLargeData",
+            arguments = {{FastArray-of any} v0},
+            {splice ...}
+        }
+    }
+  } 
+
+  {method public {sleeping v0:int}:bool 
+    {return {self.invoke "sleeping", arguments = {{FastArray-of any} v0}}} 
+  } 
+
+  || added by hokada
+  {method public {async-sleeping
+                     v0:int,
+                     ...:EventHandler
+                 }:AsyncWorker
+    {return
+        {self.async-invoke
+            "sleeping",
+            arguments = {{FastArray-of any} v0},
+            {splice ...}
+        }
+    }
+  } 
+
+  {method public {echo v0:String}:String 
+    {return {self.invoke "echo", arguments = {{FastArray-of any} v0}}} 
+  }
+  {method public {echo-date v0:DateTime}:DateTime 
+    {return {self.invoke "echoDate", arguments = {{FastArray-of any} v0}}} 
+  }
+
+  {method public {check-surrogate v0:String}:String
+    {return {self.invoke "checkSurrogate", arguments = {{FastArray-of any} v0}}} 
+  }
+  
+  {method public {occur-exception1}:void
+    {self.invoke "occurException1"}
+  }
+  {method public {occur-exception2}:void
+    {self.invoke "occurException2"}
+  }
+  {method public {occur-exception3}:void
+    {self.invoke "occurException3"}
+  }
+  
+  {method public {async-occur-exception1
+                     ...:EventHandler
+                 }:AsyncWorker 
+    {return {self.async-invoke "occurException1", {splice ...}}} 
+  }
+  {method public {async-occur-exception2
+                     ...:EventHandler
+                 }:AsyncWorker 
+    {return {self.async-invoke "occurException2", {splice ...}}} 
+  }
+  {method public {async-occur-exception3
+                     ...:EventHandler
+                 }:AsyncWorker 
+    {return {self.async-invoke "occurException3", {splice ...}}} 
+  }
+  
+  || NOTE: The followings are methods of the super class
+  {method public {super-method}:#String 
+    {return {self.invoke "superMethod"}} 
+  } 
+
+  {method public {supersuper-method}:#String 
+    {return {self.invoke "supersuperMethod"}} 
+  } 
+} 

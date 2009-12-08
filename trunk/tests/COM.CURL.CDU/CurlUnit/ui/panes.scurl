@@ -1,0 +1,178 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|| PanedBox
+|| --------------------
+{define-class public BasePanedBox {inherits PanedBox}
+  {constructor public {default 
+                          orientation:Orientation = "vertical", 
+                          pane-sizes:#DoubleArray = null,
+                          ...}
+    {construct-super orientation = orientation}
+    {self.process-rest-args {splice ...}}
+    {if-non-null pane-sizes then
+        set self.pane-sizes = pane-sizes}
+  }
+  {method public {non-keyword-init-arg x:any}:void
+    {type-switch x
+     case g:Graphic do
+        {self.add-pane g}
+     else {super.non-keyword-init-arg x}}
+  }
+}
+{define-class public HPanedBox {inherits BasePanedBox}
+  {constructor public {default ...}
+    {construct-super orientation = "horizontal",
+        {splice ...}}
+  }
+}
+{define-class public VPanedBox {inherits BasePanedBox}
+  {constructor public {default ...}
+    {construct-super orientation = "vertical",
+        {splice ...}}
+  }
+}
+{let public constant DoubleArray:ClassType =
+    {Array-of double}
+}
+|| PanedBox
+|| --------------------
+{define-class public PanedBox {inherits PanedWindow}
+  field constant sash-handler:EventHandler
+  {constructor public {default ...}
+    || handler to detect sash adjustment
+    set self.sash-handler =
+        {on GrabRelease do
+            {self.note-pane-sizes-changed}}
+    {construct-super {splice ...}}
+  }
+  || property semantics
+  field _pane-sizes:{Array-of double} = {{Array-of double}}
+  {setter public {pane-sizes xs:{Array-of double}}:void
+    {self.set-pane-sizes xs}
+  }
+  {getter public {pane-sizes}:{Array-of double}
+    {return self._pane-sizes}
+  }
+  || adapter
+  {method {get-pane-sizes}:{Array-of double}
+    || derive from panes
+    let xs:{Array-of double} = {{Array-of double}}
+    {for i = 0 below {self.pane-count} do
+        {if-non-null p = {self.get-pane i} then
+            {xs.append {p.get-stretchiness}}}}
+    {return xs}
+  }
+  {method public {set-pane-sizes xs:{Array-of double}}:void
+    || adjust layout
+    {super.set-pane-sizes xs}
+    || notify consumers
+    {self.note-pane-sizes-changed}
+  }
+  || implementation
+  {method public {add-pane-at-index g:Graphic, i:int, min:any = 1mm}:void
+    {super.add-pane-at-index g, i, min = min}
+    || ensure sashes can report adjustments
+    {self.add-sash-handlers}
+  }
+  {method {note-pane-sizes-changed}:void
+    || current value
+    let xs:{Array-of double} = {self.get-pane-sizes}
+    || damp propagation
+    {if not {xs.equal? self._pane-sizes} then
+        || record value
+        set self._pane-sizes = xs
+        || notify consumers
+        {self.handle-event {ValueFinished}}}
+  }
+  {method {add-sash-handlers}:void
+    let h:EventHandler = self.sash-handler
+    {for-each-graphic self, 
+        {proc {g:Graphic}:void
+            {type-switch g
+             case s:Sash do 
+                {if || exclude constituents of nested PanedWindows
+                    || NOTE: assumes current internal structure 
+                    s.parent.parent == self and
+                    || avoid duplication
+                    not {s.event-handler-present? h}
+                 then
+                    {s.add-event-handler h}}}}}
+  }
+}
+{define-proc {for-each-graphic
+                 g:Graphic,
+                 f:{proc-type {Graphic}:void}
+             }:void
+    let walk:{proc-type{Graphic}:void} =
+        {proc {g:Graphic}:void
+            {f g}
+            {type-switch g
+             case b:Box do
+                {for g in b.graphical-children do
+                    {walk g}}}}
+    {walk g}
+}
+
+|| TitledFrame
+|| --------------------
+{define-class public TitledFrame {inherits BaseFrame}
+  field protected title-frame:Frame
+  field protected content-frame:Frame
+  
+  {constructor public {default ...}
+    set self.title-frame = {Frame}
+    set self.content-frame = {Frame}
+    {construct-super}
+    {self.add-internal
+        {VBox
+            self.title-frame,
+            self.content-frame
+        }}
+    {self.process-rest-args {splice ...}}
+  }
+  {method public {keyword-init-arg k:String, x:any}:void
+    {switch k
+     case "title" do
+        set self.title = x
+     case "content" do
+        set self.content = x
+     else {super.keyword-init-arg k, x}}
+  }
+  field _title:any
+  {getter public {title}:any
+    {return self._title}
+  }
+  {setter public {title val:any}:void
+    {if self._title != val then
+        set self._title = val
+        {self.title-frame.clear}
+        {if-non-null val then
+            {self.title-frame.add val}}
+    }
+  }
+  field _content:any
+  {getter public {content}:any
+    {return self._content}
+  }
+  {setter public {content val:any}:void
+    {if self._content != val then
+        set self._content = val
+        {self.content-frame.clear}
+        {if-non-null val then
+            {self.content-frame.add val}}}
+  }
+}

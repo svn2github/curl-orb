@@ -1,0 +1,48 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+{curl 6.0, 7.0 manifest}
+{manifest TESTS}
+
+|| ORB packages
+{delegate-to COM.CURLAP.ORB,
+    location = "../COM.CURLAP.ORB/manifest.mcurl"
+}
+
+|| tests package
+{delegate-to COM.CURL.CDU,
+    location = "COM.CURL.CDU/manifest.mcurl"
+}
+{component file tests.curl,
+    location = "tests.curl"
+}
+{component package TESTS1,
+    location = "TESTS1/load.scurl"
+}
+{component package TESTS2,
+    location = "TESTS2/load.scurl"
+}
+{component package TESTS3,
+    location = "TESTS3/load.scurl"
+}
+{component package TESTS4,
+    location = "TESTS4/load.scurl"
+}
+{component package TESTS5,
+    location = "TESTS5/load.scurl"
+}

@@ -1,0 +1,136 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|| Create "_index.cif" and "_full-text-index.dat" files from a "guide" directory.
+|| Adapted from internal build script.
+|| NOTE: 'grovel-guide' evaluates "_outline.scurl"
+|| -- needs DOC package in 'get-current-package'
+{import * from CURL.IDE.GUIDE, override? = true}
+{define-proc public {generate-dguide-index
+                        guide-dir:Url,
+                        title:String = {lmessage Developer's Guide},
+                        translations:#Url = null,
+                        filter:{proc-type {Url}:bool} =
+                            {proc {loc:Url}:bool
+                                {return not {example-file? loc}}}
+                    }:void
+    || NOTE: needs DOC package in 'get-current-package' -- YUCK!
+    {evaluate |"{import * from CURL.IDE.GUIDE, override? = true}"|}
+    || NOTE: needs "_outline.scurl" file to evaluate
+    def outline =
+        {generate-dguide-outline
+            {guide-dir.concat "_contents.scurl"},
+            title = title,
+            filter = filter}
+    {grovel-guide
+        guide-dir,
+        {GuideGrovelerForIndex
+            guide-dir,
+            {if-non-null translations then
+                {TranslationDictionary translations}
+             else null}
+        }}
+    || NOTE: clear "_outline.scurl" file
+    {delete outline}
+}
+
+|| Create "_outline.scurl" files from a "_contents.scurl" directory.
+{define-proc public {generate-dguide-outline
+                        contents-loc:Url,
+                        title:String = {lmessage Developer's Guide},
+                        filter:{proc-type {Url}:bool} =
+                            {proc {loc:Url}:bool
+                                {return not {example-file? loc}}}
+                    }:Url
+    def locs = {guide-content-files contents-loc}
+    {locs.filter filter}
+    def base-url = contents-loc.parent
+    def target = {contents-loc.set-filename "_outline.scurl"}
+    {with-open-streams out = {write-open target} do
+        {format out = out,
+            |"{book %s}"|,
+            title}
+        {out.write-one-string "\n\n"}
+        {for loc in locs do
+            def file = {loc.name-relative-to-url base-url}
+            {format out = out,
+                |"{file {url "%s"}}"|,
+                file}
+            {out.write-one-string "\n\n"}
+        }}
+    {return target}
+}
+
+{define-proc public {example-file? loc:Url}:bool
+    {return
+        {loc.name.find-string "example"} >= 0}
+}
+
+{define-proc public {guide-content-files
+                        contents-loc:Url
+                    }:UrlArray
+    def locs = {UrlArray}
+
+    || get first prefix expression, 
+    || ignoring comments and whitespace
+    let contents:#Prefix = null
+    {with-open-streams 
+        in = {read-open contents-loc}
+     do
+        let srcs:CurlSourceTextInputStream =
+            {CurlSourceTextInputStream in}
+        {for src in {srcs.to-Iterator} do
+            let s:CurlSource = src
+            {type-switch src
+             case src:Prefix do
+                set contents = src 
+                {break}}
+        }}    
+
+    def parse-locs =
+        {proc {src:CurlSource}:void    
+            {syntax-switch src, must-match? = true
+             case {pattern
+                      {node 
+                          || title: ignore
+                          ?:{literal String},
+                          || null or url
+                          ?maybe-loc:expression
+                          || member nodes
+                          ?:{optional ,}
+                          ?rest:verbatim}
+                  } do
+                || collect non-null url
+                {syntax-switch maybe-loc
+                 case {pattern {url ?loc:{literal String}}} do
+                    let val:String = loc.value asa String
+                    {locs.append {contents-loc.merge val}}
+                    || unwrap examples
+                    {if {val.prefix? "generic-example.curl?"} then
+                        {locs.append {contents-loc.merge {val.tail 21}}}
+                    }}
+                || recurse on member nodes
+                {syntax-switch rest, must-match? = true
+                 case {pattern ?nodes:{comma-sequence {node ?:tokens}}} do
+                    {for node in nodes do
+                        {parse-locs node}}}
+            }}
+
+    {if-non-null contents then
+        {parse-locs contents}}
+
+    {return locs}
+}
