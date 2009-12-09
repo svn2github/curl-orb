@@ -58,11 +58,10 @@
     }
   } 
 
+  || added by hokada
   {method public {sleeping v0:int}:bool 
     {return {self.invoke "sleeping", arguments = {{FastArray-of any} v0}}} 
   } 
-
-  || added by hokada
   {method public {async-sleeping
                      v0:int,
                      ...:EventHandler
@@ -76,8 +75,18 @@
     }
   } 
 
+  || added by hokada
   {method public {echo v0:String}:String 
     {return {self.invoke "echo", arguments = {{FastArray-of any} v0}}} 
+  }
+  {method public {async-echo v0:String, ...:EventHandler}:AsyncWorker 
+    {return
+        {self.async-invoke
+            "echo",
+            arguments = {{FastArray-of any} v0},
+            {splice ...}
+        }
+    }
   }
   {method public {echo-date v0:DateTime}:DateTime 
     {return {self.invoke "echoDate", arguments = {{FastArray-of any} v0}}} 

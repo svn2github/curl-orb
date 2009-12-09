@@ -28,8 +28,17 @@
 {delegate-to COM.CURL.CDU,
     location = "COM.CURL.CDU/manifest.mcurl"
 }
-{component file tests.curl,
-    location = "tests.curl"
+{component directory test-cases,
+    location = "test-cases"
+}
+{component file tests-v6.curl,
+    location = "tests-v6.curl"
+}
+{component file tests-v7.curl,
+    location = "tests-v7.curl"
+}
+{component file test-list.scurl,
+    location = "test-list.scurl"
 }
 {component package TESTS1,
     location = "TESTS1/load.scurl"
@@ -45,4 +54,7 @@
 }
 {component package TESTS5,
     location = "TESTS5/load.scurl"
+}
+{component package TESTS6,
+    location = "TESTS6/load.scurl"
 }

@@ -184,3 +184,24 @@
     {output "exception2:" & method-name & " " & arguments & " " & exception}
   }
 }
+
+||
+|| InterceptorC (for handle-stop-request)
+||
+{define-class public InterceptorC
+  {inherits ClientInterceptor}
+  
+  {constructor public {default}
+    {construct-super}
+  }
+  
+  {method protected open {handle-stop-request
+                             method-name:String,
+                             arguments:#FastArray
+                         }:(stop-request?:bool, return-val:any)
+    {if method-name == "echo" then
+        {return true, "STOP-REQUEST"}
+    }
+    {return {self.handle-stop-request method-name, arguments}}
+  }
+}

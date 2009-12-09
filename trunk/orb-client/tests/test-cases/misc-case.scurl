@@ -1,0 +1,83 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+{import * from TESTS6}
+{import * from COM.CURLAP.ORB}
+
+{let done?:#{Array-of bool}}
+
+|||
+||| test cases 
+|||
+{define-class public ConcurrentServiceImpl
+  {inherits ConcurrentService}
+  
+  {method public {async-concurrent-search
+                     from:int,
+                     to:int,
+                     out:{FastArray-of #String},
+                     ...:EventHandler
+                 }:void ||AsyncWorker
+    def parallel-size = 4
+    set done? = {{Array-of bool}.from-size parallel-size, false}
+    def term = ((to - from) / parallel-size) asa int
+    {for i = 0 below parallel-size do
+        def f = from + (term * i)
+        def t = to - (term * (parallel-size - i - 1))
+        def tmp = i
+        {self.async-search 
+            f, t,
+            {on e:AsyncCallbackEvent do
+                {if-non-null ex = e.exception then
+                    {TestCondition.fail message = ex.message}
+                }
+                def result = e.obj asa {FastArray-of #String}
+                {out.concat result}
+                set done?[tmp] = true
+            }
+        }
+    }
+  }
+}
+
+{TestSuite "misc",
+    {test-case "concurrent requests",
+        def check-p = 
+            {proc {}:bool
+                {if-non-null done? then
+                    {for d? in done? do 
+                        {if not d? then
+                            {return false}
+                        }
+                    }
+                    {return true}
+                 else
+                    {return false}
+                }
+            }
+        def cs = {ConcurrentServiceImpl}
+        def out = {{FastArray-of #String} max-size = 100}
+        {cs.async-concurrent-search 0, 100, out |# TODO #|}
+        
+        || wait...
+        {while not {check-p} do 
+            {dispatch-events true}
+        }
+        {dump out.size}
+    }
+}

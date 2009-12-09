@@ -17,7 +17,6 @@
 |||
 
 {import * from TESTS1}
-
 {import * from COM.CURLAP.ORB}
 
 {include "resources/support-interceptor.scurl"} || interceptor classes
@@ -48,5 +47,32 @@
 ||--        {foo.async-sleeping 10}
         {ClientInterceptor.clear}
         {interceptor-result.clear}
+    },
+    
+    || since 0.8
+    || TODO: caching tests
+    || FIXME: (Bugs) server/client method name
+    {test-case "stop server request",
+        {ClientInterceptor.register {InterceptorC}}
+        def foo = {Foo}
+        
+        || sync
+        {TestCondition.assert {foo.echo "fooooo"} == "STOP-REQUEST"}
+        
+        || async
+        let done?:bool
+        let result:#String
+        {foo.async-echo 
+            "fooooo",
+            {on e:AsyncCallbackEvent do
+                set result = e.obj asa String
+                set done? = true
+            }
+        }
+        {while not done? do 
+            {dispatch-events true}
+        }
+        {TestCondition.assert result == "STOP-REQUEST"}
+        {ClientInterceptor.clear}
     }
 }
