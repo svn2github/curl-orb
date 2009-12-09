@@ -134,6 +134,15 @@
                              arguments:#FastArray,
                              exception:Exception
                          }:void }
+  
+  || stop the server request
+  || since 0.8
+  {method protected open {handle-stop-request
+                             method-name:String,
+                             arguments:#FastArray
+                         }:(stop-request?:bool, return-val:any) 
+    {return false, null}
+  }
 }
 
 
@@ -221,5 +230,23 @@
             method-name, arguments, exception
         }
     }
+  }
+  
+  || stop the server request
+  || since 0.8
+  {method package {handle-stop-request
+                      method-name:String,
+                      arguments:#FastArray
+                  }:(stop-request?:bool, return-val:any)
+    {for interceptor in self do
+        def (stop-request?, return-val) =
+            {interceptor.handle-stop-request
+                method-name, arguments
+            }
+        {if stop-request? then
+            {return stop-request?, return-val}
+        }
+    }
+    {return false, null}
   }
 }

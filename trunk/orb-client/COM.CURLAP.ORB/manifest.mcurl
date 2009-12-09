@@ -50,3 +50,8 @@
 {component package COM.CURLAP.ORB.GENERATOR.SCREEN,
     location = "GENERATOR/SCREEN/load.scurl"
 }
+
+|| Curl code generator
+{component file code-generator.dcurl,
+    location = "code-generator.dcurl"
+}

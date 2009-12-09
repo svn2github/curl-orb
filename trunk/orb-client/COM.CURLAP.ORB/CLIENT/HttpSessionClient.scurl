@@ -72,6 +72,11 @@
                           request-header:#HashTable = null
                       }:any
     def interceptor = super.interceptor
+    || stop the server request and return proper value.
+    def (stop-request?, return-val) = {interceptor.handle-stop-request method-name, arguments}
+    {if stop-request? then
+        {return return-val}
+    }
     {interceptor.handle-before-request method-name, arguments}
     {try
         def (return-value, http-response-headers, orb-response-headers) = 
@@ -103,6 +108,11 @@
                           ...:EventHandler
                       }:AsyncWorker
     def interceptor = super.interceptor
+    || stop the server request and return proper value.
+    def (stop-request?, return-val) = {interceptor.handle-stop-request method-name, arguments}
+    {if stop-request? then
+        {return {async-send-dummy return-val, {splice ...}}}
+    }
     {interceptor.handle-before-request method-name, arguments}
     {return
         {async-send 

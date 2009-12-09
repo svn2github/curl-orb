@@ -227,6 +227,30 @@
     {return worker}
 }
 
+||
+|| No send the request to server. for ClientInterceptor.handle-stop-request
+{define-class package DummyAsyncWorker
+  {inherits AsyncWorker}
+  
+  {getter public {done?}:bool
+    {return true}
+  }
+  {method public {cancel}:bool
+    {return false} || do nothing
+  }
+}
+||{define-proc public inline {send-dummy}:any }
+{define-proc public inline {async-send-dummy
+                               return-val:any,
+                               ...:EventHandler
+                           }:AsyncWorker
+    def event-target = {InnerAsyncCallbackEventTarget ...}
+    {event-target.handle-event
+        {AsyncCallbackEvent null, return-val, null, null}
+    }
+    {return {DummyAsyncWorker}}
+}
+
 
 {define-proc package inline {make-request
                                 request:InstanceManagementRequest
