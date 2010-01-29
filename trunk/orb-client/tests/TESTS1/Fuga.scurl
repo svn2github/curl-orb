@@ -12,7 +12,13 @@
   } 
 
   {method public {method2 v0:String, v1:int, v2:bool}:#String 
-    {return {self.invoke "method2", arguments = {FastArray v0, v1, v2}}} 
+    {return
+        {self.invoke 
+            "method2", 
+            client-method-name = "client-method2", 
+            arguments = {FastArray v0, v1, v2}
+        }
+    } 
   } 
  
   || added by hokada (Illegal access error)

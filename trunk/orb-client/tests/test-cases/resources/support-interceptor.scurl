@@ -76,7 +76,9 @@
     {if method-name == "echo" then
         {TestCondition.assert arguments[0] == "foo"}
      elseif method-name == "method2" then
-        {TestCondition.assert arguments[0] == "fuga"}
+        {TestCondition.fail}
+     elseif method-name == "client-method2" then
+        {TestCondition.assert arguments[0] == "fuga"} || test AbstractClient's client-method-name argument
      else
         ||async-sleeping
     }
@@ -91,7 +93,9 @@
     {if method-name == "echo" then
         {TestCondition.assert return-value == "foo"}
      elseif method-name == "method2" then
-        {TestCondition.assert return-value == "fuga10true"}
+        {TestCondition.fail}
+     elseif method-name == "client-method2" then
+        {TestCondition.assert return-value == "fuga10true"} || test AbstractClient's client-method-name argument
      else
         ||async-sleeping
     }
