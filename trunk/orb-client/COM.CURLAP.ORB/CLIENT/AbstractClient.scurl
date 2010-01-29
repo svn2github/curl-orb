@@ -46,17 +46,33 @@
 
   || abstract methods
   {method abstract public {invoke
-                              method-name:String,
+                              server-method-name:String,
+                              client-method-name:#String = null, || since 0.8 (for interceptor)
                               arguments:#FastArray = null,
                               request-header:#HashTable = null
                           }:any }
   
   {method abstract public {async-invoke
-                              method-name:String,
+                              server-method-name:String,
+                              client-method-name:#String = null, || since 0.8 (for interceptor)
                               arguments:#FastArray = null,
                               request-header:#HashTable = null,
                               ...:EventHandler
                           }:AsyncWorker }
+  
+  || choose the method name on client-side, if setting.(All method name is server one before v0.7)
+  {method protected {choose-method-name
+                        server-method-name:String,
+                        client-method-name:#String
+                    }:String
+    {return
+        {if-non-null v = client-method-name then
+            v
+         else
+            server-method-name
+        }
+    }
+  }
 }
 
 

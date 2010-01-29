@@ -852,11 +852,12 @@
                  else
                     {format
                         {if args.size > 0 then
-                            |"{self.async-invoke "%s", arguments = {FastArray%s}, {splice ...}}"|
+                            |"{self.async-invoke "%s", client-method-name = "%s", arguments = {FastArray%s}, {splice ...}}"|
                          else
-                            |"{self.async-invoke "%s", {splice ...}}%s"|
+                            |"{self.async-invoke "%s", client-method-name = "%s", {splice ...}}%s"|
                         },
                         server-method-name, || method-name,
+                        method-name,
                         args
                     }
                 }
@@ -885,11 +886,12 @@
                  else
                     {format
                         {if args.size > 0 then
-                            |"{self.invoke "%s", arguments = {FastArray%s}}"|
+                            |"{self.invoke "%s", client-method-name = "%s", arguments = {FastArray%s}}"|
                          else
-                            |"{self.invoke "%s"}%s"|
+                            |"{self.invoke "%s", client-method-name = "%s"}%s"|
                         },
                         server-method-name, || method-name,
+                        method-name,
                         args
                     }
                 }
@@ -1053,11 +1055,12 @@
                  else
                     {format
                         {if args.size > 0 then
-                            |"{self.async-invoke "%s", arguments = {FastArray%s}, {splice ...}}"|
+                            |"{self.async-invoke "%s", client-method-name = "%s", arguments = {FastArray%s}, {splice ...}}"|
                          else
-                            |"{self.async-invoke "%s", {splice ...}}%s"|
+                            |"{self.async-invoke "%s", client-method-name = "%s", {splice ...}}%s"|
                         },
                         server-method-name, || method-name,
+                        method-name, || v0.8 for interceptor
                         args
                     }
                 }
@@ -1091,11 +1094,12 @@
                  else
                     {format
                         {if args.size > 0 then
-                            |"{self.invoke "%s", arguments = {FastArray%s}}"|
+                            |"{self.invoke "%s", client-method-name = "%s", arguments = {FastArray%s}}"|
                          else
-                            |"{self.invoke "%s"}%s"|
+                            |"{self.invoke "%s", client-method-name = "%s"}%s"|
                         },
                         server-method-name, || method-name,
+                        method-name, || v0.8 for interceptor
                         args
                     }
                 }

@@ -67,11 +67,13 @@
   
   || invoke 
   {method public open {invoke 
-                          method-name:String,
+                          server-method-name:String,
+                          client-method-name:#String = null,
                           arguments:#FastArray = null,
                           request-header:#HashTable = null
                       }:any
     def interceptor = super.interceptor
+    def method-name = {self.choose-method-name server-method-name, client-method-name}
     || stop the server request and return proper value.
     def (stop-request?, return-val) = {interceptor.handle-stop-request method-name, arguments}
     {if stop-request? then
@@ -84,7 +86,7 @@
                 {self.server-url.concat INVOKE-HTTP-SESSION-PATH},
                 {InvokeHttpSessionRequest
                     object-id = self.object-id,
-                    method-name,
+                    server-method-name,
                     arguments = {switch-remote-object arguments},
                     request-header = {interceptor.build-orb-request-headers request-header}
                 },
@@ -102,12 +104,14 @@
 
   || invoke async
   {method public open {async-invoke 
-                          method-name:String,
+                          server-method-name:String,
+                          client-method-name:#String = null,
                           arguments:#FastArray = null,
                           request-header:#HashTable = null,
                           ...:EventHandler
                       }:AsyncWorker
     def interceptor = super.interceptor
+    def method-name = {self.choose-method-name server-method-name, client-method-name}
     || stop the server request and return proper value.
     def (stop-request?, return-val) = {interceptor.handle-stop-request method-name, arguments}
     {if stop-request? then
@@ -119,7 +123,7 @@
             {self.server-url.concat INVOKE-HTTP-SESSION-PATH},
             {InvokeHttpSessionRequest
                 object-id = self.object-id,
-                method-name,
+                server-method-name,
                 arguments = {switch-remote-object arguments},
                 request-header = {interceptor.build-orb-request-headers request-header}
             },

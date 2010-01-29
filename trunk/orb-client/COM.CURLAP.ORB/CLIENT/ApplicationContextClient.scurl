@@ -38,11 +38,13 @@
   
   || invoke
   {method public open {invoke 
-                          method-name:String,
+                          server-method-name:String,
+                          client-method-name:#String = null, || since 0.8 (for interceptor)
                           arguments:#FastArray = null,
                           request-header:#HashTable = null
                       }:any
     def interceptor = super.interceptor
+    def method-name = {self.choose-method-name server-method-name, client-method-name}
     || stop the server request and return proper value.
     def (stop-request?, return-val) = {interceptor.handle-stop-request method-name, arguments}
     {if stop-request? then
@@ -55,7 +57,7 @@
                 {self.server-url.concat INVOKE-APPLICATION-CONTEXT-PATH},
                 {InvokeApplicationContextRequest
                     self.class-name,
-                    method-name,
+                    server-method-name,
                     arguments = arguments,
                     request-header = {interceptor.build-orb-request-headers request-header}
                 },
@@ -66,19 +68,21 @@
         {interceptor.handle-after-response method-name, arguments, return-value}
         {return return-value}
      catch e:Exception do
-        {interceptor.handle-exception method-name, arguments, e}
+        {interceptor.handle-exception server-method-name, arguments, e}
         {throw e}
     }
   }
 
   || invoke async
   {method public open {async-invoke 
-                          method-name:String,
+                          server-method-name:String,
+                          client-method-name:#String = null, || since 0.8 (for interceptor)
                           arguments:#FastArray = null,
                           request-header:#HashTable = null,
                           ...:EventHandler
                       }:AsyncWorker
     def interceptor = super.interceptor
+    def method-name = {self.choose-method-name server-method-name, client-method-name}
     || stop the server request and return proper value.
     def (stop-request?, return-val) = {interceptor.handle-stop-request method-name, arguments}
     {if stop-request? then
@@ -90,7 +94,7 @@
             {self.server-url.concat INVOKE-APPLICATION-CONTEXT-PATH},
             {InvokeApplicationContextRequest
                 self.class-name,
-                method-name,
+                server-method-name,
                 arguments = arguments,
                 request-header = {interceptor.build-orb-request-headers request-header}
             },
