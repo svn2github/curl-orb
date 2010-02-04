@@ -16,6 +16,7 @@
 ||| @author Hitoshi Okada
 |||
 
+{import Method from CURL.LANGUAGE.REFLECTION}
 
 ||
 || AbstractClient (abstract ORB Client)
@@ -59,27 +60,12 @@
                               request-header:#HashTable = null,
                               ...:EventHandler
                           }:AsyncWorker }
-  
-  || choose the method name on client-side, if setting.(All method name is server one before v0.7)
-  {method protected {choose-method-name
-                        server-method-name:String,
-                        client-method-name:#String
-                    }:String
-    {return
-        {if-non-null v = client-method-name then
-            v
-         else
-            server-method-name
-        }
-    }
-  }
 }
-
 
 || - - package procs - -
 
 || switch HttpSessionClient to RemoteObject
-{define-proc package {switch-remote-object args:#FastArray}:#FastArray
+{define-proc {switch-remote-object args:#FastArray}:#FastArray
     {if-non-null args then
         {for arg key i:int in args do
             {if arg isa HttpSessionClient then
@@ -90,4 +76,13 @@
         }
     }
     {return args}
-  }
+}
+
+|| get Method from string
+|| NOTE previous version (v0.7) returns null
+{define-proc {get-method-type class:ClassType, client-method-name:#String}:#Method
+    {if-non-null name = client-method-name then
+        {return {class.get-method name}}
+    }
+    {return null}
+}

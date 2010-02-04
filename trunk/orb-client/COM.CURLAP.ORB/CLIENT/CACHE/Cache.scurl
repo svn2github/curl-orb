@@ -1,0 +1,110 @@
+||| Copyright (C) 1998-2010, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+|| since 0.8
+
+|| CacheManager
+{define-class package CacheManager
+  
+  let private instance:#CacheManager = null || singleton
+  field private caches:{HashTable-of String, Cache}
+  
+  {define-proc package {get-instance}:CacheManager
+    {if CacheManager.instance == null then
+        set CacheManager.instance = {CacheManager}
+    }
+    {return {non-null CacheManager.instance}}
+  }
+  
+  {method package {exists-cache? name:String}:bool
+    {return {self.caches.key-exists? name}}
+  }
+  
+  {method package {get-cache name:String}:Cache
+    {return self.caches[name]}
+  }
+
+  {method package {create-cache
+                      type:ClassType,
+                      name:String,
+                      spec:#CacheSpec
+                  }:Cache
+    {if {self.exists-cache? name} then
+        {if not self.caches[name] isa type then
+            {error {format "The existing cache is not the same type. '%s type'", type}}
+        }
+        {return self.caches[name]}
+    }
+    set self.caches[name] = {Cache.create-cache type, name, spec}
+    {return self.caches[name]}
+  }
+  
+  {method package {remove-cache name:String}:void
+    {if {self.caches.key-exists? name} then
+        {self.caches[name].clear}
+        {self.caches.remove name}
+    }
+  }
+  
+  {method package {clear}:void
+    {for cache in self.caches do
+        {cache.clear}
+    }
+    {self.caches.clear}
+  }
+  
+  || constructor 
+  {constructor private {default}
+    set self.caches = {{HashTable-of String, Cache}}
+  }
+}
+
+
+|| abstract Cache
+{define-class abstract public serializable Cache
+  || properties
+  field public-get protected-set name:String || cache name
+  
+  || getters
+  {getter abstract public {size}:int }
+  
+  || methods
+  {method abstract public {exists? key:String}:bool }
+  {method abstract public {set key:String, value:any}:void }
+  {method abstract public {get key:String}:#any }
+  {method abstract public {remove key:String}:void }
+  {method abstract public {clear}:void }
+  {method public {object-serialize out:SerializeOutputStream}:void
+    {serialize-vars out, compact? = true, self.name}
+  }
+  
+  || constructor
+  {constructor protected {default name:String}
+    set self.name = name
+  }
+  
+  {constructor public {object-deserialize in:SerializeInputStream}
+    {deserialize-vars in, compact? = true, self.name}
+  }
+  
+  || factories
+  {factory package {create-cache type:ClassType, name:String, spec:#CacheSpec}:Cache
+    || create the cache of proper class
+    {return {type name, spec}}
+  }
+}

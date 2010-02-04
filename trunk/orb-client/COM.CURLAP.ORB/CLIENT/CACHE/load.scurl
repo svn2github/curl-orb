@@ -1,4 +1,4 @@
-||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+||| Copyright (C) 1998-2010, Sumisho Computer Systems Corp. All Rights Reserved.
 
 ||| Licensed under the Apache License, Version 2.0 (the "License");
 ||| you may not use this file except in compliance with the License.
@@ -17,14 +17,18 @@
 |||
 
 {curl 6.0, 7.0 package}
-{package COM.CURLAP.ORB.CLIENT}
+{package COM.CURLAP.ORB.CLIENT.CACHE}
 
-{import * from COM.CURLAP.ORB.COMMON}
+{import Method from CURL.LANGUAGE.REFLECTION}
+{import ClientInterceptor, AbstractClient from COM.CURLAP.ORB.CLIENT}
+{import SerializeInputStream, SerializeOutputStream from CURL.IO.SERIALIZE}
 
 {include
-    "AbstractClient.scurl",
-    "HttpSessionClient.scurl",
-    "ApplicationContextClient.scurl",
-    "ApplicationContextContainer.scurl",
-    "ClientInterceptor.scurl"
+    "CacheClientInterceptor.scurl",
+    "CacheSpec.scurl",
+    "Cache.scurl",
+    "LRUCache.scurl",
+    "SimpleCache.scurl",
+    "storage-utils.scurl",
+    "procs.scurl"
 }

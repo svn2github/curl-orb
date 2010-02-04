@@ -1,0 +1,68 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+{curl 7.0 manifest}
+{manifest COM.CURL.CDK,
+    version = "1.1"}
+
+{component package COM.CURL.CDK.SQLITE,
+    location = "SQLITE/load.pcurl"
+}
+
+{component package COM.CURL.CDK.SQLITE-BASE,
+    location = "SQLITE/base-load.pcurl"
+}
+
+{component package COM.CURL.CDK.SQLITE-LIBRARY-SYNTAX,
+    location = "SQLITE/library-syntax.pcurl"
+}
+
+{component package COM.CURL.CDK.SQLITE-LIBRARY,
+    location = "SQLITE/library-load.pcurl"
+}
+
+{component package COM.CURL.CDK.SQLITE-SYNTAX,
+    location = "SQLITE/syntax.pcurl"
+}
+
+{component package COM.CURL.CDK.SQL-BASE,
+    location = "SQL/load.pcurl"
+}
+
+{component package COM.CURL.CDK.SQLITE-RECORDSET,
+    location = "SQLITE/recordset-load.pcurl"
+}
+{component file libsqlite,
+    platform = "win32",
+    location = "SQLITE/sqlite_3-6-10.dll"
+}
+{component file libsqlite,
+    platform = "linux",
+    location = "SQLITE/sqlite_3-6-10.so"
+}
+{component file libsqlite,
+    platform = "mac",
+    arch = "x86",
+    location = "SQLITE/sqlite_3-6-10.x86.dylib"
+}
+{component file libsqlite,
+    platform = "mac",
+    arch = "ppc",
+    location = "SQLITE/sqlite_3-6-10.ppc.dylib"
+}
+{component directory resources,
+    location = "resources"
+}

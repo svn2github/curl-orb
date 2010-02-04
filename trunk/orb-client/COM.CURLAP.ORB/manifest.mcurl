@@ -18,7 +18,7 @@
 
 {curl 6.0, 7.0 manifest}
 {manifest COM.CURLAP.ORB,
-    version = "0.7"
+    version = "0.8"
 }
 
 || ORB packages
@@ -28,14 +28,18 @@
 {component package COM.CURLAP.ORB.COMMON,
     location = "COMMON/load.scurl"
 }
-{component package COM.CURLAP.ORB.CLIENT,
-    location = "CLIENT/load.scurl"
-}
 {component package COM.CURLAP.ORB.TYPE,
     location = "TYPE/load.scurl"
 }
+{component package COM.CURLAP.ORB.CLIENT,
+    location = "CLIENT/load.scurl"
+}
+{component package COM.CURLAP.ORB.CLIENT.CACHE,
+    location = "CLIENT/CACHE/load.scurl"
+}
 
-|| GENERATOR and SCREEN packages
+
+|| Generator and Screen packages
 {component package COM.CURLAP.ORB.GENERATOR,
     location = "GENERATOR/load.scurl"
 }
@@ -49,6 +53,14 @@
 }
 {component package COM.CURLAP.ORB.GENERATOR.SCREEN,
     location = "GENERATOR/SCREEN/load.scurl"
+}
+
+|| Cache (0.7)
+{delegate-to COM.CURL.CDK,
+    location = "CLIENT/CACHE/COM.CURL.CDK/manifest.mcurl"
+}
+{component file orb-cache-database,
+    location = "resources/database/orb-cache.db"
 }
 
 || Curl code generator

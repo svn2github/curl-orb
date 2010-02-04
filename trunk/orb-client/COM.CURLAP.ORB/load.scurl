@@ -21,8 +21,9 @@
 
 || ORB packages
 {import public * from COM.CURLAP.ORB.COMMON}
-{import public * from COM.CURLAP.ORB.CLIENT}
 {import public * from COM.CURLAP.ORB.TYPE}
+{import public * from COM.CURLAP.ORB.CLIENT}
+{import public * from COM.CURLAP.ORB.CLIENT.CACHE}
 
 || default url
 {set-default-server-url {url "http://localhost:8080/curl-orb-server"}}

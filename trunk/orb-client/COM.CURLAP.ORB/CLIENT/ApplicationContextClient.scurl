@@ -1,4 +1,4 @@
-||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+||| Copyright (C) 1998-2010, Sumisho Computer Systems Corp. All Rights Reserved.
 
 ||| Licensed under the Apache License, Version 2.0 (the "License");
 ||| you may not use this file except in compliance with the License.
@@ -44,13 +44,13 @@
                           request-header:#HashTable = null
                       }:any
     def interceptor = super.interceptor
-    def method-name = {self.choose-method-name server-method-name, client-method-name}
+    def method = {get-method-type {type-of self} asa ClassType, client-method-name}
     || stop the server request and return proper value.
-    def (stop-request?, return-val) = {interceptor.handle-stop-request method-name, arguments}
+    def (stop-request?, return-val) = {interceptor.handle-stop-request method, arguments}
     {if stop-request? then
         {return return-val}
     }
-    {interceptor.handle-before-request method-name, arguments}
+    {interceptor.handle-before-request method, arguments}
     {try
         def (return-value, http-response-headers, orb-response-headers) =
             {send 
@@ -65,10 +65,10 @@
             }
         {interceptor.handle-http-response-headers http-response-headers} 
         {interceptor.handle-orb-response-headers orb-response-headers} 
-        {interceptor.handle-after-response method-name, arguments, return-value}
+        {interceptor.handle-after-response method, arguments, return-value}
         {return return-value}
      catch e:Exception do
-        {interceptor.handle-exception server-method-name, arguments, e}
+        {interceptor.handle-exception method, arguments, e}
         {throw e}
     }
   }
@@ -82,13 +82,13 @@
                           ...:EventHandler
                       }:AsyncWorker
     def interceptor = super.interceptor
-    def method-name = {self.choose-method-name server-method-name, client-method-name}
+    def method = {get-method-type {type-of self} asa ClassType, client-method-name}
     || stop the server request and return proper value.
-    def (stop-request?, return-val) = {interceptor.handle-stop-request method-name, arguments}
+    def (stop-request?, return-val) = {interceptor.handle-stop-request method, arguments}
     {if stop-request? then
         {return {async-send-dummy return-val, {splice ...}}}
     }
-    {interceptor.handle-before-request method-name, arguments}
+    {interceptor.handle-before-request method, arguments}
     {return
         {async-send 
             {self.server-url.concat INVOKE-APPLICATION-CONTEXT-PATH},
@@ -102,11 +102,11 @@
             {splice ...},
             {on e:AsyncCallbackEvent do
                 {if-non-null ex = e.exception then
-                    {interceptor.handle-exception method-name, arguments, ex}
+                    {interceptor.handle-exception method, arguments, ex}
                  else
                     {interceptor.handle-http-response-headers e.http-response-headers}
                     {interceptor.handle-orb-response-headers e.orb-response-headers} 
-                    {interceptor.handle-after-response method-name, arguments, e.obj}
+                    {interceptor.handle-after-response method, arguments, e.obj}
                 }
             }
         }
