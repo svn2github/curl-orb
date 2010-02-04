@@ -360,7 +360,7 @@
     ||
     {test-case "japanese text",
         let foo:Foo = {Foo}
-        let s:String = {foo.echo "岡田一志(Hitoshi Okada)で～す。"}
+        let s:#String = {foo.echo "岡田一志(Hitoshi Okada)で～す。"}
         {TestCondition.assert s == "岡田一志(Hitoshi Okada)で～す。"}
     }
 }

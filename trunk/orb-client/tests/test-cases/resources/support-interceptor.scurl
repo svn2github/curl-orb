@@ -16,6 +16,8 @@
 ||| @author Hitoshi Okada
 |||
 
+{import Method from CURL.LANGUAGE.REFLECTION}
+
 || interceptors
 {let interceptor-result:{Array-of bool} = {{Array-of bool}}}
 
@@ -70,14 +72,12 @@
   }
 
   {method protected open {handle-before-request ||before-advice
-                             method-name:String,
+                             method:Method,
                              arguments:#FastArray
                          }:void
-    {if method-name == "echo" then
+    {if method.name == "echo" then
         {TestCondition.assert arguments[0] == "foo"}
-     elseif method-name == "method2" then
-        {TestCondition.fail}
-     elseif method-name == "client-method2" then
+     elseif method.name == "method2" then
         {TestCondition.assert arguments[0] == "fuga"} || test AbstractClient's client-method-name argument
      else
         ||async-sleeping
@@ -86,15 +86,13 @@
   }
 
   {method protected open {handle-after-response ||after-returning-advice
-                             method-name:String,
+                             method:Method,
                              arguments:#FastArray,
                              return-value:#any
                          }:void
-    {if method-name == "echo" then
+    {if method.name == "echo" then
         {TestCondition.assert return-value == "foo"}
-     elseif method-name == "method2" then
-        {TestCondition.fail}
-     elseif method-name == "client-method2" then
+     elseif method.name == "method2" then
         {TestCondition.assert return-value == "fuga10true"} || test AbstractClient's client-method-name argument
      else
         ||async-sleeping
@@ -103,11 +101,11 @@
   }
 
   {method protected open {handle-exception ||throw-advice
-                             method-name:String,
+                             method:Method,
                              arguments:#FastArray,
                              exception:Exception
                          }:void
-    {output "exception1:" & method-name & " " & arguments & " " & exception}
+    {output "exception1:" & method.name & " " & arguments & " " & exception}
   }
 }
 
@@ -152,12 +150,12 @@
   }
 
   {method protected open {handle-before-request ||before-advice
-                             method-name:String,
+                             method:Method,
                              arguments:#FastArray
                          }:void
-    {if method-name == "echo" then
+    {if method.name == "echo" then
         {TestCondition.assert arguments[0] == "foo"}
-     elseif method-name == "method2" then
+     elseif method.name == "method2" then
         {TestCondition.assert arguments[0] == "fuga"}
      else
         ||async-sleeping
@@ -166,13 +164,13 @@
   }
 
   {method protected open {handle-after-response ||after-returning-advice
-                             method-name:String,
+                             method:Method,
                              arguments:#FastArray,
                              return-value:#any
                          }:void
-    {if method-name == "echo" then
+    {if method.name == "echo" then
         {TestCondition.assert return-value == "foo"}
-     elseif method-name == "method2" then
+     elseif method.name == "method2" then
         {TestCondition.assert return-value == "fuga10true"}
      else
         ||async-sleeping
@@ -181,11 +179,11 @@
   }
 
   {method protected open {handle-exception ||throw-advice
-                             method-name:String,
+                             method:Method,
                              arguments:#FastArray,
                              exception:Exception
                          }:void
-    {output "exception2:" & method-name & " " & arguments & " " & exception}
+    {output "exception2:" & method.name & " " & arguments & " " & exception}
   }
 }
 
@@ -200,12 +198,12 @@
   }
   
   {method protected open {handle-stop-request
-                             method-name:String,
+                             method:Method,
                              arguments:#FastArray
                          }:(stop-request?:bool, return-val:any)
-    {if method-name == "echo" then
+    {if method.name == "echo" then
         {return true, "STOP-REQUEST"}
     }
-    {return {self.handle-stop-request method-name, arguments}}
+    {return {self.handle-stop-request method, arguments}}
   }
 }

@@ -25,6 +25,7 @@
             {TestSuite.import {url "test-cases/security-case.scurl"}},
             {TestSuite.import {url "test-cases/compression-case.scurl"}},
             {TestSuite.import {url "test-cases/interceptor-case.scurl"}},
+            {TestSuite.import {url "test-cases/cache-case.scurl"}},
             {TestSuite.import {url "test-cases/extra-case.scurl"}},
             {TestSuite.import {url "test-cases/misc-case.scurl"}}||,
 ||--            {TestSuite.import {url "test-cases/performance-case.scurl"}}
