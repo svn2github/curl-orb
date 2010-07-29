@@ -18,6 +18,10 @@ import com.curlap.orb.security.RemoteService;
 public class ComplexTypeService 
 {
 	public ComplexTypeDto echoComplexType(ComplexTypeDto dto) {
+		//Map<String, Map<String, String>> hashInHash = dto.getHashInHash();
+		//for (Map.Entry<String, Map<String, String>> e : hashInHash.entrySet()) {
+		//	System.out.println(e.getKey() + " " + e.getValue());
+		//}
 		return dto;
 	}
 	
@@ -55,5 +59,30 @@ public class ComplexTypeService
 	
 	public List<BigDecimal> echoBigDecimals(List<BigDecimal> bigDecimals) {
 		return bigDecimals;
+	}
+	
+	public List<Blob> echoBlobs(List<Blob> blobs) {
+		return blobs;
+	}
+	
+	public Blob[] echoArrayOfBlob(Blob[] blobs) {
+		return blobs;
+	}
+	
+	public Blob[][] echoArray2OfBlob(Blob[][] blobs) {
+		return blobs;
+	}
+	
+	/* NOTE:
+	 *  The array of primitive arguments isn't supported. 
+	 *  (the return value is OK.)
+	 */
+	public long[] echoPrimitiveArray(String[] arg1, Long[] arg2) {
+		long[] result = new long[arg2.length];
+		for (int i = 0; i < arg2.length; i++)
+		{
+			result[i] = (long)arg2[i];
+		}
+		return result;
 	}
 }

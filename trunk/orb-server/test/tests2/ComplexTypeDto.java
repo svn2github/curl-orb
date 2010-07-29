@@ -1,5 +1,8 @@
 package tests2;
 
+import com.curl.io.serialize.types.DateTime;
+
+
 public class ComplexTypeDto implements java.io.Serializable
 {
 	private static final long serialVersionUID = 1L;
@@ -12,6 +15,11 @@ public class ComplexTypeDto implements java.io.Serializable
 	private java.sql.Timestamp sqlTimestamp;
 	private java.sql.Blob blob;
 	private java.sql.Clob clob;
+	private java.sql.Blob[] blobs;
+	private java.sql.Clob[] clobs;
+	public DateTime[] dts;
+	private java.util.Map<String, java.util.Map<String, String>> hashInHash;
+	//private java.util.Map<String, java.util.Map<String, java.util.Map<String, String>>> hashInHash;
 	
 	public java.math.BigInteger getBigInteger() {
 		return bigInteger;
@@ -60,5 +68,31 @@ public class ComplexTypeDto implements java.io.Serializable
 	}
 	public void setClob(java.sql.Clob clob) {
 		this.clob = clob;
+	}
+	public java.sql.Blob[] getBlobs() {
+		return blobs;
+	}
+	public void setBlobs(java.sql.Blob[] blobs) {
+		this.blobs = blobs;
+	}
+	public java.sql.Clob[] getClobs() {
+		return clobs;
+	}
+	public void setClobs(java.sql.Clob[] clobs) {
+		this.clobs = clobs;
+	}
+	/*
+	public java.util.Map<String, java.util.Map<String, java.util.Map<String, String>>> getHashInHash() {
+		return hashInHash;
+	}
+	public void setHashInHash(java.util.Map<String, java.util.Map<String, java.util.Map<String, String>>> hashInHash) {
+		this.hashInHash = hashInHash;
+	}
+	*/
+	public java.util.Map<String, java.util.Map<String, String>> getHashInHash() {
+		return hashInHash;
+	}
+	public void setHashInHash(java.util.Map<String, java.util.Map<String, String>> hashInHash) {
+		this.hashInHash = hashInHash;
 	}
 }

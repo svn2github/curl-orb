@@ -107,15 +107,30 @@ public class AdvancedDeserializer6_0 extends Deserializer6_0 {
 
 	// Overwrite the method covertToArrayType of Deserializer6_0
 	// convert com.curlap.orb.type.* type to java.sql.* or java.math.* type.
+	@Override
 	protected Object covertToArrayType(Object componentType) throws SerializeException {
+		//return super.covertToArrayType(AdvancedDeserializerUtil.covertToArrayType(componentType));
 		return super.covertToArrayType(AdvancedDeserializerUtil.covertToArrayType(componentType));
 	}
 
 	// Overwrite the method readObject
 	// if super method readObject() returns AbstractExtraSerializableType instance data type,
 	// then it will convert the object to java.sql.* or java.math.* data type object.
+	@Override
 	protected Object readObject() throws IOException, SerializeException {
 		return AdvancedDeserializerUtil.readObject(super.readObject());
-
+	}
+	
+	@Override
+	protected boolean isSkippedArrayWithoutElement(Class<?> componentType) {
+		return (java.sql.Date.class.isAssignableFrom(componentType) || 
+				java.util.Date.class.isAssignableFrom(componentType) || 
+				java.sql.Timestamp.class.isAssignableFrom(componentType) || 
+				java.sql.Time.class.isAssignableFrom(componentType) || 
+				java.math.BigInteger.class.isAssignableFrom(componentType) || 
+				java.math.BigDecimal.class.isAssignableFrom(componentType) || 
+				java.sql.Clob.class.isAssignableFrom(componentType) || 
+				java.sql.Blob.class.isAssignableFrom(componentType) || 
+				super.isSkippedArrayWithoutElement(componentType));
 	}
 }

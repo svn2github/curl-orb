@@ -92,6 +92,7 @@ public class InstanceManagementUtil
 
 	/**
 	 * Invoke the method.
+	 *  NOTE: MethodUtils doesn't support primitive arguments. e.g) echo(long[] v)
 	 */
 	public static Object invokeMethod(Object obj, String methodName, Object[] arguments) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException 
 	{

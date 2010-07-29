@@ -37,7 +37,7 @@ public class Blob extends AbstractSerializableProxyType {
 	private byte[] bytes = null;
 
 	@Override
-	public Object extractProperObject() throws SerializeException{
+	public Object extractProperObject() throws SerializeException {
 		try {			
 			return new SerialBlob(bytes);
 		} catch (SQLException se) {
@@ -47,7 +47,11 @@ public class Blob extends AbstractSerializableProxyType {
 
 	@Override
 	public void injectProperObject(Object obj) throws SerializeException {
-		java.sql.Blob blob = (javax.sql.rowset.serial.SerialBlob)obj;
-		bytes = (byte[])getField(blob,"buf");
+		java.sql.Blob blob = (java.sql.Blob)obj; 
+		try {
+			bytes = blob.getBytes(1, (int)blob.length());
+		} catch (SQLException se) {
+			throw new SerializeException(se);
+		}
 	}
 }

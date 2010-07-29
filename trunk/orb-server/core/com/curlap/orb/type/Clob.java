@@ -39,7 +39,7 @@ public class Clob extends AbstractSerializableProxyType {
 	private char[] chars = null;
 
 	@Override
-	public Object extractProperObject() throws SerializeException{
+	public Object extractProperObject() throws SerializeException {
 		try {			
 			return new SerialClob(chars);			
 		} catch (SQLException se) {
@@ -49,7 +49,11 @@ public class Clob extends AbstractSerializableProxyType {
 
 	@Override
 	public void injectProperObject(Object obj) throws SerializeException {
-		java.sql.Clob clob = (javax.sql.rowset.serial.SerialClob)obj;
-		chars = (char[])getField(clob,"buf");
+		java.sql.Clob clob = (java.sql.Clob)obj; 
+		try {
+			chars = clob.getSubString(1, (int)clob.length()).toCharArray() ;
+		} catch (SQLException se) {
+			throw new SerializeException(se);
+		}
 	}
 }
