@@ -404,7 +404,10 @@
             {foo.create-record-set-to-test-large-data 10000}
             {TestCondition.assert {foo.create-record-set-to-test-large-data 10000} == rs}
             {sw.stop}
-            {TestCondition.assert elapsed-time > {sw.elapsed}}
+            {TestCondition.assert
+                elapsed-time > {sw.elapsed}, 
+                message = {format "very slow ... (%s < %s)", elapsed-time, {sw.elapsed}}
+            }
             
             || a lot of caches
             def cache = {get-cache cache-name}

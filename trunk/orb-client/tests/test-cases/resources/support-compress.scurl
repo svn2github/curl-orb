@@ -16,6 +16,8 @@
 ||| @author Ucai Zhang
 |||
 
+{import Method from CURL.LANGUAGE.REFLECTION}
+
 || gzip interceptor
 {define-class public InterceptorGZip
   {inherits ClientInterceptor}
@@ -28,18 +30,39 @@
     {super.register-interceptor client}
   }
 
-  {method protected open {build-orb-request-headers headers:#HashTable}:#HashTable
-    {return {super.build-orb-request-headers headers}}
-  }
+||--  {method protected open {build-orb-request-headers headers:#HashTable}:#HashTable
+||--    {return {super.build-orb-request-headers headers}}
+||--  }
 
-  {method protected open {build-http-request-headers headers:#HttpRequestHeaders}:#HttpRequestHeaders
-    {return {HttpRequestHeaders "Accept-Encoding", "gzip"}}
-  }
+||--  {method protected open {build-http-request-headers headers:#HttpRequestHeaders}:#HttpRequestHeaders
+||--    {return {HttpRequestHeaders "Accept-Encoding", "gzip"}}
+||--  }
+||--
+||--  {method protected open {handle-http-response-headers headers:#HttpResponseHeaders}:void
+||--    || check the Http headers
+||--    {TestCondition.assert {headers.key-exists? "Content-Encoding"}}
+||--    {TestCondition.assert headers["Content-Encoding"] == "gzip"}
+||--  }
 
-  {method protected open {handle-http-response-headers headers:#HttpResponseHeaders}:void
-    || check the Http headers
-    {TestCondition.assert {headers.key-exists? "Content-Encoding"}}
-    {TestCondition.assert headers["Content-Encoding"] == "gzip"}
+  {method protected open {handle-before-request ||before-advice
+                             http-headers:#HttpRequestHeaders,
+                             orb-headers:#HashTable,
+                             method:Method,
+                             arguments:#FastArray
+                         }:(#HttpRequestHeaders, #HashTable)
+    {return {HttpRequestHeaders "Accept-Encoding", "gzip"}, null}
+  }
+  
+  {method protected open {handle-after-response ||after-returning-advice
+                             http-headers:#HttpResponseHeaders,
+                             orb-headers:#HashTable,
+                             method:Method,
+                             arguments:#FastArray,
+                             return-value:#any
+                         }:(#HttpResponseHeaders, #HashTable)
+    {TestCondition.assert {http-headers.key-exists? "Content-Encoding"}}
+    {TestCondition.assert http-headers["Content-Encoding"] == "gzip"}
+    {return http-headers, orb-headers}
   }
 }
 
@@ -51,8 +74,18 @@
     {construct-super}
   }
 
-  {method protected open {handle-http-response-headers headers:#HttpResponseHeaders}:void
-    || check the Http headers
-    {TestCondition.assert not {headers.key-exists? "Content-Encoding"}}
+||--  {method protected open {handle-http-response-headers headers:#HttpResponseHeaders}:void
+||--    || check the Http headers
+||--    {TestCondition.assert not {headers.key-exists? "Content-Encoding"}}
+||--  }
+  {method protected open {handle-after-response ||after-returning-advice
+                             http-headers:#HttpResponseHeaders,
+                             orb-headers:#HashTable,
+                             method:Method,
+                             arguments:#FastArray,
+                             return-value:#any
+                         }:(#HttpResponseHeaders, #HashTable)
+    {TestCondition.assert not {http-headers.key-exists? "Content-Encoding"}}
+    {return http-headers, orb-headers}
   }
 }

@@ -31,7 +31,25 @@
 ||| (All type tests is included in curl-serializer.jar tests except RecordSet.)
 |||
 {TestSuite "orb types",
-
+    
+    || Primitive Array
+    {test-case "primitive array",
+        def com = {ComplexTypeService}
+        def result1 = 
+            {com.echo-primitive-array
+                {{FastArray-of #String} "A", "B"},
+                {{FastArray-of int64} 100, 200}
+            }
+        {TestCondition.assert result1[0] == 100}
+        {TestCondition.assert result1[1] == 200}
+        def result2 = 
+            {com.echo-primitive-array
+                {{FastArray-of #String}},
+                {{FastArray-of int64}}
+            }
+        {TestCondition.assert result2.size == 0}
+    },
+    
     || DateTime
     {test-case "date time",
         let foo:Foo2 = {Foo2}
@@ -312,6 +330,57 @@
          else
             {TestCondition.fail message = "Not return Clob"}
         }
+        
+        || List<Blob>
+        let input-blobs:Array = {Array}
+        {input-blobs.append {Blob {{Array-of byte} 'a', 'b', 'c'}}}
+        {input-blobs.append {Blob {{Array-of byte} 'x', 'y'}}}
+        {if-non-null blobs = {ct.echo-blobs input-blobs} then
+            {TestCondition.assert blobs.size == 2}
+            {TestCondition.assert blobs[0].length == 3}
+            {TestCondition.assert blobs[1].length == 2}
+         else
+            {TestCondition.fail message = "Not return List<Blob>"}
+        }
+        
+        || Blob[]
+        def input-a-blobs = {{FastArray-of Blob}
+                                {Blob {{Array-of byte} 'a', 'b', 'c'}},
+                                {Blob {{Array-of byte} 'x', 'y'}}
+                            }
+        ||{input-blobs.append {Blob {{Array-of byte} 'a', 'b', 'c'}}}
+        ||{input-blobs.append {Blob {{Array-of byte} 'x', 'y'}}}
+        {if-non-null blobs = {ct.echo-array-of-blob input-a-blobs} then
+            {TestCondition.assert blobs.size == 2}
+            {TestCondition.assert blobs[0].length == 3}
+            {TestCondition.assert blobs[1].length == 2}
+         else
+            {TestCondition.fail message = "Not return Blob[]"}
+        }
+        
+        || Blob[][]
+        def input-a2-blobs = {{FastArray-of #{FastArray-of Blob}}
+                                 {{FastArray-of Blob}
+                                     {Blob {{Array-of byte} 'a', 'b', 'c'}},
+                                     {Blob {{Array-of byte} 'x', 'y'}}
+                                 },
+                                 {{FastArray-of Blob}
+                                     {Blob {{Array-of byte} 'd', 'e'}},
+                                     {Blob {{Array-of byte} 'z'}}
+                                 }
+                             }
+        {if-non-null blobss = {ct.echo-array2-of-blob input-a2-blobs} then
+            let blobs:#{FastArray-of #Blob} = blobss[0]
+            {TestCondition.assert blobs.size == 2}
+            {TestCondition.assert blobs[0].length == 3}
+            {TestCondition.assert blobs[1].length == 2}
+            set blobs = blobss[1]
+            {TestCondition.assert blobs.size == 2}
+            {TestCondition.assert blobs[0].length == 2}
+            {TestCondition.assert blobs[1].length == 1}
+         else
+            {TestCondition.fail message = "Not return Blob[][]"}
+        }
     },
     
     {test-case "advanced type (mixed)",
@@ -324,6 +393,30 @@
         set inputDto.sql-date = {CDate 20000}
         set inputDto.sql-time = {CTime 20000}
         set inputDto.sql-timestamp = {CTimestamp 20000}
+        set inputDto.blobs = {{FastArray-of #Blob}}
+        set inputDto.clobs = {{FastArray-of #Clob}}
+        set inputDto.dts = {{FastArray-of #DateTime}}
+        set inputDto.hashInHash = 
+            {HashTable
+                "key1",
+                {HashTable
+                    "k1", "v1", 
+                    "k2", "k2"
+                },
+                "key2",
+                {HashTable
+                    "k10", "v10", 
+                    "k20", "v20",
+                    "vvv", "vvv"
+                },
+                "key3",
+                {HashTable},
+                "key4",
+                {HashTable
+                    "k100", "v100",
+                    "k200", "k200"
+                }
+            }
         {if-non-null dto:ComplexTypeDto = {ct.echo-complex-type inputDto} then
             {TestCondition.assert-isa BigInteger, dto.big-integer}
             {TestCondition.assert-isa BigDecimal, dto.big-decimal}
@@ -331,6 +424,18 @@
             {TestCondition.assert-isa CDate, dto.sql-date}
             {TestCondition.assert-isa CTime, dto.sql-time}
             {TestCondition.assert-isa CTimestamp, dto.sql-timestamp}
+            {TestCondition.assert dto.blobs.size == 0}
+            {TestCondition.assert dto.clobs.size == 0}
+            {TestCondition.assert dto.dts.size == 0}
+            {TestCondition.assert dto.hashInHash.size == 4}
+            {TestCondition.assert dto.hashInHash["key1"]["k1"] == "v1"}
+            {TestCondition.assert dto.hashInHash["key1"]["k2"] == "k2"}
+            {TestCondition.assert dto.hashInHash["key2"]["k10"] == "v10"}
+            {TestCondition.assert dto.hashInHash["key2"]["k20"] == "v20"}
+            {TestCondition.assert dto.hashInHash["key2"]["vvv"] == "vvv"}
+            {TestCondition.assert dto.hashInHash["key3"].size == 0}
+            {TestCondition.assert dto.hashInHash["key4"]["k100"] == "v100"}
+            {TestCondition.assert dto.hashInHash["key4"]["k200"] == "k200"}
          else
             {TestCondition.fail message = "Not return complex types"}
         }
@@ -345,6 +450,55 @@
         {TestCondition.assert-isa Date, date-dto.date2}
         {TestCondition.assert-isa Date, date-dto.date3}
         {TestCondition.assert-isa DateTime, date-dto.datetime}
+        
+        || ComplexType3
+        set inputDto = {ComplexTypeDto}
+        set inputDto.big-integer = {BigInteger.from-String "10000"}
+        set inputDto.big-decimal = {BigDecimal.from-double 1000.00}
+        set inputDto.date = {Date}
+        set inputDto.sql-date = {CDate 20000}
+        set inputDto.sql-time = null
+        set inputDto.sql-timestamp = {CTimestamp 20000}
+        set inputDto.blobs = {{FastArray-of #Blob} {Blob {{Array-of byte} 'z'}}, {Blob {{Array-of byte} 'z'}}}
+        set inputDto.clobs = {{FastArray-of #Clob} {Clob {{Array-of char} 'a'}}, {Clob {{Array-of char} 'z'}}}
+        set inputDto.dts = {{FastArray-of #DateTime} {DateTime}, {DateTime}}
+        set inputDto.hashInHash = 
+            {HashTable
+                "key1",
+                {HashTable
+                    "k1", "v1", 
+                    "k2", "k2"
+                },
+                "key2",
+                {HashTable},
+                "key3",
+                {HashTable},
+                "key4",
+                {HashTable
+                    "k100", "v100",
+                    "k200", "k200"
+                }
+            }
+        {if-non-null dto:ComplexTypeDto = {ct.echo-complex-type inputDto} then
+            {TestCondition.assert-isa BigInteger, dto.big-integer}
+            {TestCondition.assert-isa BigDecimal, dto.big-decimal}
+            {TestCondition.assert-isa Date, dto.date}
+            {TestCondition.assert-isa CDate, dto.sql-date}
+            {TestCondition.assert dto.sql-time == null}
+            {TestCondition.assert-isa CTimestamp, dto.sql-timestamp}
+            {TestCondition.assert dto.blobs.size == 2}
+            {TestCondition.assert dto.clobs.size == 2}
+            {TestCondition.assert dto.dts.size == 2}
+            {TestCondition.assert dto.hashInHash.size == 4}
+            {TestCondition.assert dto.hashInHash["key1"]["k1"] == "v1"}
+            {TestCondition.assert dto.hashInHash["key1"]["k2"] == "k2"}
+            {TestCondition.assert dto.hashInHash["key2"].size == 0}
+            {TestCondition.assert dto.hashInHash["key3"].size == 0}
+            {TestCondition.assert dto.hashInHash["key4"]["k100"] == "v100"}
+            {TestCondition.assert dto.hashInHash["key4"]["k200"] == "k200"}
+         else
+            {TestCondition.fail message = "Not return complex types"}
+        }
     },
 
     ||

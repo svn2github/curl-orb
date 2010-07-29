@@ -36,12 +36,12 @@
 
         let foo:Foo = {Foo}
         {TestCondition.assert {foo.echo "foo"} == "foo"}
-        {TestCondition.assert interceptor-result.size == 5}
+        {TestCondition.assert interceptor-result.size == 4} || (+ new --> until 0.7)
 
         let fuga:Fuga = {Fuga}
         {TestCondition.assert {fuga.method2 "fuga", 10, true} == "fuga10true"}
         {fuga.destroy-instance}
-        {TestCondition.assert interceptor-result.size == 12} || + new and destroy
+        {TestCondition.assert interceptor-result.size == 8} || (+ new and destroy --> until 0.7)
 
         {foo.echo "foo"}
 ||--        {foo.async-sleeping 10}

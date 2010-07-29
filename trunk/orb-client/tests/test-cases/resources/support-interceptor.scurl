@@ -40,41 +40,44 @@
   {method protected open {build-server-url
                              server-url:Url
                          }:Url
-||--    {return {url "http://10.20.129.175:8080/curl-orb-server"}} 
+||--    {return {url "http://xxxxxxxxx:8080/curl-orb-server"}} 
     {return {super.build-server-url server-url}}
   }
-
-  {method protected open {build-orb-request-headers
-                             headers:#HashTable
-                         }:#HashTable
-    {return {super.build-orb-request-headers headers}}
-  }
-
-  {method protected open {build-http-request-headers
-                             headers:#HttpRequestHeaders
-                         }:#HttpRequestHeaders
-    {return {HttpRequestHeaders "Content-Encoding", "gzip"}}
-  }
-
-  {method protected open {handle-orb-response-headers
-                             headers:#HashTable
-                         }:void
-    || TODO: write testcases here.
-  }
   
-  {method protected open {handle-http-response-headers
-                             headers:#HttpResponseHeaders
-                         }:void
-    {TestCondition.assert
-        headers["Content-Type"] == "application/octet-stream;charset=UTF-8"
-    }
-    {interceptor-result.append true}
-  }
+  || No support since 0.8 (see handle-before-reqest or handle-after-response
+||--  {method protected open {build-orb-request-headers
+||--                             headers:#HashTable
+||--                         }:#HashTable
+||--    {return {super.build-orb-request-headers headers}}
+||--  }
+||--
+||--  {method protected open {build-http-request-headers
+||--                             headers:#HttpRequestHeaders
+||--                         }:#HttpRequestHeaders
+||--    {return {HttpRequestHeaders "Content-Encoding", "gzip"}}
+||--  }
+||--
+||--  {method protected open {handle-orb-response-headers
+||--                             headers:#HashTable
+||--                         }:void
+||--    || TODO: write testcases here.
+||--  }
+||--  
+||--  {method protected open {handle-http-response-headers
+||--                             headers:#HttpResponseHeaders
+||--                         }:void
+||--    {TestCondition.assert
+||--        headers["Content-Type"] == "application/octet-stream;charset=UTF-8"
+||--    }
+||--    {interceptor-result.append true}
+||--  }
 
   {method protected open {handle-before-request ||before-advice
+                             http-headers:#HttpRequestHeaders,
+                             orb-headers:#HashTable,
                              method:Method,
                              arguments:#FastArray
-                         }:void
+                         }:(#HttpRequestHeaders, #HashTable)
     {if method.name == "echo" then
         {TestCondition.assert arguments[0] == "foo"}
      elseif method.name == "method2" then
@@ -83,13 +86,19 @@
         ||async-sleeping
     }
     {interceptor-result.append true}
+    {return {HttpRequestHeaders "Content-Encoding", "gzip"}, null}
   }
 
   {method protected open {handle-after-response ||after-returning-advice
+                             http-headers:#HttpResponseHeaders,
+                             orb-headers:#HashTable,
                              method:Method,
                              arguments:#FastArray,
                              return-value:#any
-                         }:void
+                         }:(#HttpResponseHeaders, #HashTable)
+    {TestCondition.assert
+        http-headers["Content-Type"] == "application/octet-stream;charset=UTF-8"
+    }
     {if method.name == "echo" then
         {TestCondition.assert return-value == "foo"}
      elseif method.name == "method2" then
@@ -98,6 +107,7 @@
         ||async-sleeping
     }
     {interceptor-result.append true}
+    {return http-headers, orb-headers}
   }
 
   {method protected open {handle-exception ||throw-advice
@@ -130,29 +140,32 @@
                          }:Url
     {return {super.build-server-url server-url}}
   }
-
-  {method protected open {build-orb-request-headers
-                             headers:#HashTable
-                         }:#HashTable
-    {return {super.build-orb-request-headers headers}}
-  }
-
-  {method protected open {build-http-request-headers
-                             headers:#HttpRequestHeaders
-                         }:#HttpRequestHeaders
-    {return {super.build-http-request-headers headers}}
-  }
-
-  {method protected open {handle-http-response-headers
-                             headers:#HttpResponseHeaders
-                         }:void
-    {super.handle-http-response-headers headers}
-  }
+  
+  || No support since 0.8 (see handle-before-reqest or handle-after-response
+||--  {method protected open {build-orb-request-headers
+||--                             headers:#HashTable
+||--                         }:#HashTable
+||--    {return {super.build-orb-request-headers headers}}
+||--  }
+||--
+||--  {method protected open {build-http-request-headers
+||--                             headers:#HttpRequestHeaders
+||--                         }:#HttpRequestHeaders
+||--    {return {super.build-http-request-headers headers}}
+||--  }
+||--
+||--  {method protected open {handle-http-response-headers
+||--                             headers:#HttpResponseHeaders
+||--                         }:void
+||--    {super.handle-http-response-headers headers}
+||--  }
 
   {method protected open {handle-before-request ||before-advice
+                             http-headers:#HttpRequestHeaders,
+                             orb-headers:#HashTable,
                              method:Method,
                              arguments:#FastArray
-                         }:void
+                         }:(#HttpRequestHeaders, #HashTable)
     {if method.name == "echo" then
         {TestCondition.assert arguments[0] == "foo"}
      elseif method.name == "method2" then
@@ -161,13 +174,16 @@
         ||async-sleeping
     }
     {interceptor-result.append true}
+    {return http-headers, orb-headers}
   }
 
   {method protected open {handle-after-response ||after-returning-advice
+                             http-headers:#HttpResponseHeaders,
+                             orb-headers:#HashTable,
                              method:Method,
                              arguments:#FastArray,
                              return-value:#any
-                         }:void
+                         }:(#HttpResponseHeaders, #HashTable)
     {if method.name == "echo" then
         {TestCondition.assert return-value == "foo"}
      elseif method.name == "method2" then
@@ -176,6 +192,7 @@
         ||async-sleeping
     }
     {interceptor-result.append true}
+    {return http-headers, orb-headers}
   }
 
   {method protected open {handle-exception ||throw-advice

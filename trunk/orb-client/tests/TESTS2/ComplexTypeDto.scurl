@@ -11,7 +11,19 @@
   field private _sql-timestamp:#CTimestamp 
   field private _blob:#Blob 
   field private _clob:#Clob 
-
+  field private _blobs:#{FastArray-of #Blob}
+  field private _clobs:#{FastArray-of #Clob}
+  field public dts:#{FastArray-of #DateTime}
+  field private _hashInHash:#HashTable
+  
+  {getter public {big-decimal}:#BigDecimal 
+    {return self._big-decimal} 
+  } 
+  
+  {getter public {big-integer}:#BigInteger 
+    {return self._big-integer} 
+  }
+  
   {getter public {date}:#Date 
     {return self._date}
   } 
@@ -34,16 +46,21 @@
 
   {getter public {clob}:#Clob 
     {return self._clob} 
+  }
+  
+  {getter public {blobs}:#{FastArray-of #Blob} 
+    {return self._blobs} 
   } 
-
-  {getter public {big-decimal}:#BigDecimal 
-    {return self._big-decimal} 
-  } 
-
-  {getter public {big-integer}:#BigInteger 
-    {return self._big-integer} 
-  } 
-
+  
+  {getter public {clobs}:#{FastArray-of #Clob} 
+    {return self._clobs} 
+  }
+  
+  {getter public {hashInHash}:#HashTable
+    {return self._hashInHash}
+  }
+  
+  || --- setter
   {setter public {big-integer v:BigInteger}:void 
     set self._big-integer = v 
   } 
@@ -60,7 +77,7 @@
     set self._sql-date = v 
   } 
 
-  {setter public {sql-time v:CTime}:void 
+  {setter public {sql-time v:#CTime}:void 
     set self._sql-time = v 
   } 
 
@@ -74,7 +91,19 @@
 
   {setter public {clob v:Clob}:void 
     set self._clob = v 
+  }
+  
+  {setter public {blobs v:#{FastArray-of #Blob}}:void 
+    set self._blobs = v 
   } 
+  
+  {setter public {clobs v:#{FastArray-of #Clob}}:void 
+    set self._clobs = v 
+  }
+  
+  {setter public {hashInHash v:#HashTable}:void 
+    set self._hashInHash = v 
+  }
 
   {constructor public {default} }
 } 
