@@ -1,4 +1,4 @@
-||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+||| Copyright (C) 1998-2010, Sumisho Computer Systems Corp. All Rights Reserved.
 
 ||| Licensed under the Apache License, Version 2.0 (the "License");
 ||| you may not use this file except in compliance with the License.
@@ -93,40 +93,49 @@
                          }:Url
     {return server-url}
   }
-
-  {method protected open {build-http-request-headers
-                             headers:#HttpRequestHeaders
-                         }:#HttpRequestHeaders
-    {return headers}
-  }
   
-  {method protected open {build-orb-request-headers
-                             headers:#HashTable
-                         }:#HashTable
-    {return headers}
-  }
+  || No support since 0.8 (see handle-before-reqest or handle-after-response
+||--  {method protected open {build-http-request-headers
+||--                             headers:#HttpRequestHeaders
+||--                         }:#HttpRequestHeaders
+||--    {return headers}
+||--  }
+  
+||--  {method protected open {build-orb-request-headers
+||--                             headers:#HashTable
+||--                         }:#HashTable
+||--    {return headers}
+||--  }
 
-  {method protected open {handle-http-response-headers
-                             headers:#HttpResponseHeaders
-                         }:void }
+||--  {method protected open {handle-http-response-headers
+||--                             headers:#HttpResponseHeaders
+||--                         }:void }
 
   || Support since 0.7
-  {method protected open {handle-orb-response-headers
-                             headers:#HashTable
-                         }:void }
-  
+||--  {method protected open {handle-orb-response-headers
+||--                             headers:#HashTable
+||--                         }:void }
+    
   || like BeforeAdvice (only method)
   {method protected open {handle-before-request ||before-advice
+                             http-request-headers:#HttpRequestHeaders,
+                             orb-request-hearders:#HashTable,
                              method:Method,
                              arguments:#FastArray
-                         }:void }
+                         }:(http-request-headers:#HttpRequestHeaders, orb-request-headers:#HashTable)
+    {return http-request-headers, orb-request-hearders}
+  }
 
   || like AfterReturning (only method)
   {method protected open {handle-after-response ||after-returning-advice
+                             http-response-headers:#HttpResponseHeaders,
+                             orb-response-hearders:#HashTable,
                              method:Method,
                              arguments:#FastArray,
                              return-value:#any
-                         }:void }
+                         }:(http-response-headers:#HttpResponseHeaders, orb-response-hearders:#HashTable)
+    {return http-response-headers, orb-response-hearders}
+  }
 
   || like ThrowAdvice (only method)
   {method protected open {handle-exception ||throw-advice
@@ -159,63 +168,79 @@
     }
     {return u}
   }
-
-  {method package {build-http-request-headers
-                      headers:#HttpRequestHeaders
-                  }:#HttpRequestHeaders
-    let h:#HttpRequestHeaders = headers
+  
+  || No support since 0.8 (see handle-before-reqest or handle-after-response
+||--  {method package {build-http-request-headers
+||--                      headers:#HttpRequestHeaders
+||--                  }:#HttpRequestHeaders
+||--    let h:#HttpRequestHeaders = headers
+||--    {for interceptor in self do
+||--        set h = {interceptor.build-http-request-headers h}
+||--    }
+||--    {return h}
+||--  }
+||--
+||--  {method package {build-orb-request-headers
+||--                      headers:#HashTable
+||--                  }:#HashTable
+||--    let h:#HashTable = headers
+||--    {for interceptor in self do
+||--        set h = {interceptor.build-orb-request-headers h}
+||--    }
+||--    {return h}
+||--  }
+||--  
+||--  {method package {handle-http-response-headers
+||--                      headers:#HttpResponseHeaders
+||--                  }:void
+||--    {for interceptor in self do
+||--        {interceptor.handle-http-response-headers headers}
+||--    }
+||--  }
+||--
+||--  || Support next version(0.7)
+||--  {method package {handle-orb-response-headers
+||--                      headers:#HashTable
+||--                  }:void
+||--    {for interceptor in self do
+||--        {interceptor.handle-orb-response-headers headers}
+||--    }
+||--  }
+  
+  {method protected open {handle-before-request ||before-advice
+                             http-request-headers:#HttpRequestHeaders,
+                             orb-request-hearders:#HashTable,
+                             method:#Method,
+                             arguments:#FastArray
+                         }:(http-request-headers:#HttpRequestHeaders, orb-request-headers:#HashTable)
+    {self.assert-orb-version method}
+    let http-rh:#HttpRequestHeaders = http-request-headers
+    let orb-rh:#HashTable = orb-request-hearders
     {for interceptor in self do
-        set h = {interceptor.build-http-request-headers h}
+        set (http-rh, orb-rh) = 
+            {interceptor.handle-before-request http-rh, orb-rh, {non-null method}, arguments}
     }
-    {return h}
-  }
-
-  {method package {build-orb-request-headers
-                      headers:#HashTable
-                  }:#HashTable
-    let h:#HashTable = headers
-    {for interceptor in self do
-        set h = {interceptor.build-orb-request-headers h}
-    }
-    {return h}
+    {return http-rh, orb-rh}
   }
   
-  {method package {handle-http-response-headers
-                      headers:#HttpResponseHeaders
-                  }:void
-    {for interceptor in self do
-        {interceptor.handle-http-response-headers headers}
-    }
-  }
-
-  || Support next version(0.7)
-  {method package {handle-orb-response-headers
-                      headers:#HashTable
-                  }:void
-    {for interceptor in self do
-        {interceptor.handle-orb-response-headers headers}
-    }
-  }
-
-  {method package {handle-before-request
-                      method:#Method,
-                      arguments:#FastArray
-                  }:void
+  || like AfterReturning (only method)
+  {method protected open {handle-after-response ||after-returning-advice
+                             http-response-headers:#HttpResponseHeaders,
+                             orb-response-hearders:#HashTable,
+                             method:#Method,
+                             arguments:#FastArray,
+                             return-value:#any
+                         }:(http-response-headers:#HttpResponseHeaders, orb-response-hearders:#HashTable)
     {self.assert-orb-version method}
+    let http-rh:#HttpResponseHeaders = http-response-headers
+    let orb-rh:#HashTable = orb-response-hearders
     {for interceptor in self do
-        {interceptor.handle-before-request {non-null method}, arguments}
+        set (http-rh, orb-rh) = 
+            {interceptor.handle-after-response
+                http-rh, orb-rh, {non-null method}, arguments, return-value
+            }
     }
-  }
-
-  {method package {handle-after-response
-                      method:#Method,
-                      arguments:#FastArray,
-                      return-value:#any
-                  }:void
-    {self.assert-orb-version method}
-    {for interceptor in self do
-        {interceptor.handle-after-response {non-null method}, arguments, return-value}
-    }
+    {return http-rh, orb-rh}
   }
 
   {method package {handle-exception 
@@ -252,3 +277,4 @@
     }
   }
 }
+

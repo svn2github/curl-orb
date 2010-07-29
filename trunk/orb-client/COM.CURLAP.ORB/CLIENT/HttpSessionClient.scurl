@@ -48,7 +48,6 @@
                           request-header:#HashTable = null
                       }
     {construct-super server-url = server-url, class-name}
-    
     def interceptor = super.interceptor
     def (object-id, http-response-headers, orb-response-headers) = 
         {send 
@@ -56,13 +55,14 @@
             {NewInstanceRequest
                 class-name,
                 arguments = {switch-remote-object arguments},
-                request-header = {interceptor.build-orb-request-headers request-header}
+                request-header = null 
             },
-            http-request-headers = {interceptor.build-http-request-headers null}
+            http-request-headers = null
         }
     set self._object-id = object-id asa String
-    {interceptor.handle-http-response-headers http-response-headers}
-    {interceptor.handle-orb-response-headers orb-response-headers}
+    || NOTE: No support since 0.8
+    ||{interceptor.handle-http-response-headers http-response-headers}
+    ||{interceptor.handle-orb-response-headers orb-response-headers}
   }
   
   || invoke 
@@ -79,7 +79,8 @@
     {if stop-request? then
         {return return-val}
     }
-    {interceptor.handle-before-request method, arguments}
+    def (http-rh, orb-rh) = 
+        {interceptor.handle-before-request null, request-header, method, arguments}
     {try
         def (return-value, http-response-headers, orb-response-headers) = 
             {send 
@@ -88,13 +89,13 @@
                     object-id = self.object-id,
                     server-method-name,
                     arguments = {switch-remote-object arguments},
-                    request-header = {interceptor.build-orb-request-headers request-header}
+                    request-header = orb-rh 
                 },
-                http-request-headers = {interceptor.build-http-request-headers null}
+                http-request-headers = http-rh 
             }
-        {interceptor.handle-http-response-headers http-response-headers}
-        {interceptor.handle-orb-response-headers orb-response-headers}
-        {interceptor.handle-after-response method, arguments, return-value}
+        {interceptor.handle-after-response
+            http-response-headers, orb-response-headers, method, arguments, return-value
+        }
         {return return-value}
      catch e:Exception do
         {interceptor.handle-exception method, arguments, e}
@@ -117,7 +118,8 @@
     {if stop-request? then
         {return {async-send-dummy return-val, {splice ...}}}
     }
-    {interceptor.handle-before-request method, arguments}
+    def (http-rh, orb-rh) = 
+        {interceptor.handle-before-request null, request-header, method, arguments}
     {return
         {async-send 
             {self.server-url.concat INVOKE-HTTP-SESSION-PATH},
@@ -125,17 +127,17 @@
                 object-id = self.object-id,
                 server-method-name,
                 arguments = {switch-remote-object arguments},
-                request-header = {interceptor.build-orb-request-headers request-header}
+                request-header = orb-rh 
             },
-            http-request-headers = {interceptor.build-http-request-headers null},
+            http-request-headers = http-rh, 
             {splice ...},
             {on e:AsyncCallbackEvent do
                 {if-non-null ex = e.exception then
                     {interceptor.handle-exception method, arguments, ex}
                  else
-                    {interceptor.handle-http-response-headers e.http-response-headers}
-                    {interceptor.handle-orb-response-headers e.orb-response-headers}
-                    {interceptor.handle-after-response method, arguments, e.obj}
+                    {interceptor.handle-after-response 
+                        e.http-response-headers, e.orb-response-headers, method, arguments, e.obj
+                    }
                 }
             }
         }
@@ -160,15 +162,16 @@
             {self.server-url.concat DESTROY-INSTANCE-PATH},
             {DestroyInstanceRequest
                 self.object-id,
-                request-header = {interceptor.build-orb-request-headers rh}
+                request-header = null ||{interceptor.build-orb-request-headers rh}
             },
-            http-request-headers = {interceptor.build-http-request-headers null}
+            http-request-headers = null ||{interceptor.build-http-request-headers null}
         }
     {if kill-session? then
         {clear-jsessionid-in-cookies server-url = self.server-url}
     }
-    {interceptor.handle-http-response-headers http-response-headers}
-    {interceptor.handle-orb-response-headers orb-response-headers}
+    || NOTE: No support since 0.8
+    ||{interceptor.handle-http-response-headers http-response-headers}
+    ||{interceptor.handle-orb-response-headers orb-response-headers}
   }
 }
 

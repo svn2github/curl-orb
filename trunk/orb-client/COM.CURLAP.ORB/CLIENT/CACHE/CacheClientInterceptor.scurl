@@ -18,6 +18,8 @@
 
 || since 0.8
 
+{import HttpResponseHeaders from CURL.IO.HTTP}
+
 || CacheClientInterceptor
 {define-class public final {CacheClientInterceptor-of t:ClassType}
   {inherits ClientInterceptor}
@@ -41,12 +43,18 @@
   
   || override
   {method protected open {handle-after-response 
+                             http-response-headers:#HttpResponseHeaders,
+                             orb-response-hearders:#HashTable,
                              method:Method,
                              arguments:#FastArray,
                              return-value:#any
-                         }:void
+                         }:(http-response-headers:#HttpResponseHeaders, orb-response-hearders:#HashTable)
     {self.response-handler self.cache, method, arguments, return-value}
-    {super.handle-after-response method, arguments, return-value}
+    {return 
+        {super.handle-after-response
+            http-response-headers, orb-response-hearders, method, arguments, return-value
+        }
+    }
   }
   
   || constructor
