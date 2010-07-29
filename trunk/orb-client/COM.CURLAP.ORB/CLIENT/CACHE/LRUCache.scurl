@@ -60,7 +60,7 @@
     }
   }
   
-  {method public {get key:String}:#any
+  {method public {get key:String}:any
     {if not {self.exists-with-expired-cache? key, remove-if-expired? = true} then
         {return null}
     }

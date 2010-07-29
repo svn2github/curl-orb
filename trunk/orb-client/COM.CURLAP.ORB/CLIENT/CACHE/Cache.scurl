@@ -86,7 +86,7 @@
   || methods
   {method abstract public {exists? key:String}:bool }
   {method abstract public {set key:String, value:any}:void }
-  {method abstract public {get key:String}:#any }
+  {method abstract public {get key:String}:any }
   {method abstract public {remove key:String}:void }
   {method abstract public {clear}:void }
   {method public {object-serialize out:SerializeOutputStream}:void

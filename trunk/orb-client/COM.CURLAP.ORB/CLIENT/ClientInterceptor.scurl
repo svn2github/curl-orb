@@ -132,7 +132,7 @@
                              orb-response-hearders:#HashTable,
                              method:Method,
                              arguments:#FastArray,
-                             return-value:#any
+                             return-value:any
                          }:(http-response-headers:#HttpResponseHeaders, orb-response-hearders:#HashTable)
     {return http-response-headers, orb-response-hearders}
   }
@@ -229,7 +229,7 @@
                              orb-response-hearders:#HashTable,
                              method:#Method,
                              arguments:#FastArray,
-                             return-value:#any
+                             return-value:any
                          }:(http-response-headers:#HttpResponseHeaders, orb-response-hearders:#HashTable)
     {self.assert-orb-version method}
     let http-rh:#HttpResponseHeaders = http-response-headers

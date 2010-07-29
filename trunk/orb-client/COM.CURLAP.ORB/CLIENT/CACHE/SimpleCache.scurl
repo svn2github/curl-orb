@@ -45,7 +45,7 @@
     set self.cache-table[key] = value
   }
   
-  {method public {get key:String}:#any
+  {method public {get key:String}:any
     {return {self.cache-table.get-if-exists key}}
   }
   

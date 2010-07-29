@@ -47,7 +47,7 @@
                              orb-response-hearders:#HashTable,
                              method:Method,
                              arguments:#FastArray,
-                             return-value:#any
+                             return-value:any
                          }:(http-response-headers:#HttpResponseHeaders, orb-response-hearders:#HashTable)
     {self.response-handler self.cache, method, arguments, return-value}
     {return 
