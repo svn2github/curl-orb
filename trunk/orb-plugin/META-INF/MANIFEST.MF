@@ -3,7 +3,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: com.curlap.orb.plugin
 Bundle-SymbolicName: com.curlap.orb.plugin;singleton:=true
 Bundle-Version: 1.0.0.qualifier
-Bundle-Activator: com.curlap.orb.plugin.Activator
+Bundle-Activator: com.curlap.orb.plugin.OrbPlugin
 Require-Bundle: org.eclipse.ui,
  org.eclipse.core.runtime,
  org.eclipse.core.resources;bundle-version="3.6.0",
