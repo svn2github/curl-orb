@@ -8,7 +8,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
@@ -17,14 +18,11 @@ import org.eclipse.jdt.core.IAnnotation;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IField;
 import org.eclipse.jdt.core.IImportDeclaration;
-import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IMemberValuePair;
 import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.IPackageDeclaration;
 import org.eclipse.jdt.core.IType;
-import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.Signature;
-import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.ISelection;
@@ -37,13 +35,9 @@ import org.eclipse.ui.IWorkbenchPart;
 import com.curlap.orb.plugin.common.CurlSpecUtil;
 import com.curlap.org.plugin.bean.Field;
 
-
-
-
-
-
 public class CurlClassGenerateAction implements IObjectActionDelegate {
 
+	private Log log;
 	private Shell shell;
 	
 	/**
@@ -51,6 +45,7 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 	 */
 	public CurlClassGenerateAction() {
 		super();
+		this.log = LogFactory.getLog(getClass());
 	}
 
 	/**
@@ -120,10 +115,10 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 		skip_package_list.add("COM.CURL.IO.SERIALIZE.TYPES");
 		skip_package_list.add("JAVA.LANG");
 		skip_package_list.add("JAVA.UTIL");
-		skip_package_list.add( "JAVA.SQL");
+		skip_package_list.add("JAVA.SQL");
 		skip_package_list.add("JAVA.MATH");
 		
-		System.out.println("================Start==========================");
+		log.debug("================Start==========================");
 
 		IStructuredSelection structedSelection = (IStructuredSelection)selection;
 		ICompilationUnit source = (ICompilationUnit)structedSelection.getFirstElement();
@@ -139,12 +134,12 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 			//class_name = tool.marshalCurlName(class_name0.substring(0, class_name0.length()-5),true);
 			class_name =class_name0.substring(0, class_name0.length()-5);
 			
-			System.out.println(class_name);
+			log.debug(class_name);
 
             file_url = class_name + file_url;
             
 	//Package 
-			System.out.println("Package");
+            log.debug("Package");
 			IPackageDeclaration[] packageDeclarations = source.getPackageDeclarations();
 			for (IPackageDeclaration iPackageDeclaration : packageDeclarations){
 				
@@ -155,10 +150,10 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 			}
 			
 			for(String st :package_list){
-		    	System.out.println(st);
+				log.debug(st);
 		    }
-			System.out.println("Package    "+ package_name);
-			System.out.println("=====================");
+			log.debug("Package    "+ package_name);
+			log.debug("=====================");
 			
 	//Add the packages user defined 
 			for(String st :package_list){
@@ -166,18 +161,18 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 		    }
 			
 	//Imports 
-			System.out.println("Imports");
+			log.debug("Imports");
 		    IImportDeclaration[] imports = source.getImports();
 		    for (IImportDeclaration iImportDeclaration : imports){
 				s = iImportDeclaration.getElementName();
 				if(s != null){
-					System.out.println(s);
+					log.debug(s);
 		        	
 		        }
 				
 			}
 
-		    System.out.println("Generate imports");
+		    log.debug("Generate imports");
 		    for(String st :imports_list){
 		    	/*
 		    	{if ip != null and {ip.prefix? "COM.CURLAP.ORB."} then
@@ -194,35 +189,35 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 			    }
 		    	
 		    	if(in_skip == false)
-		    		System.out.println(st);
+		    		log.debug(st);
 		    		imports_list.add(st);
 		    }
 		    
 		    
-		    System.out.println("=====================");
+		    log.debug("=====================");
 //ITYPEs...	
 		    IType [] types = source.getAllTypes();
 		    for(IType itype : types){
 		    	/*IJavaElement[] ee = itype.getChildren();
-		    	System.out.println("****************");
+		    	log.debug("****************");
 		    	for(IJavaElement e:ee){
-		    		System.out.println(e.getElementName());
+		    		log.debug(e.getElementName());
 		    	}*/
-		    	System.out.println("****************");
+		    	log.debug("****************");
 	//Annotation
-		    	System.out.println("Annotation");
+		    	log.debug("Annotation");
 		    	for(IAnnotation annotation:itype.getAnnotations()){
 		    		for(IMemberValuePair pair:annotation.getMemberValuePairs()){
-		    			System.out.print(pair.getMemberName());
-		    			System.out.println("\t"+pair.getValue());
+		    			log.debug(pair.getMemberName());
+		    			log.debug("\t"+pair.getValue());
 		    		}
 		    	}
-		    	System.out.println("Annotation <<<<<<<<<");
+		    	log.debug("Annotation <<<<<<<<<");
 		    	
 	//Fields
 		    	IField[] fields = itype.getFields();
 		    	//Field: name, modifier, type, 
-		    	System.out.println("Generate field");
+		    	log.debug("Generate field");
 		    	
 		    	for(IField field:fields){
 		    		Field f = new Field();
@@ -245,17 +240,17 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 		    		
 		    	}
 		    	for(Field fie:field_list){
-		    		System.out.print(fie.getField_is_static());
-		    		System.out.print("\t"+fie.getField_publicity());
-		    		System.out.print("\t"+fie.getField_name());
-		    		System.out.print("\t"+fie.getField_type()+"\n");
+		    		log.debug(fie.getField_is_static());
+		    		log.debug("\t"+fie.getField_publicity());
+		    		log.debug("\t"+fie.getField_name());
+		    		log.debug("\t"+fie.getField_type()+"\n");
 		    	}
-		    	System.out.println(field_list.size());
+		    	log.debug(field_list.size());
 		    	
 
-		    	System.out.println("****************");
+		    	log.debug("****************");
 	//Methods
-		    	System.out.println("Methods");
+		    	log.debug("Methods");
 		    	IMethod[] methods = itype.getMethods();
 		    	for(IMethod method:methods){
 		    		
@@ -263,12 +258,12 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 		    		//method_name_list.add(tool.marshalCurlName(sn,true));
 		    		method_name_list.add(sn);
 		    		method_name_list2.add(tool.marshalCurlName(sn,true));
-		    		System.out.print(sn);
+		    		log.debug(sn);
 		    		for(IAnnotation annotation:itype.getAnnotations()){
-		    			System.out.println("Method Annotation"+annotation.getElementName());
+		    			log.debug("Method Annotation"+annotation.getElementName());
 			    		for(IMemberValuePair pair:annotation.getMemberValuePairs()){
-			    			System.out.print("\t"+pair.getMemberName());
-			    			System.out.println("\t"+pair.getValue());
+			    			log.debug("\t"+pair.getMemberName());
+			    			log.debug("\t"+pair.getValue());
 			    		}
 			    	}
 		    		String[] paramNames = method.getParameterNames();
@@ -285,28 +280,28 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 		    				st2 = st2 + ", "+paramNames[i];
 		    			}
 		    				
-		    			System.out.print("\t"+paramNames[i]);
-		    			System.out.print("\t"+tool.marshalCurlType(Signature.toString(paramTypes[i]),true,true));
+		    			log.debug("\t"+paramNames[i]);
+		    			log.debug("\t"+tool.marshalCurlType(Signature.toString(paramTypes[i]),true,true));
 		    		}
 		    		
 		    		method_param_list.add(st);
 		    		method_arguments.add(st2);
-		    		System.out.println("\t"+Signature.toString(method.getReturnType()));
+		    		log.debug("\t"+Signature.toString(method.getReturnType()));
 		    		method_return_type.add(tool.marshalCurlType(Signature.toString(method.getReturnType()),true,true));
 		    	}
-		    	System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<");
+		    	log.debug("<<<<<<<<<<<<<<<<<<<<<<<<<");
 		    	for(int i=0;i<method_name_list.size();i++){
-		    		System.out.println(method_name_list.get(i)+" "+
+		    		log.debug(method_name_list.get(i)+" "+
 		    				method_param_list.get(i)+"   "+
 		    				method_return_type.get(i)+"   "+
 		    				method_arguments.get(i)
 		    				);
 		    	}
-		    	System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>");
+		    	log.debug(">>>>>>>>>>>>>>>>>>>>>>>>>>");
 		    }
-		    System.out.println("=====================");
+		    log.debug("=====================");
 		    
-			System.out.println("WWWWWWWWWWWWWWWWWWWWWWWWWWW");
+		    log.debug("WWWWWWWWWWWWWWWWWWWWWWWWWWW");
 			
 			
 			VelocityContext context = new VelocityContext();
@@ -339,7 +334,7 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
             template.merge(context, fileWriter);
             fileWriter.flush();
             
-            System.out.println(file.getAbsolutePath());
+            log.debug(file.getAbsolutePath());
             
 
       //create or rewrite load file     
@@ -352,14 +347,14 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
  	           fileWriter2.flush();
  	            
 	         }else{
-	           	System.out.println("Load file Already exits!");
+	        	log.debug("Load file Already exits!");
 	            FileReader in = new FileReader(load);
 	            BufferedReader br = new BufferedReader(in);
 	            String line;
 	            Boolean included = false;
-	            System.out.println(file_url);
+	            log.debug(file_url);
 	            while ((line = br.readLine()) != null) {
-	            	System.out.println(line);
+	            	log.debug(line);
 	                if(line.indexOf(file_url) !=-1)
 	                	included = true;
 	            }
@@ -378,9 +373,9 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 			e.printStackTrace();
 		}
 		
-		System.out.println();
-		System.out.println("==================End=================");
-		System.out.println();
+		log.debug("");
+		log.debug("==================End=================");
+		log.debug("");
 		
 
 	}
