@@ -1,0 +1,6 @@
+{curl $rte_version package}
+{curl-file-attributes character-encoding = "shift-jis"}
+{package $package_name,
+   {compiler-directives careful? = true}
+} 
+{include "$file_url"}
