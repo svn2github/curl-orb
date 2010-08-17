@@ -19,6 +19,7 @@
 {import * from TESTS1}
 {import * from TESTS2}
 {import * from TESTS3}
+{import * from TESTS6}
 
 {import * from CURL.DATA-ACCESS.BASE}
 {import * from COM.CURLAP.ORB}
@@ -76,6 +77,10 @@
         {TestCondition.assert {foo.get-field-name} == "client1"}
         {foo.set-field-name "client2"}
         {TestCondition.assert {foo.get-field-name} == "client2"}
+        
+        || AOP (TODO: To do the generation test)
+        let aop:AopService = {AopService}
+        {TestCondition.assert {aop.echo "hoge"} == "hoge"}
     },
 
     || low level functionalites
