@@ -7,6 +7,7 @@ import java.io.FileWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -33,7 +34,9 @@ import org.eclipse.ui.IObjectActionDelegate;
 import org.eclipse.ui.IWorkbenchPart;
 
 import com.curlap.orb.plugin.common.CurlSpecUtil;
-import com.curlap.org.plugin.bean.Field;
+import com.curlap.orb.plugin.bean.CurlClassComponentsGen;
+import com.curlap.orb.plugin.bean.Field;
+import com.curlap.orb.plugin.bean.Method;
 
 public class CurlClassGenerateAction implements IObjectActionDelegate {
 
@@ -77,7 +80,7 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 		MessageDialog.openInformation(
 			shell,
 			"OG",
-			"New Action was executed.");
+			"Curl source code is generated!");
 	}
 
 	/**
@@ -85,38 +88,47 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 	 */
 	public void selectionChanged(IAction action, ISelection selection) {
 		
-		ArrayList<String> imports_list = new ArrayList<String>();
-		ArrayList<String> package_list = new ArrayList<String>();
-		ArrayList<Field> field_list = new ArrayList<Field>();
-		ArrayList<String> method_name_list = new ArrayList<String>();
-		ArrayList<String> method_name_list2 = new ArrayList<String>();
-		ArrayList<String> method_param_list = new ArrayList<String>();
-		ArrayList<String> method_return_type = new ArrayList<String>();
-		ArrayList<String> method_arguments = new ArrayList<String>();
+		List<String> importsList = new ArrayList<String>();
+		List<String> packageList = new ArrayList<String>();
+		List<Field> fieldsList = new ArrayList<Field>();
+		List<String> methodNameList = new ArrayList<String>();
+		List<String> methodNameList4Curl = new ArrayList<String>();
+		List<String> methodParamList = new ArrayList<String>();
+		List<String> methodReturnTypeList = new ArrayList<String>();
+		List<String> methodArguments4Curl = new ArrayList<String>();
+		List<Method> methodsList = new ArrayList<Method>();
 		
-		String package_name = null;
-		String class_name = null;
-		String rte_version = "7.0";
+		String packageName = null;
+		String packageName4Curl = null;
+		String className = null;
+		String rteVersion = "7.0";
 		
-		ArrayList<String> skip_package_list = new ArrayList<String>();
+		
+		String fileUrl = ".scurl";
+		String loadFileUrl = "load.scurl";
+		String generateDate;
+		
+		try {
+			IStructuredSelection structedSelection = (IStructuredSelection)selection;
+			ICompilationUnit source = (ICompilationUnit)structedSelection.getFirstElement();
+			
+	/*	List<String> skipPackageList = new ArrayList<String>();
 
-		String generate_date = SimpleDateFormat.getInstance().format(new Date());
+		String generateDate = SimpleDateFormat.getInstance().format(new Date());
 
-		String file_url=".scurl";
-		String file_load = "load.scurl";
-		
-		CurlSpecUtil tool = new CurlSpecUtil();
+		String fileUrl = ".scurl";
+		String loadFileUrl = "load.scurl";
 		
 		String s;	//temp 
 		
 		
 
 		//skip package instances 
-		skip_package_list.add("COM.CURL.IO.SERIALIZE.TYPES");
-		skip_package_list.add("JAVA.LANG");
-		skip_package_list.add("JAVA.UTIL");
-		skip_package_list.add("JAVA.SQL");
-		skip_package_list.add("JAVA.MATH");
+		skipPackageList.add("COM.CURL.IO.SERIALIZE.TYPES");
+		skipPackageList.add("JAVA.LANG");
+		skipPackageList.add("JAVA.UTIL");
+		skipPackageList.add("JAVA.SQL");
+		skipPackageList.add("JAVA.MATH");
 		
 		log.debug("================Start==========================");
 
@@ -126,17 +138,13 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 		
 		try {
 			
-			//Velocity.init("velocity.properties");
-	        //VelocityContext context = new VelocityContext();
-	
 	//Class name		
-			String class_name0 = source.getElementName();
-			//class_name = tool.marshalCurlName(class_name0.substring(0, class_name0.length()-5),true);
-			class_name =class_name0.substring(0, class_name0.length()-5);
+			s = source.getElementName();
+			className = s.substring(0, s.length()-5);
 			
-			log.debug(class_name);
+			log.debug(className);
 
-            file_url = class_name + file_url;
+            fileUrl = className + fileUrl;
             
 	//Package 
             log.debug("Package");
@@ -144,70 +152,56 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 			for (IPackageDeclaration iPackageDeclaration : packageDeclarations){
 				
 				s = iPackageDeclaration.getElementName();
-		        package_list.add(s);
-		        package_name = s.toUpperCase();
+		        packageList.add(s);
+		        
+		        packageName = s;
+		        packageName4Curl = packageName.toUpperCase();
 				
 			}
 			
-			for(String st :package_list){
+			for(String st :packageList){
 				log.debug(st);
 		    }
-			log.debug("Package    "+ package_name);
+			log.debug("Package    "+ packageName);
 			log.debug("=====================");
 			
 	//Add the packages user defined 
-			for(String st :package_list){
-				skip_package_list.add(st.toUpperCase());
+			for(String st :packageList){
+				skipPackageList.add(st.toUpperCase());
 		    }
 			
 	//Imports 
 			log.debug("Imports");
 		    IImportDeclaration[] imports = source.getImports();
+		    String im;
 		    for (IImportDeclaration iImportDeclaration : imports){
-				s = iImportDeclaration.getElementName();
-				if(s != null){
-					log.debug(s);
-		        	
-		        }
-				
-			}
+		    	im = iImportDeclaration.getElementName();
 
-		    log.debug("Generate imports");
-		    for(String st :imports_list){
-		    	/*
-		    	{if ip != null and {ip.prefix? "COM.CURLAP.ORB."} then
-		            {continue} || COM.CURLAP.ORB.XXX -> COM.CURLAP.ORB
-		        }
-		        {if self.as-template? and {ip.prefix? "COM.CURLAP.ORB"} then
-		            {continue} || Not add COM.CURLAP.ORB to template class.
-		        }
-		        */
 		    	Boolean in_skip = false;
-		    	for(String str :skip_package_list){
-			    	if(st.toUpperCase().indexOf(str) != -1)
+		    	for (String str : skipPackageList){
+			    	if (im.toUpperCase().indexOf(str) != -1)
 			    		in_skip = true;
 			    }
 		    	
-		    	if(in_skip == false)
-		    		log.debug(st);
-		    		imports_list.add(st);
+		    	if (in_skip == false)
+		    		log.debug(im);
+		    		importsList.add(im);
+		    
 		    }
-		    
-		    
 		    log.debug("=====================");
 //ITYPEs...	
 		    IType [] types = source.getAllTypes();
-		    for(IType itype : types){
-		    	/*IJavaElement[] ee = itype.getChildren();
+		    for (IType itype : types){
+		    	IJavaElement[] ee = itype.getChildren();
 		    	log.debug("****************");
 		    	for(IJavaElement e:ee){
 		    		log.debug(e.getElementName());
-		    	}*/
+		    	}
 		    	log.debug("****************");
 	//Annotation
 		    	log.debug("Annotation");
-		    	for(IAnnotation annotation:itype.getAnnotations()){
-		    		for(IMemberValuePair pair:annotation.getMemberValuePairs()){
+		    	for (IAnnotation annotation : itype.getAnnotations()){
+		    		for (IMemberValuePair pair : annotation.getMemberValuePairs()){
 		    			log.debug(pair.getMemberName());
 		    			log.debug("\t"+pair.getValue());
 		    		}
@@ -215,53 +209,50 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 		    	log.debug("Annotation <<<<<<<<<");
 		    	
 	//Fields
-		    	IField[] fields = itype.getFields();
-		    	//Field: name, modifier, type, 
+		    	IField[] fields = itype.getFields(); 
 		    	log.debug("Generate field");
 		    	
-		    	for(IField field:fields){
+		    	//Field: name, modifier, type,
+		    	for (IField field : fields){
 		    		Field f = new Field();
-		    		//String st = Flags.toString(field.getFlags());
-		    		//String st = tool.marshalCurlName(Flags.toString(field.getFlags()),true);
 		    		String st = Flags.toString(field.getFlags());
 
 
 		    		if(Flags.isTransient(field.getFlags()))
 		    			st = st + " transient";
 		    		
-		    		f.setField_name(field.getElementName());
-		    		f.setField_publicity(st);
-		    		f.setField_type(tool.marshalCurlType(Signature.toString(field.getTypeSignature()),true,true));
+		    		f.setFieldName(field.getElementName());
+		    		f.setFieldPublicity(st);
+		    		f.setFieldType(CurlSpecUtil.marshalCurlType(Signature.toString(field.getTypeSignature()),true,true));
 		    		if(Flags.isStatic(field.getFlags()))
-		    			f.setField_is_static("let");
+		    			f.setFieldIsStatic("let");
 		    		else
-		    			f.setField_is_static("field");
-		    		field_list.add(f);
+		    			f.setFieldIsStatic("field");
+		    		fieldsList.add(f);
 		    		
 		    	}
-		    	for(Field fie:field_list){
-		    		log.debug(fie.getField_is_static());
-		    		log.debug("\t"+fie.getField_publicity());
-		    		log.debug("\t"+fie.getField_name());
-		    		log.debug("\t"+fie.getField_type()+"\n");
+		    	for(Field fie:fieldsList){
+		    		log.debug(fie.getFieldIsStatic());
+		    		log.debug("\t"+fie.getFieldPublicity());
+		    		log.debug("\t"+fie.getFieldName());
+		    		log.debug("\t"+fie.getFieldType()+"\n");
 		    	}
-		    	log.debug(field_list.size());
+		    	log.debug(fieldsList.size());
 		    	
 
 		    	log.debug("****************");
 	//Methods
 		    	log.debug("Methods");
 		    	IMethod[] methods = itype.getMethods();
-		    	for(IMethod method:methods){
+		    	for (IMethod method : methods){
 		    		
 		    		String sn = method.getElementName();
-		    		//method_name_list.add(tool.marshalCurlName(sn,true));
-		    		method_name_list.add(sn);
-		    		method_name_list2.add(tool.marshalCurlName(sn,true));
+		    		methodNameList.add(sn);
+		    		methodNameList4Curl.add(CurlSpecUtil.marshalCurlName(sn, true));
 		    		log.debug(sn);
-		    		for(IAnnotation annotation:itype.getAnnotations()){
+		    		for (IAnnotation annotation : itype.getAnnotations()){
 		    			log.debug("Method Annotation"+annotation.getElementName());
-			    		for(IMemberValuePair pair:annotation.getMemberValuePairs()){
+			    		for (IMemberValuePair pair : annotation.getMemberValuePairs()){
 			    			log.debug("\t"+pair.getMemberName());
 			    			log.debug("\t"+pair.getValue());
 			    		}
@@ -269,32 +260,34 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 		    		String[] paramNames = method.getParameterNames();
 		    		String[] paramTypes = method.getParameterTypes();
 		    		
-		    		String st = "NoParams";
-		    		String st2 = "Empty";
-		    		for(int i = 0;i<paramNames.length;i++){
-		    			if(i==0){
-		    				st = paramNames[i]+":"+tool.marshalCurlType(Signature.toString(paramTypes[i]),true,true);
-		    				st2 = paramNames[i];
-		    			}else{
-		    				st= st + ", "+paramNames[i]+":"+tool.marshalCurlType(Signature.toString(paramTypes[i]),true,true);
-		    				st2 = st2 + ", "+paramNames[i];
+		    		String noParam = "NoParams";
+		    		String noReturn = "Empty";
+		    		String paramName = null;
+		    		for (int i = 0; i<paramNames.length; i++){
+		    			paramName = CurlSpecUtil.marshalCurlName(paramNames[i], true);
+		    			if (i==0){
+		    				noParam = paramName + ":" + CurlSpecUtil.marshalCurlType(Signature.toString(paramTypes[i]),true,true);
+		    				noReturn = paramName;
+		    			} else {
+		    				noParam = noParam + ", " + paramName + ":" + CurlSpecUtil.marshalCurlType(Signature.toString(paramTypes[i]),true,true);
+		    				noReturn = noReturn + ", " + paramName;
 		    			}
 		    				
-		    			log.debug("\t"+paramNames[i]);
-		    			log.debug("\t"+tool.marshalCurlType(Signature.toString(paramTypes[i]),true,true));
+		    			log.debug("\t" +paramNames[i]);
+		    			log.debug("\t"+CurlSpecUtil.marshalCurlType(Signature.toString(paramTypes[i]),true,true));
 		    		}
 		    		
-		    		method_param_list.add(st);
-		    		method_arguments.add(st2);
+		    		methodParamList.add(noParam);
+		    		methodArguments4Curl.add(noReturn);
 		    		log.debug("\t"+Signature.toString(method.getReturnType()));
-		    		method_return_type.add(tool.marshalCurlType(Signature.toString(method.getReturnType()),true,true));
+		    		methodReturnTypeList.add(CurlSpecUtil.marshalCurlType(Signature.toString(method.getReturnType()),true,true));
 		    	}
 		    	log.debug("<<<<<<<<<<<<<<<<<<<<<<<<<");
-		    	for(int i=0;i<method_name_list.size();i++){
-		    		log.debug(method_name_list.get(i)+" "+
-		    				method_param_list.get(i)+"   "+
-		    				method_return_type.get(i)+"   "+
-		    				method_arguments.get(i)
+		    	for (int i=0; i<methodNameList.size(); i++){
+		    		log.debug(methodNameList.get(i)+" "+
+		    				methodParamList.get(i)+"   "+
+		    				methodReturnTypeList.get(i)+"   "+
+		    				methodArguments4Curl.get(i)
 		    				);
 		    	}
 		    	log.debug(">>>>>>>>>>>>>>>>>>>>>>>>>>");
@@ -303,47 +296,60 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 		    
 		    log.debug("WWWWWWWWWWWWWWWWWWWWWWWWWWW");
 			
-			
+*/			
+		   generateDate = CurlClassComponentsGen.generateDateTime();
+		   importsList = CurlClassComponentsGen.generateImportsList(source);
+		   fieldsList = CurlClassComponentsGen.generateFieldsList(source);
+		   packageName = CurlClassComponentsGen.generatePackageName(source);
+		   packageName4Curl = packageName.toUpperCase();
+		   methodsList = CurlClassComponentsGen.generateMethodsList(source);
+		   className = CurlClassComponentsGen.generateClassName(source);
+		   
+		   fileUrl = className + fileUrl;
+ 		
 			VelocityContext context = new VelocityContext();
-			VelocityContext contextLoad = new VelocityContext();
+			VelocityContext contextPackageFile = new VelocityContext();
 			
 	//put necessary info into context for generating the Curl source code		
-			context.put("generate_date", generate_date);
-			context.put("imports_list", imports_list);
-			context.put("field_list", field_list);
-			context.put("package_name", package_name);
-			context.put("class_name",class_name );
-			context.put("method_name_list", method_name_list);
-			context.put("method_name_list2", method_name_list2);
-			context.put("method_param_list", method_param_list);
-			context.put("method_return_type",method_return_type );
-			context.put("method_arguments",method_arguments );
+			context.put("generateDate", generateDate);
+			context.put("importsList", importsList);
+			context.put("fieldsList", fieldsList);
+			context.put("packageName", packageName);
+			context.put("packageName4Curl", packageName4Curl);
+			context.put("className",className );
+			context.put("methodNameList", methodNameList);
+			context.put("methodNameList4Curl", methodNameList4Curl);
+			context.put("methodParamList", methodParamList);
+			context.put("methodReturnTypeList", methodReturnTypeList );
+			context.put("methodArguments4Curl", methodArguments4Curl );
+			context.put("methodsList", methodsList);
 	
 	//put necessary info into context for generating the load file		
-			contextLoad.put("rte_version",rte_version );
-			contextLoad.put("package_name",package_name );
-			contextLoad.put("file_url", file_url);
+			contextPackageFile.put("rteVersion", rteVersion );
+			contextPackageFile.put("packageName4Curl", packageName4Curl );
+			contextPackageFile.put("fileUrl", fileUrl);
 			
 
-	//write Curl source code file		
-			File file = new File(file_url);
+	//write Curl source code file
+			
+
+			File file = new File(fileUrl);
             FileWriter fileWriter = new FileWriter(file);
             
 
             Template template = Velocity.getTemplate("templates/HttpSession.vm");
             template.merge(context, fileWriter);
             fileWriter.flush();
-            
-            log.debug(file.getAbsolutePath());
+
             
 
       //create or rewrite load file     
-            File load = new File(file_load);
+            File load = new File(loadFileUrl);
 	        if(!load.exists()){
 	           FileWriter fileWriter2 = new FileWriter(load);
 	          	
  	           Template template2 = Velocity.getTemplate("templates/load.vm");
- 	           template2.merge(contextLoad, fileWriter2);
+ 	           template2.merge(contextPackageFile, fileWriter2);
  	           fileWriter2.flush();
  	            
 	         }else{
@@ -352,18 +358,18 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 	            BufferedReader br = new BufferedReader(in);
 	            String line;
 	            Boolean included = false;
-	            log.debug(file_url);
+	            log.debug(fileUrl);
 	            while ((line = br.readLine()) != null) {
 	            	log.debug(line);
-	                if(line.indexOf(file_url) !=-1)
+	                if(line.indexOf("\"" + fileUrl + "\"") != -1)
 	                	included = true;
 	            }
 	            br.close();
 	            in.close();
-
+	            
 	           	if(!included){
-	           		FileWriter fileWriter2 = new FileWriter(load,true);
-	           		fileWriter2.write("\n{include \""+file_url+"\"}");
+	           		FileWriter fileWriter2 = new FileWriter(load, true);
+	           		fileWriter2.write("\n{include \""+fileUrl+"\"}");
 		            fileWriter2.flush();
 	           	}
 	         }
@@ -376,8 +382,13 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 		log.debug("");
 		log.debug("==================End=================");
 		log.debug("");
-		
-
+		System.out.println("f");
+		System.out.println(fieldsList.size());
+		for(Method m : methodsList){
+			System.out.println(m.getMethodParams());
+		}
 	}
+	
+	
 
 }
