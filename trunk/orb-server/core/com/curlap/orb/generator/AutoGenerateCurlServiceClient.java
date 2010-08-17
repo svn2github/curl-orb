@@ -31,6 +31,7 @@ import java.lang.annotation.Target;
 //@Inherited
 public @interface AutoGenerateCurlServiceClient 
 {
+	String savePath() default "";
 	ServiceType serviceType() default ServiceType.APPLICATION_CONTEXT;
 	Class<?> targetInterface();
 	boolean generateTestTemplate() default false;

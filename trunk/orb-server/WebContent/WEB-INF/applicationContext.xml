@@ -51,6 +51,12 @@
         <aop:advisor pointcut="execution(* tests5.LoginServiceImpl.*(..))" advice-ref="loginAfterAdvice"/>
     </aop:config>
 
+    <!-- service to test generation for AOP -->
+    <bean id="aopServiceBeforeAdvice" class="tests6.AopServiceBeforeAdvice" />
+    <aop:config>
+        <aop:advisor pointcut="execution(* tests6.AopServiceImpl.*(..))" advice-ref="aopServiceBeforeAdvice"/>
+    </aop:config>
+    
   <!-- Transaction Manager
     <bean id="dataSource"
         class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close"

@@ -31,5 +31,5 @@ import java.lang.annotation.Target;
 //@Inherited
 public @interface AutoGenerateCurlDto
 {
-	
+	String savePath() default "";
 }
