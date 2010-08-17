@@ -2,6 +2,8 @@ package com.curlap.orb.plugin.common;
 
 import java.util.List;
 
+import org.eclipse.jdt.core.Signature;
+
 public class CurlSpecUtil 
 {
 	private static boolean equalsOneOf(String str, String ... strs)
@@ -25,9 +27,9 @@ public class CurlSpecUtil
 	public static String marshalCurlType(
 			String javaType,
 			boolean isAllowNull, 
-			boolean isCurlCodingStyle)
+			boolean isCurlCodingStyle) throws IllegalArgumentException
 	{
-		String v = javaType;
+		String v = Signature.toString(javaType);
 		if (equalsOneOf(v, null, "null", "void", "V"))
 			return "void";
 		else if (equalsOneOf(v, "java.lang.Object", "Object"))
@@ -50,7 +52,9 @@ public class CurlSpecUtil
 			return "float";
 
 		String result;
-		if (v.startsWith("[L"))
+		if (v.endsWith("[]"))
+			result = "{FastArray-of " + marshalCurlType(v.substring(0, v.length() - 3), isAllowNull, isCurlCodingStyle) + "}";
+		else if (v.startsWith("[L"))
 			result = "{FastArray-of " + marshalCurlType(v.substring(2, v.length() - 1), isAllowNull, isCurlCodingStyle) + "}";
 		else if (v.startsWith("["))
 			result = "{FastArray-of " + marshalCurlType(v.substring(1), isAllowNull, isCurlCodingStyle) + "}";
