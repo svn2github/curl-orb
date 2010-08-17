@@ -29,12 +29,7 @@ public class CurlSpecUtil
 			boolean isAllowNull, 
 			boolean isCurlCodingStyle)
 	{
-		String v;
-		try {
-			v = Signature.toString(javaType);
-		} catch (IllegalArgumentException e) {
-			v = javaType;
-		}
+		String v = javaType;
 		if (equalsOneOf(v, null, "null", "void", "V"))
 			return "void";
 		else if (equalsOneOf(v, "java.lang.Object", "Object"))
@@ -90,6 +85,17 @@ public class CurlSpecUtil
 		else 
 			result = v;
 		return (isAllowNull ? "#" : "") + result;
+	}
+	
+	// marshal Curl data type from jdt style signature
+	//  e.g) Z --> bool, [I --> #{FastArray-of int}
+	public static String marshalCurlTypeWithSignature(
+			String javaType,
+			boolean isAllowNull, 
+			boolean isCurlCodingStyle) throws IllegalArgumentException
+	{
+		String v = Signature.toString(javaType);
+		return marshalCurlType(v, isAllowNull, isCurlCodingStyle);
 	}
 	
 	// marshal curl package 
@@ -188,10 +194,15 @@ public class CurlSpecUtil
 				List[].class,
 				java.math.BigInteger.class
 		};
+		for (Class<?> c : types)
+			print(c.getName(), "-->", marshalCurlType(c.getName(), true, true));
+
+		print("-----------------------");
+		
 		for (Class<?> c : types) {
 			String typeName = c.getCanonicalName();
 			String typeSign = Signature.createTypeSignature(typeName, false);
-			print(typeName, "-->", marshalCurlType(typeSign, true, true));
+			print(typeName, "-->", marshalCurlTypeWithSignature(typeSign, true, true));
 		}
 		
 		print("-----------------------");
