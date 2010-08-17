@@ -2,13 +2,20 @@ package com.curlap.orb.plugin.common;
 
 import java.util.List;
 
-
 public class CurlSpecUtil 
 {
-	private static boolean equalsOneOf(String type, String ... types)
+	private static boolean equalsOneOf(String str, String ... strs)
 	{
-		for (String t : types)
-			if (type.equals(t))
+		for (String t : strs)
+			if (str.equals(t))
+				return true;
+		return false;
+	}
+	
+	private static boolean startsWithOneOf(String str, String ... strs)
+	{
+		for (String t : strs)
+			if (str.startsWith(t))
 				return true;
 		return false;
 	}
@@ -123,8 +130,36 @@ public class CurlSpecUtil
 		return buf.toString();
 	}
 	
+	// isGetter
+	public static boolean isGetter(String methodName)
+	{
+		String v = methodName;
+		return 
+		(v.length() > 2 && startsWithOneOf(v, "is") && Character.isUpperCase(v.charAt(2))) || 
+		(v.length() > 3 && startsWithOneOf(v, "has", "get") && Character.isUpperCase(v.charAt(3)));
+	}
 	
+	// isSetter
+	public static boolean isSetter(String methodName)
+	{
+		String v = methodName;
+		return 
+		(v.length() > 3 && startsWithOneOf(v, "set") && Character.isUpperCase(v.charAt(3)));
+	}
 	
+	// get getter's or setter's name
+	public static String getGetterOrSetterName(String name)
+	{
+		String v = name;
+		if (isSetter(name))
+			return Character.toLowerCase(v.charAt(3)) + v.substring(4);
+		if (isGetter(name))
+		{
+			int index = (v.startsWith("is") ? 2 : 3);
+			return Character.toLowerCase(v.charAt(index)) + v.substring(index + 1);
+		}
+		return null;
+	}
 	
 	/* test */
 	static void print(String ...strings)
@@ -169,5 +204,36 @@ public class CurlSpecUtil
 		};
 		for (String v : variables)
 			print(v, "-->", marshalCurlName(v, true));
+		
+		print("-----------------------");
+		
+		String[] getters = {
+				"getHello",
+				"getHelloHello",
+				"get_hello", // NG
+				"gethello", // NG
+				"isHello",
+				"hasHello",
+				"get", // NG
+				"is" // NG
+		};
+		for (String v : getters)
+			print(v, "-->", isGetter(v) + "", getGetterOrSetterName(v));
+		String[] setters = {
+				"setHello",
+				"setHelloHello",
+				"getHello", // NG
+				"set_hello", // NG
+				"sethello", // NG
+				"isHello", // NG
+				"hasHello", // NG
+				"set" // NG
+		};
+		for (String v : setters)
+			print(v, "-->", isSetter(v) + "", getGetterOrSetterName(v));	
+
+		print("-----------------------");
+		
 	}
+	
 }
