@@ -27,9 +27,14 @@ public class CurlSpecUtil
 	public static String marshalCurlType(
 			String javaType,
 			boolean isAllowNull, 
-			boolean isCurlCodingStyle) throws IllegalArgumentException
+			boolean isCurlCodingStyle)
 	{
-		String v = Signature.toString(javaType);
+		String v;
+		try {
+			v = Signature.toString(javaType);
+		} catch (IllegalArgumentException e) {
+			v = javaType;
+		}
 		if (equalsOneOf(v, null, "null", "void", "V"))
 			return "void";
 		else if (equalsOneOf(v, "java.lang.Object", "Object"))
@@ -53,7 +58,7 @@ public class CurlSpecUtil
 
 		String result;
 		if (v.endsWith("[]"))
-			result = "{FastArray-of " + marshalCurlType(v.substring(0, v.length() - 3), isAllowNull, isCurlCodingStyle) + "}";
+			result = "{FastArray-of " + marshalCurlType(v.substring(0, v.length() - 2), isAllowNull, isCurlCodingStyle) + "}";
 		else if (v.startsWith("[L"))
 			result = "{FastArray-of " + marshalCurlType(v.substring(2, v.length() - 1), isAllowNull, isCurlCodingStyle) + "}";
 		else if (v.startsWith("["))
@@ -183,8 +188,11 @@ public class CurlSpecUtil
 				List[].class,
 				java.math.BigInteger.class
 		};
-		for (Class<?> c : types)
-			print(c.getName(), "-->", marshalCurlType(c.getName(), true, true));
+		for (Class<?> c : types) {
+			String typeName = c.getCanonicalName();
+			String typeSign = Signature.createTypeSignature(typeName, false);
+			print(typeName, "-->", marshalCurlType(typeSign, true, true));
+		}
 		
 		print("-----------------------");
 		
