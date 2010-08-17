@@ -1,9 +1,29 @@
+// Copyright (C) 1998-2010, Sumisho Computer Systems Corp. All Rights Reserved.
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package com.curlap.orb.plugin.common;
 
 import java.util.List;
 
 import org.eclipse.jdt.core.Signature;
 
+/**
+ * Curl specification utility.
+ * 
+ * @author Yohsuke Sugahara, Hitoshi Okada
+ * @since 0.8
+ */
 public class CurlSpecUtil 
 {
 	private static boolean equalsOneOf(String str, String ... strs)
@@ -94,8 +114,12 @@ public class CurlSpecUtil
 			boolean isAllowNull, 
 			boolean isCurlCodingStyle) throws IllegalArgumentException
 	{
-		String v = Signature.toString(javaType);
+		String v = (javaType != null ? Signature.toString(javaType) : "void");
 		return marshalCurlType(v, isAllowNull, isCurlCodingStyle);
+	}
+	public static String marshalCurlTypeWithSignature(String javaType)
+	{
+		return CurlSpecUtil.marshalCurlTypeWithSignature(javaType, true, true);
 	}
 	
 	// marshal curl package 
@@ -113,6 +137,21 @@ public class CurlSpecUtil
 			return (isCurlCodingStype ? s.toUpperCase() : s);
 		}
 		return null;
+	}
+	
+	// get class name from package name
+	//   e.g. com.curl.test.Foo or COM.CURL.TEST.Foo --> Foo
+	public static String getClassNameFromPackageName(String javaTypeName)
+	{
+		String v = javaTypeName;
+		
+		int index = v.lastIndexOf('.');
+		if (index != -1)
+		{
+			String s = v.substring(index + 1);
+			return s;
+		}
+		return v;
 	}
 	
 	
@@ -257,6 +296,8 @@ public class CurlSpecUtil
 
 		print("-----------------------");
 		
+		print(getClassNameFromPackageName("COM.CURL.TEST.Foo"));
+		print(getClassNameFromPackageName("Foo"));
 	}
 	
 }
