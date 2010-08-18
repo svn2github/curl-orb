@@ -27,7 +27,7 @@ public class JavaElementSearcher {
 		return SearchEngine.createJavaSearchScope(roots); 
 	}
 	
-	public List<TypeNameMatch> pickPackageNames(String[] classNames) throws JavaModelException {
+	public List<TypeNameMatch> searchClassInfo(String[] classNames) throws JavaModelException {
 		// name
 		char[][] charClassNames = new char[classNames.length][];
 		for (int i = 0; i < charClassNames.length; i++)
