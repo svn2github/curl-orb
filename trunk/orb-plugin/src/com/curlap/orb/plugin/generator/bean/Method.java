@@ -1,4 +1,4 @@
-package com.curlap.orb.plugin.bean;
+package com.curlap.orb.plugin.generator.bean;
 
 
 public class Method {

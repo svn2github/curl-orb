@@ -1,4 +1,4 @@
-{curl $rteVersion package}
+{curl 7.0 package}
 {curl-file-attributes character-encoding = "shift-jis"}
 {package $packageName4Curl,
    {compiler-directives careful? = true}

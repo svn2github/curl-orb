@@ -11,21 +11,12 @@
 ##  ==============================	share part 2 : 	import
 
 {import * from COM.CURLAP.ORB}
-||****************************||
-#foreach($imp in $importsList)
-{import * from $imp}
-#end
 
 ## 	==============================	switch part 
 ################	class template
 {define-class public $className {inherits HttpSessionClient}
 
-################	fields
-||****************************||
- 
-#foreach($fie in $fieldsList)
-  $fie.getFieldIsStatic() $fie.getFieldPublicity() $fie.getFieldName():$fie.getFieldType()
-#end
+
 ##@@@@@@@@@@@@@@ 	constructors	@@@@@@@@@@
 
   {constructor public{default}
@@ -44,7 +35,7 @@
  {method public {$method.getMethodName4Curl() $method.getMethodParams()}:$method.getMethodReturnType()
    {return 
        {self.invoke 
-           "$method.getMethodName()"} 
+           "$method.getMethodName()",
            arguments = {FastArray $method.getMethodArguments4Curl()}
        } asa $method.getMethodReturnType()
     }

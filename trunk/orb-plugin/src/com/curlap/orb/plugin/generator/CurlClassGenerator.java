@@ -31,8 +31,17 @@ public abstract class CurlClassGenerator
 	protected ICompilationUnit iCompilationUnit;
 	
 	private String savePath;
+
+	private String packageName;
 	
 	private String fileName;
+	
+	private String packageFileName;
+
+	public String getPackageName() 
+	{
+		return packageName;
+	}
 
 	public String getSavePath() 
 	{
@@ -42,6 +51,11 @@ public abstract class CurlClassGenerator
 	public String getFileName() 
 	{
 		return fileName;
+	}
+	
+	public String getPackageFileName() 
+	{
+		return packageFileName;
 	}
 	
 	public abstract String getVelocityTemplateName();
@@ -57,22 +71,28 @@ public abstract class CurlClassGenerator
 			for (IType iType : iCompilationUnit.getAllTypes())
 			{
 				// package name is directory name to save. e.g) /COM.TEST
+				IPackageFragment iPackageFragment = iType.getPackageFragment();
+				this.packageName = iPackageFragment.getElementName();
 				if (savePath == null || savePath.length() == 0)
 				{
-					IPackageFragment iPackageFragment = iType.getPackageFragment();
 					savePath = "/" +
 						(iPackageFragment != null ? 
-								iPackageFragment.getElementName().toUpperCase() : ""
+								packageName.toUpperCase() : ""
 						);
 				}
 				
 				// class name + ".scurl" is file name.
 				this.fileName = iType.getElementName() + ".scurl";
+				this.packageFileName = "load.scurl";
 			}
 		} 
 		catch (JavaModelException e) 
 		{
 			// skipped here
 		}
+	}
+	
+	public String getPackageVelocityTemplateName(){
+		return "templates/load.vm";
 	}
 }
