@@ -5,7 +5,7 @@
    <extension
          point="org.eclipse.ui.popupMenus">
       <objectContribution
-            objectClass="org.eclipse.jdt.core.IJavaElement"
+            objectClass="org.eclipse.jdt.core.ICompilationUnit"
             id="com.curlap.orb.plugin.contribution1">
          <menu
                label="Generate for ORB"
