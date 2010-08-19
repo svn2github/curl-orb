@@ -6,8 +6,8 @@
 |||  generated date : $generateDate
 |||
 
-#foreach ($imp in $import_packages)
-{import * from $imp}
+#foreach ($import_package in $import_packages)
+{import * from $import_package}
 #end
 
 {define-class public serializable $class_name 
@@ -28,6 +28,5 @@
     {construct-super}
 #end
   }
-
 }
 
