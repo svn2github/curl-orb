@@ -29,8 +29,10 @@ import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.IPackageFragment;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaModelException;
+import org.eclipse.jdt.core.search.TypeNameMatch;
 
 import com.curlap.orb.plugin.common.CurlSpecUtil;
+import com.curlap.orb.plugin.common.JavaElementSearcher;
 import com.curlap.orb.plugin.generator.CurlClassGenerator;
 import com.curlap.orb.plugin.generator.CurlGenerateException;
 import com.curlap.orb.plugin.generator.bean.Field;
@@ -48,12 +50,37 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 	
 	private String addImportedPackageIfNecessary(
 			Set<String> importPackages, 
-			String fullClassName)
+			String fullClassName) throws JavaModelException
 	{
 		String importedPackageName = 
 			CurlSpecUtil.marshalCurlPackage(fullClassName, true);
 		if (importedPackageName != null)
-			importPackages.add(importedPackageName);
+			importPackages.add(importedPackageName.toUpperCase());
+		else
+		{
+			TypeNameMatch typeNameMatch = 
+				new JavaElementSearcher(iCompilationUnit).searchClassInfo(fullClassName);
+			if (typeNameMatch != null)
+				importPackages.add(typeNameMatch.getPackageName().toUpperCase());
+		}
+		return CurlSpecUtil.getClassNameFromPackageName(fullClassName);
+	}
+	
+	private String addImportedPackageIfNecessaryWithSignature(
+			Set<String> importPackages, 
+			String fullClassName) throws JavaModelException
+	{
+		String importedPackageName = 
+			CurlSpecUtil.marshalCurlPackage(fullClassName, true);
+		if (importedPackageName != null)
+			importPackages.add(importedPackageName.toUpperCase());
+		else
+		{
+			TypeNameMatch typeNameMatch = 
+				new JavaElementSearcher(iCompilationUnit).searchClassInfoWithSignature(fullClassName);
+			if (typeNameMatch != null)
+				importPackages.add(typeNameMatch.getPackageName().toUpperCase());
+		}
 		return CurlSpecUtil.getClassNameFromPackageName(fullClassName);
 	}
 	
@@ -101,12 +128,11 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 		    	
 				// superclass
 				if (iType.getSuperclassName() != null)
-				{
 					superClassName = 
-						CurlSpecUtil.marshalCurlTypeWithSignature(iType.getSuperclassName());
-					superClassName = 
-						addImportedPackageIfNecessary(importPackages, superClassName);
-				}
+						addImportedPackageIfNecessary(
+								importPackages, 
+								iType.getSuperclassName()
+						);
 				
 				// fields
 				for (IField iField : iType.getFields())
@@ -116,13 +142,19 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 
 					Field field = new Field();
 		    		field.setName(name);
-		    		String fieldType = 
-		    			CurlSpecUtil.marshalCurlTypeWithSignature(iField.getTypeSignature());
-		    		fieldType = addImportedPackageIfNecessary(importPackages, fieldType);
-		    		field.setType(fieldType);
+		    		field.setType(
+		    				CurlSpecUtil.marshalCurlTypeWithSignature(
+		    						addImportedPackageIfNecessaryWithSignature(
+		    								importPackages, 
+		    								iField.getTypeSignature()
+		    						)
+		    				)
+		    		);
 		    		field.setIsStatic((Flags.isStatic(iField.getFlags()) ? "let" : "field"));
 		    		field.setIsTransient(Flags.isTransient(iField.getFlags()));
 		    		String modifier = Flags.toString(iField.getFlags());
+		    		if (modifier.length() == 0)
+		    			modifier = "package";
 		    		field.setGetterModifier(modifier + "-get");
 		    		field.setSetterModifier(modifier + "-set");
 		    		fields.add(field);
@@ -139,16 +171,22 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 						if (method.getParameterNames().length == 0)
 						{
 							String returnType = 
-								CurlSpecUtil.marshalCurlTypeWithSignature(method.getReturnType());
-							returnType = addImportedPackageIfNecessary(importPackages, returnType);
+								CurlSpecUtil.marshalCurlTypeWithSignature(
+										addImportedPackageIfNecessaryWithSignature(
+												importPackages, 
+												method.getReturnType()
+										)
+								);
+							String modifier = Flags.toString(method.getFlags());
+							if (modifier.length() == 0)
+								modifier = "package";
 							for (Field field : fields)
 							{
-								String fieldName = CurlSpecUtil.getGetterOrSetterName(name);
+								String fieldName = 
+									CurlSpecUtil.getGetterOrSetterName(name);
 								if (fieldName.equals(field.getName()) && 
 										returnType.equals(field.getType()))
-								{
-									field.setGetterModifier("public-get");
-								}
+									field.setGetterModifier(modifier + "-get");
 							}
 						}
 					}
@@ -159,21 +197,27 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 								method.getParameterNames().length == 1)
 						{
 							String argumentType = 
-								CurlSpecUtil.marshalCurlTypeWithSignature(method.getParameterTypes()[0]);
+								CurlSpecUtil.marshalCurlTypeWithSignature(
+										addImportedPackageIfNecessaryWithSignature(
+												importPackages, 
+												method.getParameterTypes()[0]
+										)
+								);
+							String modifier = Flags.toString(method.getFlags());
+							if (modifier.length() == 0)
+								modifier = "package";
 							for (Field field : fields)
 							{
-								String fieldName = CurlSpecUtil.getGetterOrSetterName(name);
+								String fieldName = 
+									CurlSpecUtil.getGetterOrSetterName(name);
 								if (fieldName.equals(field.getName()) && 
 										argumentType.equals(field.getType()))
-								{
-									field.setSetterModifier("public-set");
-								}
+									field.setSetterModifier(modifier + "-set");
 							}
 						}
 					}
 				}
 			}
-
 			
 			// merge to velocity.
 			VelocityContext context = new VelocityContext();

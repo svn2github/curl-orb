@@ -106,6 +106,10 @@ public class CurlSpecUtil
 			result = v;
 		return (isAllowNull ? "#" : "") + result;
 	}
+	public static String marshalCurlType(String javaType)
+	{
+		return marshalCurlType(javaType, true, true);
+	}
 	
 	// marshal Curl data type from jdt style signature
 	//  e.g) Z --> bool, [I --> #{FastArray-of int}
