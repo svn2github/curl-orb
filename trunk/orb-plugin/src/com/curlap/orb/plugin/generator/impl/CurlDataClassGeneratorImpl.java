@@ -19,8 +19,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.velocity.VelocityContext;
 import org.eclipse.jdt.core.Flags;
 import org.eclipse.jdt.core.ICompilationUnit;
@@ -45,9 +43,6 @@ import com.curlap.orb.plugin.generator.bean.Field;
  */
 public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 {
-	
-	private Log log = LogFactory.getLog(getClass());
-	
 	private String addImportedPackageIfNecessary(
 			Set<String> importPackages, 
 			String fullClassName) throws JavaModelException
@@ -138,8 +133,6 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 				for (IField iField : iType.getFields())
 				{
 					String name = iField.getElementName();
-					log.info(name);
-
 					Field field = new Field();
 		    		field.setName(name);
 		    		field.setType(
@@ -150,7 +143,9 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 		    						)
 		    				)
 		    		);
-		    		field.setIsStatic((Flags.isStatic(iField.getFlags()) ? "let" : "field"));
+		    		field.setIsStatic(
+		    				(Flags.isStatic(iField.getFlags()) ? "let" : "field")
+		    		);
 		    		field.setIsTransient(Flags.isTransient(iField.getFlags()));
 		    		String modifier = Flags.toString(iField.getFlags());
 		    		if (modifier.length() == 0)
