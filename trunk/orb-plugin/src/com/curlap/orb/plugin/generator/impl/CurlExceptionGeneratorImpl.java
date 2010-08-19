@@ -14,11 +14,26 @@
 
 package com.curlap.orb.plugin.generator.impl;
 
-import org.apache.velocity.VelocityContext;
-import org.eclipse.jdt.core.ICompilationUnit;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.velocity.VelocityContext;
+import org.eclipse.jdt.core.Flags;
+import org.eclipse.jdt.core.ICompilationUnit;
+import org.eclipse.jdt.core.IField;
+import org.eclipse.jdt.core.IMethod;
+import org.eclipse.jdt.core.IPackageFragment;
+import org.eclipse.jdt.core.IType;
+import org.eclipse.jdt.core.JavaModelException;
+
+import com.curlap.orb.plugin.common.CurlSpecUtil;
 import com.curlap.orb.plugin.generator.CurlClassGenerator;
 import com.curlap.orb.plugin.generator.CurlGenerateException;
+import com.curlap.orb.plugin.generator.bean.Field;
 
 /**
  * 
@@ -28,6 +43,20 @@ import com.curlap.orb.plugin.generator.CurlGenerateException;
  */
 public class CurlExceptionGeneratorImpl extends CurlClassGenerator 
 {
+	
+	private Log log = LogFactory.getLog(getClass());
+	
+	private String addImportedPackageIfNecessary(
+			Set<String> importPackages, 
+			String fullClassName)
+	{
+		String importedPackageName = 
+			CurlSpecUtil.marshalCurlPackage(fullClassName, true);
+		if (importedPackageName != null)
+			importPackages.add(importedPackageName);
+		return CurlSpecUtil.getClassNameFromPackageName(fullClassName);
+	}
+	
 	@Override
 	public String getVelocityTemplateName() 
 	{
@@ -37,8 +66,129 @@ public class CurlExceptionGeneratorImpl extends CurlClassGenerator
 	@Override
 	public VelocityContext generateClass() throws CurlGenerateException
 	{
-		// TODO Auto-generated method stub
-		return null;
+		ICompilationUnit source = iCompilationUnit;
+		try
+		{
+			Set<String> importPackages = new HashSet<String>();
+			List<Field> fields = new ArrayList<Field>();
+			
+			String packageName4Curl = null;
+			String className = null;
+			
+			for (IType iType : source.getAllTypes())
+			{
+				// package
+				IPackageFragment iPackageFragment = iType.getPackageFragment();
+				packageName4Curl = 
+					(iPackageFragment != null ? 
+							iPackageFragment.getElementName().toUpperCase() : ""
+					);
+					
+				// class name
+				className = iType.getElementName();
+				if (className == null)
+					throw new CurlGenerateException("There is no class name.");
+				
+/*				// annotation
+		    	for (IAnnotation annotation : iType.getAnnotations())
+		    	{
+		    		for (IMemberValuePair pair : annotation.getMemberValuePairs())
+		    		{
+		    			log.debug(pair.getMemberName());
+		    			log.debug(pair.getValue());
+		    		}		    	
+		    	}
+		    	
+				// superclass
+				if (iType.getSuperclassName() != null)
+				{
+					superClassName = 
+						CurlSpecUtil.marshalCurlTypeWithSignature(iType.getSuperclassName());
+					superClassName = 
+						addImportedPackageIfNecessary(importPackages, superClassName);
+				}
+*/				
+				// fields
+				for (IField iField : iType.getFields())
+				{
+					String name = iField.getElementName();
+					log.info(name);
+
+					Field field = new Field();
+		    		field.setName(name);
+		    		String fieldType = 
+		    			CurlSpecUtil.marshalCurlTypeWithSignature(iField.getTypeSignature());
+		    		fieldType = addImportedPackageIfNecessary(importPackages, fieldType);
+		    		field.setType(fieldType);
+		    		field.setIsStatic((Flags.isStatic(iField.getFlags()) ? "let" : "field"));
+		    		field.setIsTransient(Flags.isTransient(iField.getFlags()));
+		    		String modifier = Flags.toString(iField.getFlags());
+		    		field.setGetterModifier(modifier + "-get");
+		    		field.setSetterModifier(modifier + "-set");
+		    		fields.add(field);
+				}
+				
+				// methods 
+				// NOTE: Extract getter and setter. The other methods is skipped.
+				for (IMethod method : iType.getMethods())
+				{
+					String name = method.getElementName();
+					// getter into field
+					if (CurlSpecUtil.isGetter(name))
+					{
+						if (method.getParameterNames().length == 0)
+						{
+							String returnType = 
+								CurlSpecUtil.marshalCurlTypeWithSignature(method.getReturnType());
+							returnType = addImportedPackageIfNecessary(importPackages, returnType);
+							for (Field field : fields)
+							{
+								String fieldName = CurlSpecUtil.getGetterOrSetterName(name);
+								if (fieldName.equals(field.getName()) && 
+										returnType.equals(field.getType()))
+								{
+									field.setGetterModifier("public-get");
+								}
+							}
+						}
+					}
+					// setter into field
+					if (CurlSpecUtil.isSetter(name))
+					{
+						if (CurlSpecUtil.marshalCurlTypeWithSignature(method.getReturnType()).equals("void") && 
+								method.getParameterNames().length == 1)
+						{
+							String argumentType = 
+								CurlSpecUtil.marshalCurlTypeWithSignature(method.getParameterTypes()[0]);
+							for (Field field : fields)
+							{
+								String fieldName = CurlSpecUtil.getGetterOrSetterName(name);
+								if (fieldName.equals(field.getName()) && 
+										argumentType.equals(field.getType()))
+								{
+									field.setSetterModifier("public-set");
+								}
+							}
+						}
+					}
+				}
+			}
+
+			
+			// merge to velocity.
+			VelocityContext context = new VelocityContext();
+			
+			context.put("packageName4Curl", packageName4Curl);
+			context.put("imports", importPackages);
+			context.put("className", className);
+			context.put("fields", fields);
+			
+			return context;
+		}
+		catch (JavaModelException e) 
+		{
+			throw new CurlGenerateException(e);
+		}
 	}
 
 	public CurlExceptionGeneratorImpl(
