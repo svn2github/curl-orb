@@ -15,9 +15,9 @@
 package com.curlap.orb.plugin.generator;
 
 /**
+ * CurlGenerateException
  * 
- * 
- * @author 
+ * @author Wang Huailiang
  * @since 0.8
  */
 public class CurlGenerateException extends Exception

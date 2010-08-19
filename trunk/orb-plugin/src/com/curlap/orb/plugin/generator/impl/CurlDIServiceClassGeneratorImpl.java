@@ -14,16 +14,30 @@
 
 package com.curlap.orb.plugin.generator.impl;
 
-import org.apache.velocity.VelocityContext;
-import org.eclipse.jdt.core.ICompilationUnit;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
+import org.apache.velocity.VelocityContext;
+import org.eclipse.jdt.core.Flags;
+import org.eclipse.jdt.core.IAnnotation;
+import org.eclipse.jdt.core.ICompilationUnit;
+import org.eclipse.jdt.core.IMemberValuePair;
+import org.eclipse.jdt.core.IMethod;
+import org.eclipse.jdt.core.IPackageFragment;
+import org.eclipse.jdt.core.IType;
+import org.eclipse.jdt.core.JavaModelException;
+
+import com.curlap.orb.plugin.common.CurlSpecUtil;
 import com.curlap.orb.plugin.generator.CurlClassGenerator;
 import com.curlap.orb.plugin.generator.CurlGenerateException;
+import com.curlap.orb.plugin.generator.bean.Method;
 
 /**
+ * generate Curl DI serivce class.
  * 
- * 
- * @author 
+ * @author Wang Huailiang, Hitoshi Okada
  * @since 0.8
  */
 public class CurlDIServiceClassGeneratorImpl extends CurlClassGenerator 
@@ -37,8 +51,136 @@ public class CurlDIServiceClassGeneratorImpl extends CurlClassGenerator
 	@Override
 	public VelocityContext generateClass() throws CurlGenerateException
 	{
-		// TODO Auto-generated method stub
-		return null;
+		ICompilationUnit source = iCompilationUnit;
+		try
+		{
+			Set<String> importPackages = new HashSet<String>();
+			List<Method> methods = new ArrayList<Method>();
+			
+			String packageName = null;
+			String targetInterface = null;
+			String className = null;
+			boolean returnTypeIsNullable = true;
+			boolean generateTestTemplate = false;
+			boolean generateAsyncMethod = true;
+			importPackages.add("COM.CURLAP.ORB");
+			for (IType iType : source.getAllTypes())
+			{
+				// package
+				IPackageFragment iPackageFragment = iType.getPackageFragment();
+				packageName = 
+					(iPackageFragment != null ? 
+							iPackageFragment.getElementName().toUpperCase() : ""
+					);
+
+				// class name
+				className = iType.getElementName();
+				if (className == null)
+					throw new CurlGenerateException("There is no class name.");
+					
+				// annotation
+		    	for (IAnnotation iAnnotation : iType.getAnnotations())
+		    	{
+		    		if (iAnnotation.getElementName().equals("AutoGenerateCurlServiceClient"))
+		    		{
+		    			for (IMemberValuePair pair : iAnnotation.getMemberValuePairs())
+		    			{
+		    				String memberName = pair.getMemberName();
+		    				if (memberName.equals("generateTestTemplate"))
+		    					generateTestTemplate = ((Boolean) pair.getValue()).booleanValue();
+		    				if (memberName.equals("generateAsyncMethod"))
+		    					generateAsyncMethod = ((Boolean) pair.getValue()).booleanValue();
+		    				if (memberName.equals("targetInterface"))
+		    					targetInterface = (String) pair.getValue();
+		    			}
+		    		}
+		    		if (iAnnotation.getElementName().equals("DefaultNotNull"))
+		    			returnTypeIsNullable = false;
+		    	}
+
+		    	// TODO: interface
+				// targetInterface
+		    	
+				// methods 
+				// NOTE: Extract getter and setter. The other methods is skipped.
+				for (IMethod iMethod : iType.getMethods())
+				{
+					// NOTE: generate only "public" method. 
+					if (!Flags.toString(iMethod.getFlags()).equals("public"))
+						continue;
+					Method method = new Method();
+					String methodName = iMethod.getElementName();
+					method.setMethodName(methodName);
+					method.setMethodName4Curl(
+							CurlSpecUtil.marshalCurlName(methodName, true)
+					);
+					boolean returnTypeOfMethodIsNullable = returnTypeIsNullable;
+					if (returnTypeOfMethodIsNullable)
+					{
+						if (iMethod.getAnnotation("NotNull").exists())
+							returnTypeOfMethodIsNullable = false;
+					}
+					else
+					{
+						if (iMethod.getAnnotation("Nullable").exists())
+							returnTypeOfMethodIsNullable = true;
+					}
+					method.setMethodReturnType(
+							CurlSpecUtil.marshalCurlTypeWithSignature(
+									addImportedPackageIfNecessaryWithSignature(
+											importPackages, 
+											iMethod.getReturnType()
+									),
+									returnTypeOfMethodIsNullable,
+									true
+							)
+					);
+					String[] paramNames = iMethod.getParameterNames();
+					String[] paramTypes = iMethod.getParameterTypes();
+					StringBuffer buf = new StringBuffer();
+					StringBuffer invokeBuf = new StringBuffer();
+					for (int i = 0; i < paramNames.length; i++)
+					{
+						if (i != 0)
+						{
+							buf.append(", ");
+							invokeBuf.append(", ");
+						}
+						String paramName = 
+							CurlSpecUtil.marshalCurlName(paramNames[i], true);
+						buf.append(paramName);
+						buf.append(':');
+						buf.append(
+								CurlSpecUtil.marshalCurlTypeWithSignature(
+										addImportedPackageIfNecessaryWithSignature(
+												importPackages, 
+												paramTypes[i]
+										)
+								)		
+						);
+						invokeBuf.append(paramName);
+					}
+					method.setMethodParams(buf.toString());
+					method.setMethodArguments4Curl(invokeBuf.toString());
+					methods.add(method);
+				}
+			}
+			
+			// merge to velocity.
+			VelocityContext context = new VelocityContext();
+			context.put("is_template", generateTestTemplate); 
+			context.put("has_async_method", generateAsyncMethod);
+			context.put("package_name", packageName);
+			context.put("import_packages", importPackages);
+			context.put("class_name", className);
+			context.put("bean_id", "fooooo"); // FIXME
+			context.put("methods", methods);
+			return context;
+		}
+		catch (JavaModelException e) 
+		{
+			throw new CurlGenerateException(e);
+		}
 	}
 
 	public CurlDIServiceClassGeneratorImpl(

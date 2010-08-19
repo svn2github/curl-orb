@@ -9,6 +9,7 @@
 #foreach ($import_package in $import_packages)
 {import * from $import_package}
 #end
+
 {define-class public $class_name {inherits ApplicationContextClient} 
 
 #foreach ($method in $methods)

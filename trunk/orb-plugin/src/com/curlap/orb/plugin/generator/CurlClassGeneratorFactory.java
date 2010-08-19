@@ -20,6 +20,7 @@ import org.eclipse.jdt.core.IMemberValuePair;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaModelException;
 
+import com.curlap.orb.plugin.generator.impl.CurlDIServiceClassGeneratorImpl;
 import com.curlap.orb.plugin.generator.impl.CurlDataClassGeneratorImpl;
 import com.curlap.orb.plugin.generator.impl.CurlExceptionGeneratorImpl;
 import com.curlap.orb.plugin.generator.impl.CurlHttpSessionServiceClassGeneratorImpl;
@@ -27,7 +28,7 @@ import com.curlap.orb.plugin.generator.impl.CurlHttpSessionServiceClassGenerator
 /**
  * 
  * 
- * @author 
+ * @author Wang Huailiang, Hitoshi Okada
  * @since 0.8
  */
 public class CurlClassGeneratorFactory 
@@ -72,9 +73,14 @@ public class CurlClassGeneratorFactory
 		    		String name = annotation.getElementName();
 		    		if (name.equals("AutoGenerateCurlServiceClient"))
 		    		{
-		    			// TODO: handle DI class
 		    			String savePath = getSavePath(annotation);
-		    			return new CurlHttpSessionServiceClassGeneratorImpl(source, savePath);
+		    			for (IMemberValuePair pair : annotation.getMemberValuePairs())
+		    			{
+		    				if (pair.getMemberName().equals("serviceType"))
+		    					if (((String) pair.getValue()).equals("HttpSession"))
+		    						return new CurlHttpSessionServiceClassGeneratorImpl(source, savePath);
+		    			}
+		    			return new CurlDIServiceClassGeneratorImpl(source, savePath);
 		    		}
 		    		else if (name.equals("AutoGenerateCurlDto"))
 		    		{

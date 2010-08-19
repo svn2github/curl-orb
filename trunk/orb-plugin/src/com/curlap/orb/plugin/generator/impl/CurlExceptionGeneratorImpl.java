@@ -19,8 +19,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.velocity.VelocityContext;
 import org.eclipse.jdt.core.Flags;
 import org.eclipse.jdt.core.ICompilationUnit;
@@ -36,33 +34,19 @@ import com.curlap.orb.plugin.generator.CurlGenerateException;
 import com.curlap.orb.plugin.generator.bean.Field;
 
 /**
+ * generate Curl exception class.
  * 
- * 
- * @author 
+ * @author Wang Huailiang
  * @since 0.8
  */
 public class CurlExceptionGeneratorImpl extends CurlClassGenerator 
 {
-	
-	private Log log = LogFactory.getLog(getClass());
-	
-	private String addImportedPackageIfNecessary(
-			Set<String> importPackages, 
-			String fullClassName)
-	{
-		String importedPackageName = 
-			CurlSpecUtil.marshalCurlPackage(fullClassName, true);
-		if (importedPackageName != null)
-			importPackages.add(importedPackageName);
-		return CurlSpecUtil.getClassNameFromPackageName(fullClassName);
-	}
-	
 	@Override
 	public String getVelocityTemplateName() 
 	{
 		return "templates/Exception.vm";
 	}
-	
+
 	@Override
 	public VelocityContext generateClass() throws CurlGenerateException
 	{
@@ -71,58 +55,44 @@ public class CurlExceptionGeneratorImpl extends CurlClassGenerator
 		{
 			Set<String> importPackages = new HashSet<String>();
 			List<Field> fields = new ArrayList<Field>();
-			
-			String packageName4Curl = null;
+
+			String packageName = null;
 			String className = null;
-			
 			for (IType iType : source.getAllTypes())
 			{
 				// package
 				IPackageFragment iPackageFragment = iType.getPackageFragment();
-				packageName4Curl = 
+				packageName = 
 					(iPackageFragment != null ? 
 							iPackageFragment.getElementName().toUpperCase() : ""
 					);
-					
+
 				// class name
 				className = iType.getElementName();
 				if (className == null)
 					throw new CurlGenerateException("There is no class name.");
-				
-/*				// annotation
-		    	for (IAnnotation annotation : iType.getAnnotations())
-		    	{
-		    		for (IMemberValuePair pair : annotation.getMemberValuePairs())
-		    		{
-		    			log.debug(pair.getMemberName());
-		    			log.debug(pair.getValue());
-		    		}		    	
-		    	}
-		    	
-				// superclass
-				if (iType.getSuperclassName() != null)
-				{
-					superClassName = 
-						CurlSpecUtil.marshalCurlTypeWithSignature(iType.getSuperclassName());
-					superClassName = 
-						addImportedPackageIfNecessary(importPackages, superClassName);
-				}
-*/				
+
 				// fields
 				for (IField iField : iType.getFields())
 				{
 					String name = iField.getElementName();
-					log.info(name);
-
 					Field field = new Field();
 		    		field.setName(name);
-		    		String fieldType = 
-		    			CurlSpecUtil.marshalCurlTypeWithSignature(iField.getTypeSignature());
-		    		fieldType = addImportedPackageIfNecessary(importPackages, fieldType);
-		    		field.setType(fieldType);
-		    		field.setIsStatic((Flags.isStatic(iField.getFlags()) ? "let" : "field"));
+		    		field.setType(
+		    				CurlSpecUtil.marshalCurlTypeWithSignature(
+		    						addImportedPackageIfNecessaryWithSignature(
+		    								importPackages, 
+		    								iField.getTypeSignature()
+		    						)
+		    				)
+		    		);
+		    		field.setIsStatic(
+		    				(Flags.isStatic(iField.getFlags()) ? "let" : "field")
+		    		);
 		    		field.setIsTransient(Flags.isTransient(iField.getFlags()));
 		    		String modifier = Flags.toString(iField.getFlags());
+		    		if (modifier.length() == 0)
+		    			modifier = "package";
 		    		field.setGetterModifier(modifier + "-get");
 		    		field.setSetterModifier(modifier + "-set");
 		    		fields.add(field);
@@ -139,16 +109,22 @@ public class CurlExceptionGeneratorImpl extends CurlClassGenerator
 						if (method.getParameterNames().length == 0)
 						{
 							String returnType = 
-								CurlSpecUtil.marshalCurlTypeWithSignature(method.getReturnType());
-							returnType = addImportedPackageIfNecessary(importPackages, returnType);
+								CurlSpecUtil.marshalCurlTypeWithSignature(
+										addImportedPackageIfNecessaryWithSignature(
+												importPackages, 
+												method.getReturnType()
+										)
+								);
+							String modifier = Flags.toString(method.getFlags());
+							if (modifier.length() == 0)
+								modifier = "package";
 							for (Field field : fields)
 							{
-								String fieldName = CurlSpecUtil.getGetterOrSetterName(name);
+								String fieldName = 
+									CurlSpecUtil.getGetterOrSetterName(name);
 								if (fieldName.equals(field.getName()) && 
 										returnType.equals(field.getType()))
-								{
-									field.setGetterModifier("public-get");
-								}
+									field.setGetterModifier(modifier + "-get");
 							}
 						}
 					}
@@ -159,30 +135,34 @@ public class CurlExceptionGeneratorImpl extends CurlClassGenerator
 								method.getParameterNames().length == 1)
 						{
 							String argumentType = 
-								CurlSpecUtil.marshalCurlTypeWithSignature(method.getParameterTypes()[0]);
+								CurlSpecUtil.marshalCurlTypeWithSignature(
+										addImportedPackageIfNecessaryWithSignature(
+												importPackages, 
+												method.getParameterTypes()[0]
+										)
+								);
+							String modifier = Flags.toString(method.getFlags());
+							if (modifier.length() == 0)
+								modifier = "package";
 							for (Field field : fields)
 							{
-								String fieldName = CurlSpecUtil.getGetterOrSetterName(name);
+								String fieldName = 
+									CurlSpecUtil.getGetterOrSetterName(name);
 								if (fieldName.equals(field.getName()) && 
 										argumentType.equals(field.getType()))
-								{
-									field.setSetterModifier("public-set");
-								}
+									field.setSetterModifier(modifier + "-set");
 							}
 						}
 					}
 				}
 			}
 
-			
 			// merge to velocity.
 			VelocityContext context = new VelocityContext();
-			
-			context.put("packageName4Curl", packageName4Curl);
-			context.put("imports", importPackages);
-			context.put("className", className);
+			context.put("package_name", packageName);
+			context.put("import_packages", importPackages);
+			context.put("class_name", className);
 			context.put("fields", fields);
-			
 			return context;
 		}
 		catch (JavaModelException e) 
@@ -197,5 +177,4 @@ public class CurlExceptionGeneratorImpl extends CurlClassGenerator
 	{
 		super(iCompilationUnit, savePath);
 	}
-
 }

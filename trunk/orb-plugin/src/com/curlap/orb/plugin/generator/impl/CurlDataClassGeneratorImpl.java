@@ -27,10 +27,8 @@ import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.IPackageFragment;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaModelException;
-import org.eclipse.jdt.core.search.TypeNameMatch;
 
 import com.curlap.orb.plugin.common.CurlSpecUtil;
-import com.curlap.orb.plugin.common.JavaElementSearcher;
 import com.curlap.orb.plugin.generator.CurlClassGenerator;
 import com.curlap.orb.plugin.generator.CurlGenerateException;
 import com.curlap.orb.plugin.generator.bean.Field;
@@ -43,42 +41,6 @@ import com.curlap.orb.plugin.generator.bean.Field;
  */
 public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 {
-	private String addImportedPackageIfNecessary(
-			Set<String> importPackages, 
-			String fullClassName) throws JavaModelException
-	{
-		String importedPackageName = 
-			CurlSpecUtil.marshalCurlPackage(fullClassName, true);
-		if (importedPackageName != null)
-			importPackages.add(importedPackageName.toUpperCase());
-		else
-		{
-			TypeNameMatch typeNameMatch = 
-				new JavaElementSearcher(iCompilationUnit).searchClassInfo(fullClassName);
-			if (typeNameMatch != null)
-				importPackages.add(typeNameMatch.getPackageName().toUpperCase());
-		}
-		return CurlSpecUtil.getClassNameFromPackageName(fullClassName);
-	}
-	
-	private String addImportedPackageIfNecessaryWithSignature(
-			Set<String> importPackages, 
-			String fullClassName) throws JavaModelException
-	{
-		String importedPackageName = 
-			CurlSpecUtil.marshalCurlPackage(fullClassName, true);
-		if (importedPackageName != null)
-			importPackages.add(importedPackageName.toUpperCase());
-		else
-		{
-			TypeNameMatch typeNameMatch = 
-				new JavaElementSearcher(iCompilationUnit).searchClassInfoWithSignature(fullClassName);
-			if (typeNameMatch != null)
-				importPackages.add(typeNameMatch.getPackageName().toUpperCase());
-		}
-		return CurlSpecUtil.getClassNameFromPackageName(fullClassName);
-	}
-	
 	@Override
 	public String getVelocityTemplateName() 
 	{
@@ -110,16 +72,6 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 				className = iType.getElementName();
 				if (className == null)
 					throw new CurlGenerateException("There is no class name.");
-				
-				// annotation
-//		    	for (IAnnotation annotation : iType.getAnnotations())
-//		    	{
-//		    		for (IMemberValuePair pair : annotation.getMemberValuePairs())
-//		    		{
-//		    			log.debug(pair.getMemberName());
-//		    			log.debug(pair.getValue());
-//		    		}
-//		    	}
 		    	
 				// superclass
 				if (iType.getSuperclassName() != null)

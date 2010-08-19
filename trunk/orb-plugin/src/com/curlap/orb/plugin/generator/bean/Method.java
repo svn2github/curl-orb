@@ -15,18 +15,26 @@
 package com.curlap.orb.plugin.generator.bean;
 
 /**
- * Curl specification utility.
+ * Method
  * 
  * @author Wang Huailiang
  * @since 0.8
  */
 public class Method {
 	
-	private String methodName; //method name in Java 
-	private String methodName4Curl; //method name in Curl
-	private String methodParams ; //method parameters
-	private String methodReturnType; // return type 
-	private String methodArguments4Curl; // arguments in Curl method body
+	// FIXME: 
+	//  methodName --> name, methodParams --> params
+	
+	// method name in Java 
+	private String methodName; 
+	// method name in Curl
+	private String methodName4Curl;
+	// method parameters
+	private String methodParams;
+	// return type
+	private String methodReturnType;
+	// arguments in Curl method body
+	private String methodArguments4Curl;
 	
 	public String getMethodName() {
 		return methodName;
@@ -58,6 +66,4 @@ public class Method {
 	public void setMethodArguments4Curl(String methodArguments4Curl) {
 		this.methodArguments4Curl = methodArguments4Curl;
 	}
-	
-	
 }

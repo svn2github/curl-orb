@@ -14,11 +14,17 @@
 
 package com.curlap.orb.plugin.generator;
 
+import java.util.Set;
+
 import org.apache.velocity.VelocityContext;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IPackageFragment;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaModelException;
+import org.eclipse.jdt.core.search.TypeNameMatch;
+
+import com.curlap.orb.plugin.common.CurlSpecUtil;
+import com.curlap.orb.plugin.common.JavaElementSearcher;
 
 /**
  * 
@@ -60,7 +66,44 @@ public abstract class CurlClassGenerator
 	
 	public abstract String getVelocityTemplateName();
 	public abstract VelocityContext generateClass() throws CurlGenerateException;
-
+	
+	// utility methods
+	protected String addImportedPackageIfNecessary(
+			Set<String> importPackages, 
+			String fullClassName) throws JavaModelException
+	{
+		String importedPackageName = 
+			CurlSpecUtil.marshalCurlPackage(fullClassName, true);
+		if (importedPackageName != null)
+			importPackages.add(importedPackageName.toUpperCase());
+		else
+		{
+			TypeNameMatch typeNameMatch = 
+				new JavaElementSearcher(iCompilationUnit).searchClassInfo(fullClassName);
+			if (typeNameMatch != null)
+				importPackages.add(typeNameMatch.getPackageName().toUpperCase());
+		}
+		return CurlSpecUtil.getClassNameFromPackageName(fullClassName);
+	}
+	
+	protected String addImportedPackageIfNecessaryWithSignature(
+			Set<String> importPackages, 
+			String fullClassName) throws JavaModelException
+	{
+		String importedPackageName = 
+			CurlSpecUtil.marshalCurlPackage(fullClassName, true);
+		if (importedPackageName != null)
+			importPackages.add(importedPackageName.toUpperCase());
+		else
+		{
+			TypeNameMatch typeNameMatch = 
+				new JavaElementSearcher(iCompilationUnit).searchClassInfoWithSignature(fullClassName);
+			if (typeNameMatch != null)
+				importPackages.add(typeNameMatch.getPackageName().toUpperCase());
+		}
+		return CurlSpecUtil.getClassNameFromPackageName(fullClassName);
+	}
+	
 	// constructor
 	protected CurlClassGenerator(ICompilationUnit iCompilationUnit, String savePath)
 	{

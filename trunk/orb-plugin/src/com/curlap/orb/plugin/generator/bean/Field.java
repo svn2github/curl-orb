@@ -15,7 +15,7 @@
 package com.curlap.orb.plugin.generator.bean;
 
 /**
- * Curl specification utility.
+ * Field
  * 
  * @author 
  * @since 0.8
