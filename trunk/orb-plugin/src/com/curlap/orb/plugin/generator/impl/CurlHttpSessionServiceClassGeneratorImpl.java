@@ -19,10 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.velocity.VelocityContext;
-import org.eclipse.jdt.core.Flags;
 import org.eclipse.jdt.core.IAnnotation;
 import org.eclipse.jdt.core.ICompilationUnit;
-import org.eclipse.jdt.core.IField;
 import org.eclipse.jdt.core.IMemberValuePair;
 import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.IPackageFragment;
@@ -34,7 +32,6 @@ import com.curlap.orb.plugin.common.CurlSpecUtil;
 import com.curlap.orb.plugin.common.JavaElementSearcher;
 import com.curlap.orb.plugin.generator.CurlClassGenerator;
 import com.curlap.orb.plugin.generator.CurlGenerateException;
-import com.curlap.orb.plugin.generator.bean.Field;
 import com.curlap.orb.plugin.generator.bean.Method;
 
 /**
@@ -150,7 +147,6 @@ public class CurlHttpSessionServiceClassGeneratorImpl extends CurlClassGenerator
 				    				
 				    		    	
 				    		    	completeStatus = "Curl source code is generated!";
-				    		    	int classNameLength = className.length();
 				    		    	System.out.println(className);
 				    				context.put("packageName", packageName);
 				    				context.put("packageName4Curl", packageName4Curl);
@@ -173,7 +169,7 @@ public class CurlHttpSessionServiceClassGeneratorImpl extends CurlClassGenerator
 		    	}
 
 				
-				
+
 				//methods
 				IMethod[] methods = iType.getMethods();
 		    	for (IMethod method : methods){

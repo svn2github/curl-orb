@@ -32,7 +32,7 @@
 #end
 #end
 
-  {constructor public@{default}
+  {constructor public {default}
 	{construct-super.HttpSessionClient "$packageName.$className"}
   }
 }

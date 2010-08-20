@@ -20,7 +20,7 @@
 #end
 #end
 
-  {constructor public@{default message:String}
+  {constructor public {default message:String}
     {construct-super message}
   }
 }

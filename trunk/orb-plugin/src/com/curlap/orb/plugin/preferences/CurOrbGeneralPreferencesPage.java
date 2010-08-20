@@ -271,10 +271,16 @@ public class CurOrbGeneralPreferencesPage extends CurlOrbPreferencesPage
         	if(fJavaProject != null && fJavaProject.exists()
         	&& fCurlProject != null && fCurlProject.exists()) {
         		try {
+        			if(fJavaProjectPref != null){
         			if(!fJavaProject.equals(fJavaProjectPref)){
-        				removeNature(fJavaProjectPref.getProject());
+        				if(fJavaProjectPref.getProject() != null){
+        					removeNature(fJavaProjectPref.getProject());
+        				}
+        				//removeNature(fJavaProjectPref.getProject());
         			}
-					addNature(fJavaProject.getProject());
+        			addNature(fJavaProject.getProject());
+        			}
+					
 				} catch (CoreException e) {
 					OrbPlugin.log(e);
 				}
@@ -304,7 +310,7 @@ public class CurOrbGeneralPreferencesPage extends CurlOrbPreferencesPage
         fJavaProjectField.setEnabled(selected);
         fCurlProjectField.setEnabled(selected);
         
-        //Å@Java project
+        //ÔøΩ@Java project
     	String javaPrjName = "";  //$NON-NLS-1$
     	javaPrjName = store.getString(
     		PreferenceConstants.CURL_ORB_BUILDER_JAVA_PRJNAME);
