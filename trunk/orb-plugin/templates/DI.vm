@@ -10,6 +10,7 @@
 {import * from $import_package}
 #end
 
+#parse ("templates/doc-string.vm")
 {define-class public $class_name
   {inherits $superclass}
 

@@ -14,9 +14,14 @@
 
 package com.curlap.orb.plugin.common;
 
-import java.util.List;
+import java.io.IOException;
 
+import org.eclipse.jdt.core.IBuffer;
+import org.eclipse.jdt.core.IMember;
+import org.eclipse.jdt.core.ISourceRange;
+import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.Signature;
+import org.eclipse.jdt.internal.corext.javadoc.JavaDocCommentReader;
 
 /**
  * Curl specification utility.
@@ -219,7 +224,38 @@ public class CurlSpecUtil
 		return null;
 	}
 	
+	// get curl doc-string
+	//@SuppressWarnings("restriction")
+	public static String getCurlDocString(IMember iMember) throws JavaModelException
+	{
+		ISourceRange range = iMember.getJavadocRange();
+		if (range == null)
+			return null;
+
+		IBuffer buf = iMember.getOpenable().getBuffer();
+		JavaDocCommentReader reader =
+			new JavaDocCommentReader(
+					buf, 
+					range.getOffset(), 
+					range.getOffset() + range.getLength() - 1
+			);
+		StringBuffer javadocBuf = new StringBuffer();
+		char[] buffer = new char[1024];
+		int count;
+		try 
+		{
+			while ((count= reader.read(buffer)) != -1)
+				javadocBuf.append(buffer, 0, count);
+		}
+		catch (IOException e)
+		{
+			return null;
+		}
+		return javadocBuf.toString();
+	}
+	
 	/* test */
+	/*
 	static void print(String ...strings)
 	{
 		for (String s : strings)
@@ -303,5 +339,5 @@ public class CurlSpecUtil
 		print(getClassNameFromPackageName("COM.CURL.TEST.Foo"));
 		print(getClassNameFromPackageName("Foo"));
 	}
-	
+	*/
 }

@@ -62,6 +62,9 @@ public class CurlDIServiceClassGeneratorImpl extends CurlClassGenerator
 			// NOTE: generate only "public" method. 
 			if (!Flags.toString(iMethod.getFlags()).equals("public"))
 				continue;
+			// TODO: javadoc
+			String curlDocString = CurlSpecUtil.getCurlDocString(iMethod);
+
 			Method method = new Method();
 			String methodName = iMethod.getElementName();
 			method.setMethodName(methodName);
@@ -154,6 +157,7 @@ public class CurlDIServiceClassGeneratorImpl extends CurlClassGenerator
 		return methods;
 	}
 	
+
 	@Override
 	public VelocityContext generateClass() throws CurlGenerateException
 	{
@@ -163,6 +167,7 @@ public class CurlDIServiceClassGeneratorImpl extends CurlClassGenerator
 
 		String packageName = null;
 		String targetInterface = null;
+		String classDocString = null;
 		String className = null;
 		StringBuffer superclassBuf = new StringBuffer("ApplicationContextClient");
 		String beanId = null;
@@ -181,6 +186,9 @@ public class CurlDIServiceClassGeneratorImpl extends CurlClassGenerator
 							iPackageFragment.getElementName().toUpperCase() : ""
 					);
 
+				// javadoc
+				classDocString = CurlSpecUtil.getCurlDocString(iType);
+				
 				// class name
 				className = iType.getElementName();
 				if (className == null)
@@ -315,6 +323,7 @@ public class CurlDIServiceClassGeneratorImpl extends CurlClassGenerator
 		context.put("has_async_method", generateAsyncMethod);
 		context.put("package_name", packageName);
 		context.put("import_packages", importPackages);
+		context.put("doc_string_text", classDocString);
 		context.put("class_name", className);
 		context.put("superclass", superclassBuf.toString());
 		context.put("bean_id", beanId);
