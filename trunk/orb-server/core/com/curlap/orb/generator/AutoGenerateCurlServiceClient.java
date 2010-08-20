@@ -32,8 +32,11 @@ import java.lang.annotation.Target;
 public @interface AutoGenerateCurlServiceClient 
 {
 	String savePath() default "";
-	ServiceType serviceType() default ServiceType.APPLICATION_CONTEXT;
-	Class<?> targetInterface();
+	String serviceType() default "DI"; // DI or HttpSession
+	String serviceBeanId() default ""; // for only DI
+	Class<?> targetInterface() default DEFAULT.class; // HACK! instead of null
 	boolean generateTestTemplate() default false;
 	boolean generateAsyncMethod() default false;
+	
+	static final class DEFAULT{}
 }
