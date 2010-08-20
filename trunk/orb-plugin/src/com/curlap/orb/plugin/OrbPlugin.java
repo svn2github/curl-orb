@@ -109,4 +109,11 @@ public class OrbPlugin extends AbstractUIPlugin {
 			//TODO: handle exception
 		}
 	}
+	
+    public static void log(
+            Throwable e)
+    {
+    	//TODO: output log
+//        CoreUtil.logError(e);
+    }
 }

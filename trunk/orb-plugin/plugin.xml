@@ -24,5 +24,40 @@
          </action>
       </objectContribution>
    </extension>
+   
+   <!-- Curl ORB Nature -->
+   <extension 
+	   point="org.eclipse.core.resources.natures" 
+	   id="orbnature"
+	   name="Curl ORB Nature">
+	   <runtime>
+		   <run class="com.curlap.orb.plugin.CurlOrbNature">
+		   </run>
+	   </runtime>
+   </extension>
 
+   <!-- Curl ORB Builder --> 
+   <extension 
+	   point="org.eclipse.core.resources.builders" 
+	   id="orbbuilder"
+	   name="Curl ORB Builder">
+	   <builder>
+		   <run class="com.curlap.orb.plugin.builder.CurlOrbBuilder">
+		   </run>
+	   </builder>
+   </extension>
+   
+   <!-- Curl ORB Preferences -->
+   <extension point="org.eclipse.core.runtime.preferences">
+      <initializer class="com.curlap.orb.plugin.ui.CurlOrbUIPreferenceInitializer"/>
+   </extension>
+   
+   <extension point="org.eclipse.ui.preferencePages">
+      <page
+         name="Curl ORB"
+         class="com.curlap.orb.plugin.preferences.CurOrbGeneralPreferencesPage"
+         id="com.curlap.orb.plugin.preferences.CurlGeneralPreferencesPage">
+      </page>
+   </extension>
+   
 </plugin>
