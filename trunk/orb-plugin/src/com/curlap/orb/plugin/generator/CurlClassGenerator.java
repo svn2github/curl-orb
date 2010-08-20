@@ -36,13 +36,13 @@ public abstract class CurlClassGenerator
 {
 	protected ICompilationUnit iCompilationUnit;
 	
-	private String savePath;
+	protected String savePath;
 
-	private String packageName;
+	protected String packageName;
 	
-	private String fileName;
+	protected String fileName;
 	
-	private String packageFileName;
+	protected String packageFileName;
 
 	public String getPackageName() 
 	{

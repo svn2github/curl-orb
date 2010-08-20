@@ -10,7 +10,8 @@
 {import * from $import_package}
 #end
 
-{define-class public $class_name {inherits ApplicationContextClient} 
+{define-class public $class_name
+  {inherits $superclass}
 
 #foreach ($method in $methods)
 #if ($method.methodReturnType != "void")
