@@ -32,4 +32,5 @@ import java.lang.annotation.Target;
 public @interface AutoGenerateCurlException
 {
 	String savePath() default "";
+	String generateDoc() default ""; // docstring or comment
 }

@@ -37,6 +37,7 @@ public @interface AutoGenerateCurlServiceClient
 	Class<?> targetInterface() default DEFAULT.class; // HACK! instead of null
 	boolean generateTestTemplate() default false;
 	boolean generateAsyncMethod() default false;
+	String generateDoc() default ""; // docstring or comment
 	
 	static final class DEFAULT{}
 }
