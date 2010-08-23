@@ -9,12 +9,8 @@ import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 
 public class JavaElementAnalyzer {
-
-	public JavaElementAnalyzer() {
 		
-	}
-		
-	public JavadocContent getJavaDoc(IMember member) throws JavaModelException {
+	public static JavadocContent getJavaDoc(IMember member) throws JavaModelException {
 		// target
 		ICompilationUnit source = member.getCompilationUnit();
 		ISourceRange range = member.getSourceRange();
