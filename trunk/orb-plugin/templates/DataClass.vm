@@ -6,9 +6,9 @@
 |||  generated date : $generate_date
 |||
 
-#foreach ($import_package in $import_packages)
-{import * from $import_package}
-#end
+##foreach ($import_package in $import_packages)
+##{import * from $import_package}
+##end
 
 {define-class public serializable $class_name 
 #if ($has_superclass)

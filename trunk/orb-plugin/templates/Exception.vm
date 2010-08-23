@@ -6,9 +6,10 @@
 |||  generated date : $generate_date
 |||
 
-#foreach ($import_package in $import_packages)
-{import * from $import_package}
-#end
+{import * from COM.CURLAP.ORB} 
+##foreach ($import_package in $import_packages)
+##{import * from $import_package}
+##end
 
 {define-class public $class_name {inherits Exception} 
 

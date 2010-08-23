@@ -142,16 +142,28 @@ public class CurlOrbBuilder extends IncrementalProjectBuilder {
 
 			// create or rewrite load file    
 			File load = null;
+			String loadFilePath;
+			String saveFilePath;
+			String saveFileName;
 			
-/*			if(generator.getSavePath() == null)
-				load = new File(fCurlProjectLocation.getPath() + "\\" +generator.getPackageFileName());
-			else
-				load = new File(fCurlProjectLocation.getPath() + generator.getSavePath() + "\\" +generator.getPackageFileName());
+			loadFilePath = fCurlProjectLocation.getPath() + "\\" ;
 			
-*/			load = new File(fCurlProjectLocation.getPath() + "\\" +generator.getPackageFileName());
+			load = new File(loadFilePath + generator.getPackageFileName());
 			FileWriter loadFileWriter = null;
 			BufferedReader br = null;
 			FileWriter loadFileReWriter = null;
+			
+			if(generator.getSavePath() == null)
+				saveFilePath = fCurlProjectLocation.getPath() + "\\" ;
+			else
+				saveFilePath = fCurlProjectLocation.getPath() + generator.getSavePath() + "\\";
+			
+			if(saveFilePath.equals(loadFilePath))
+				saveFileName = generator.getFileName();
+			else
+				saveFileName = fCurlProjectLocation.getPath() + generator.getSavePath() + "/" + generator.getFileName();
+			//FIXME
+			System.out.println(saveFileName);
 			try {
 				if (!load.exists()) { // whether the load file already exists ?
 					loadFileWriter = new FileWriter(load);
@@ -162,7 +174,7 @@ public class CurlOrbBuilder extends IncrementalProjectBuilder {
 					);
 					contextPackageFile.put(
 							"fileUrl",
-							((generator.getSavePath() == null)?generator.getFileName():generator.getSavePath() + "\\" +generator.getFileName())
+							(saveFileName)
 					);
 
 					Template packageFileTemplate = 
@@ -174,7 +186,7 @@ public class CurlOrbBuilder extends IncrementalProjectBuilder {
 					br = new BufferedReader(in);
 					String line;
 					boolean included = false;
-					String saveFileName = (generator.getSavePath() == null)?generator.getSavePath():generator.getSavePath() + "/" + generator.getFileName();
+					
 					while ((line = br.readLine()) != null) {
 						if (line.indexOf("\"" + saveFileName + "\"") != -1)
 							included = true;
