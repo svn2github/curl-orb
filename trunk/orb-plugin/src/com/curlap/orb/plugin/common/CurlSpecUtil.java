@@ -29,6 +29,7 @@ import org.eclipse.jdt.internal.corext.javadoc.JavaDocCommentReader;
  * @author Yohsuke Sugahara, Hitoshi Okada
  * @since 0.8
  */
+@SuppressWarnings("restriction")
 public class CurlSpecUtil 
 {
 	private static boolean equalsOneOf(String str, String ... strs)
@@ -163,6 +164,19 @@ public class CurlSpecUtil
 		return v;
 	}
 	
+	public static String getDefaultValue(String type)
+	{
+		String v = type;
+		if (equalsOneOf(v, "char"))
+			return "0x0000";
+		else if (equalsOneOf(v, "bool"))
+			return "false";
+		else if (equalsOneOf(v, "int8", "int16", "int", "int32", "int64", "byte"))
+			return "0";
+		else if (equalsOneOf(v, "double", "float"))
+			return "0.0";
+		return "null";
+	}
 	
 	// marshal curl name for method and property
 	//   e.g. helloWorld --> hello-world
@@ -192,6 +206,7 @@ public class CurlSpecUtil
 		}
 		return buf.toString();
 	}
+	
 	
 	// isGetter
 	public static boolean isGetter(String methodName)
@@ -225,7 +240,6 @@ public class CurlSpecUtil
 	}
 	
 	// get curl doc-string
-	//@SuppressWarnings("restriction")
 	public static String getCurlDocString(IMember iMember) throws JavaModelException
 	{
 		ISourceRange range = iMember.getJavadocRange();

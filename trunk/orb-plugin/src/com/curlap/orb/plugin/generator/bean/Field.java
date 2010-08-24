@@ -26,6 +26,8 @@ public class Field {
 	private String name;
 	// Curl type
 	private String type;
+	// Curl default value
+	private String defaultValue;
 	// let or field
 	private String isStatic;
 	// "transient" or ""
@@ -46,6 +48,12 @@ public class Field {
 	}
 	public void setType(String type) {
 		this.type = type;
+	}
+	public String getDefaultValue() {
+		return defaultValue;
+	}
+	public void setDefaultValue(String defaultValue) {
+		this.defaultValue = defaultValue;
 	}
 	public String getIsStatic() {
 		return isStatic;

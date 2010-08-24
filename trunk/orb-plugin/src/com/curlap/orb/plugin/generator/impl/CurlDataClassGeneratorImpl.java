@@ -27,8 +27,10 @@ import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.IPackageFragment;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaModelException;
+import org.eclipse.jdt.core.search.TypeNameMatch;
 
 import com.curlap.orb.plugin.common.CurlSpecUtil;
+import com.curlap.orb.plugin.common.JavaElementSearcher;
 import com.curlap.orb.plugin.generator.CurlClassGenerator;
 import com.curlap.orb.plugin.generator.CurlGenerateException;
 import com.curlap.orb.plugin.generator.bean.Field;
@@ -47,6 +49,49 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 		return "templates/DataClass.vm";
 	}
 	
+	private List<Field> getAllSuperclassFields(
+			Set<String> importPackages,
+			String superclass
+			) throws JavaModelException
+	{
+		List<Field> fields = new ArrayList<Field>();
+		TypeNameMatch typeNameMatch = 
+			new JavaElementSearcher(iCompilationUnit).searchClassInfo(superclass);
+		IType iType = typeNameMatch.getType();
+		for (IField iField : iType.getFields())
+		{
+			String name = iField.getElementName();
+			Field field = new Field();
+    		field.setName(name);
+    		field.setType(
+    				CurlSpecUtil.marshalCurlTypeWithSignature(
+    						addImportedPackageIfNecessaryWithSignature(
+    								importPackages, 
+    								iField.getTypeSignature()
+    						)
+    				)
+    		);
+    		field.setDefaultValue(CurlSpecUtil.getDefaultValue(field.getType()));
+    		/* Currently not necessary. */
+    		/*
+    		field.setIsStatic(
+    				(Flags.isStatic(iField.getFlags()) ? "let" : "field")
+    		);
+    		field.setIsTransient(Flags.isTransient(iField.getFlags()));
+    		String modifier = Flags.toString(iField.getFlags());
+    		if (modifier.length() == 0)
+    			modifier = "package";
+    		field.setGetterModifier(modifier + "-get");
+    		field.setSetterModifier(modifier + "-set");
+    		*/
+    		fields.add(field);
+		}
+		// more superclasses
+		if (iType.getSuperclassName() != null)
+			fields.addAll(getAllSuperclassFields(importPackages, iType.getSuperclassName()));
+		return fields;
+	}
+	
 	@Override
 	public VelocityContext generateClass() throws CurlGenerateException
 	{
@@ -55,6 +100,7 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 		{
 			Set<String> importPackages = new HashSet<String>();
 			List<Field> fields = new ArrayList<Field>();
+			List<Field> superClassFields = null;
 			
 			String packageName = null;
 			String className = null;
@@ -75,11 +121,16 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 		    	
 				// superclass
 				if (iType.getSuperclassName() != null)
+				{
 					superClassName = 
 						addImportedPackageIfNecessary(
 								importPackages, 
 								iType.getSuperclassName()
 						);
+					// fields of superclass
+					superClassFields = 
+						getAllSuperclassFields(importPackages, superClassName);
+				}
 				
 				// fields
 				for (IField iField : iType.getFields())
@@ -95,6 +146,7 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 		    						)
 		    				)
 		    		);
+		    		field.setDefaultValue(CurlSpecUtil.getDefaultValue(field.getType()));
 		    		field.setIsStatic(
 		    				(Flags.isStatic(iField.getFlags()) ? "let" : "field")
 		    		);
@@ -175,6 +227,7 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 			{
 				context.put("has_superclass", true);
 				context.put("superclass_name", superClassName);
+				context.put("superclass_fields", superClassFields);
 			}
 			else
 			{
