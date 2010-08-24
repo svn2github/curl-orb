@@ -61,10 +61,10 @@ public class ASTJavadocVisitor extends ASTVisitor {
 	    int st = 0;
 	    char[] val = str.toCharArray();
 
-	    while (st < len && (val[st] <= ' ' || val[st] == '　')) {
+	    while (st < len && (val[st] <= ' ' || val[st] == '\u3000')) {
 	        st++;
 	    }
-	    while (st < len && (val[len - 1] <= ' ' || val[st] == '　')) {
+	    while (st < len && (val[len - 1] <= ' ' || val[st] == '\u3000')) {
 	        len--;
 	    }
 	    return (st > 0 || len < count) ? str.substring(st, len) : str;
