@@ -17,11 +17,27 @@
 #foreach ($method in $methodsList)
 #set ($p = $method.getMethodParams())
 #if ($p =="NoParams")
+#if($method.getMethodReturnType() == "void")
+  {method public {$method.getMethodName4Curl()}:void
+    {self.invoke "$method.getMethodName()"}
+  }
+#else
   {method public {$method.getMethodName4Curl()}:$method.getMethodReturnType()
     {return {self.invoke "$method.getMethodName()"} asa $method.getMethodReturnType()}
   }
+#end
 #else
-  {method public {$method.getMethodName4Curl() $method.getMethodParams()}:$method.getMethodReturnType()
+#if($method.getMethodReturnType() == "void")
+ {method public {$method.getMethodName4Curl() $method.getMethodParams()}:void
+    { 
+         self.invoke 
+            "$method.getMethodName()",
+            arguments = {FastArray $method.getMethodArguments4Curl()}
+    }
+  }
+
+#else
+ {method public {$method.getMethodName4Curl() $method.getMethodParams()}:$method.getMethodReturnType()
     {return 
         {self.invoke 
             "$method.getMethodName()",
@@ -29,6 +45,8 @@
         } asa $method.getMethodReturnType()
     }
   }
+#end
+  
 #end
 #end
 
