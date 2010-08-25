@@ -239,6 +239,18 @@ public class CurlSpecUtil
 		return null;
 	}
 	
+	// get modifier
+	public static String getCurlModifier(String modifier)
+	{
+		if (modifier.indexOf("private") >= 0)
+			return "private";
+		else if (modifier.indexOf("protected") >= 0)
+			return "protected";
+		else if (modifier.indexOf("public") >= 0)
+			return "public";
+		return "package";
+	}
+	
 	// get curl doc-string
 	public static String getCurlDocString(IMember iMember) throws JavaModelException
 	{

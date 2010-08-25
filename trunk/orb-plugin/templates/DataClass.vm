@@ -19,10 +19,10 @@
 #foreach ($field in $fields)
 #docstring ( $field.javadocContent, false )
 #if ($field.isTransient)
-  $field.isStatic transient $field.getterModifier $field.setterModifier $field.name:$field.type
+  field transient $field.getterModifier $field.setterModifier $field.name:$field.type
 
 #else
-  $field.isStatic $field.getterModifier $field.setterModifier $field.name:$field.type
+  field $field.getterModifier $field.setterModifier $field.name:$field.type
 
 #end
 #end

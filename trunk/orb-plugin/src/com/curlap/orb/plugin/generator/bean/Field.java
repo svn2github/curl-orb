@@ -30,8 +30,6 @@ public class Field {
 	private String type;
 	// Curl default value
 	private String defaultValue;
-	// let or field
-	private String isStatic;
 	// "transient" or ""
 	private boolean isTransient;
 	// public, package, protected, private +(transient) + "-get"
@@ -58,12 +56,6 @@ public class Field {
 	}
 	public void setDefaultValue(String defaultValue) {
 		this.defaultValue = defaultValue;
-	}
-	public String getIsStatic() {
-		return isStatic;
-	}
-	public void setIsStatic(String isStatic) {
-		this.isStatic = isStatic;
 	}
 	public boolean getIsTransient() {
 		return isTransient;

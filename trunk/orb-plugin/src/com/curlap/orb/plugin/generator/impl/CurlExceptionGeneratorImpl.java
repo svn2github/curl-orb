@@ -75,6 +75,9 @@ public class CurlExceptionGeneratorImpl extends CurlClassGenerator
 				// fields
 				for (IField iField : iType.getFields())
 				{
+					// skip static method
+					if (Flags.isStatic(iField.getFlags()))
+						continue;
 					String name = iField.getElementName();
 					Field field = new Field();
 		    		field.setName(name);
@@ -86,13 +89,9 @@ public class CurlExceptionGeneratorImpl extends CurlClassGenerator
 		    						)
 		    				)
 		    		);
-		    		field.setIsStatic(
-		    				(Flags.isStatic(iField.getFlags()) ? "let" : "field")
-		    		);
 		    		field.setIsTransient(Flags.isTransient(iField.getFlags()));
-		    		String modifier = Flags.toString(iField.getFlags());
-		    		if (modifier.length() == 0)
-		    			modifier = "package";
+		    		String modifier = 
+		    			CurlSpecUtil.getCurlModifier(Flags.toString(iField.getFlags()));
 		    		field.setGetterModifier(modifier + "-get");
 		    		field.setSetterModifier(modifier + "-set");
 		    		fields.add(field);
@@ -102,6 +101,9 @@ public class CurlExceptionGeneratorImpl extends CurlClassGenerator
 				// NOTE: Extract getter and setter. The other methods is skipped.
 				for (IMethod method : iType.getMethods())
 				{
+					// skip static method
+					if (Flags.isStatic(method.getFlags()))
+						continue;
 					String name = method.getElementName();
 					// getter into field
 					if (CurlSpecUtil.isGetter(name))
@@ -115,9 +117,8 @@ public class CurlExceptionGeneratorImpl extends CurlClassGenerator
 												method.getReturnType()
 										)
 								);
-							String modifier = Flags.toString(method.getFlags());
-							if (modifier.length() == 0)
-								modifier = "package";
+				    		String modifier = 
+				    			CurlSpecUtil.getCurlModifier(Flags.toString(method.getFlags()));
 							for (Field field : fields)
 							{
 								String fieldName = 
@@ -141,9 +142,8 @@ public class CurlExceptionGeneratorImpl extends CurlClassGenerator
 												method.getParameterTypes()[0]
 										)
 								);
-							String modifier = Flags.toString(method.getFlags());
-							if (modifier.length() == 0)
-								modifier = "package";
+				    		String modifier = 
+				    			CurlSpecUtil.getCurlModifier(Flags.toString(method.getFlags()));
 							for (Field field : fields)
 							{
 								String fieldName = 

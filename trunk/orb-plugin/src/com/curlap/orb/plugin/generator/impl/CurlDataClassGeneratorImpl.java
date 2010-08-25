@@ -142,6 +142,9 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 				// fields
 				for (IField iField : iType.getFields())
 				{
+					// skip static field
+					if (Flags.isStatic(iField.getFlags()))
+						continue;
 					String name = iField.getElementName();
 					Field field = new Field();
 		    		field.setName(name);
@@ -154,16 +157,9 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 		    				)
 		    		);
 		    		field.setDefaultValue(CurlSpecUtil.getDefaultValue(field.getType()));
-		    		field.setIsStatic(
-		    				(Flags.isStatic(iField.getFlags()) ? "let" : "field")
-		    		);
-		    		// NOTE: seriall version UID
-					if (name.equals("serialVersionUID") && Flags.isStatic(iField.getFlags()))
-						continue;
 		    		field.setIsTransient(Flags.isTransient(iField.getFlags()));
-		    		String modifier = Flags.toString(iField.getFlags());
-		    		if (modifier.length() == 0)
-		    			modifier = "package";
+		    		String modifier = 
+		    			CurlSpecUtil.getCurlModifier(Flags.toString(iField.getFlags()));
 		    		field.setGetterModifier(modifier + "-get");
 		    		field.setSetterModifier(modifier + "-set");
 		    		field.setJavadocContent(JavaElementAnalyzer.getJavaDoc(iField));
@@ -174,6 +170,9 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 				// NOTE: Extract getter and setter. The other methods is skipped.
 				for (IMethod method : iType.getMethods())
 				{
+					// skip static method
+					if (Flags.isStatic(method.getFlags()))
+						continue;
 					String name = method.getElementName();
 					// getter into field
 					if (CurlSpecUtil.isGetter(name))
@@ -187,9 +186,8 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 												method.getReturnType()
 										)
 								);
-							String modifier = Flags.toString(method.getFlags());
-							if (modifier.length() == 0)
-								modifier = "package";
+				    		String modifier = 
+				    			CurlSpecUtil.getCurlModifier(Flags.toString(method.getFlags()));
 							for (Field field : fields)
 							{
 								String fieldName = 
@@ -213,9 +211,8 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 												method.getParameterTypes()[0]
 										)
 								);
-							String modifier = Flags.toString(method.getFlags());
-							if (modifier.length() == 0)
-								modifier = "package";
+				    		String modifier = 
+				    			CurlSpecUtil.getCurlModifier(Flags.toString(method.getFlags()));
 							for (Field field : fields)
 							{
 								String fieldName = 
