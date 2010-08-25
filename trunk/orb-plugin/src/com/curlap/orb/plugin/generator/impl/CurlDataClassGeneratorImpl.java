@@ -157,6 +157,9 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 		    		field.setIsStatic(
 		    				(Flags.isStatic(iField.getFlags()) ? "let" : "field")
 		    		);
+		    		// NOTE: seriall version UID
+					if (name.equals("serialVersionUID") && Flags.isStatic(iField.getFlags()))
+						continue;
 		    		field.setIsTransient(Flags.isTransient(iField.getFlags()));
 		    		String modifier = Flags.toString(iField.getFlags());
 		    		if (modifier.length() == 0)

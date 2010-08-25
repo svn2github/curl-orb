@@ -28,41 +28,41 @@
 #end
 #if ($fields.size() > 0 || $superclass_fields.size() > 0)
   {constructor public {default
- #set ($count = 0)
- #foreach ($field in $superclass_fields)
-  #if ($fields.size() == 0 && $count == $superclass_fields.size() - 1)
+#set ($count = 0)
+#foreach ($field in $superclass_fields)
+#if ($fields.size() == 0 && $count == $superclass_fields.size() - 1)
                           $field.name:$field.type = $field.defaultValue
-  #else
+#else
                           $field.name:$field.type = $field.defaultValue,
-  #end
-  #set ($count = $count + 1)
- #end
- #set ($count = 0)
- #foreach ($field in $fields)
-  #if ($count == $fields.size() - 1)
+#end
+#set ($count = $count + 1)
+#end
+#set ($count = 0)
+#foreach ($field in $fields)
+#if ($count == $fields.size() - 1)
                           $field.name:$field.type = $field.defaultValue
-  #else
+#else
                           $field.name:$field.type = $field.defaultValue,
-  #end
-  #set ($count = $count + 1)
- #end
+#end
+#set ($count = $count + 1)
+#end
                       }
- #foreach ($field in $fields)
+#foreach ($field in $fields)
     set self.$field.name = $field.name
- #end
+#end
 #else
   {constructor public {default}
 #end
 #if ($has_superclass)
- #if ($superclass_fields.size() > 0)
+#if ($superclass_fields.size() > 0)
     {construct-super
-  #foreach ($field in $superclass_fields)
+#foreach ($field in $superclass_fields)
         $field.name = $field.name
-  #end
+#end
     }
- #else
+#else
     {construct-super}
- #end
+#end
 #end
   }
 }
