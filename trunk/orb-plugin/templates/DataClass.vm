@@ -10,18 +10,14 @@
 {import * from $import_package}
 #end
 
-#set ( $javadoc = $classJavadoc )
-#set ( $for_toplevel = true )
-#parse ("templates/docstring.vm")
+#docstring ( $classJavadoc, true )
 {define-class public serializable $class_name 
 #if ($has_superclass)
   {inherits $superclass_name}
 #end
 
 #foreach ($field in $fields)
-#set ( $javadoc = $field.javadocContent )
-#set ( $for_toplevel = false )
-#parse ("templates/docstring.vm")
+#docstring ( $field.javadocContent, false )
 #if ($field.isTransient)
   $field.isStatic transient $field.getterModifier $field.setterModifier $field.name:$field.type
 

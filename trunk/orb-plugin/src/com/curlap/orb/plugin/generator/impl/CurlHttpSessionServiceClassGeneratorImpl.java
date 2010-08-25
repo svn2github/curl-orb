@@ -29,7 +29,9 @@ import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.search.TypeNameMatch;
 
 import com.curlap.orb.plugin.common.CurlSpecUtil;
+import com.curlap.orb.plugin.common.JavaElementAnalyzer;
 import com.curlap.orb.plugin.common.JavaElementSearcher;
+import com.curlap.orb.plugin.common.JavadocContent;
 import com.curlap.orb.plugin.generator.CurlClassGenerator;
 import com.curlap.orb.plugin.generator.CurlGenerateException;
 import com.curlap.orb.plugin.generator.bean.Method;
@@ -65,6 +67,7 @@ public class CurlHttpSessionServiceClassGeneratorImpl extends CurlClassGenerator
 			String packageName4Curl = null;
 			String className = null;
 			String completeStatus = null;
+			JavadocContent classJavadoc = null;
 
 			for (IType iType : source.getAllTypes())
 			{
@@ -80,6 +83,9 @@ public class CurlHttpSessionServiceClassGeneratorImpl extends CurlClassGenerator
 				className = iType.getElementName();
 				if (className == null)
 					throw new CurlGenerateException("There is no class name.");
+				
+				// class javadoc
+				classJavadoc = JavaElementAnalyzer.getJavaDoc(iType);				
 				
 				//interfaces 
 				for(String s:iType.getSuperInterfaceNames()){
@@ -173,6 +179,8 @@ public class CurlHttpSessionServiceClassGeneratorImpl extends CurlClassGenerator
 				//methods
 				IMethod[] methods = iType.getMethods();
 		    	for (IMethod method : methods){
+		    		if (method.isConstructor())
+		    			continue;
 		    		
 			    	Method m = new Method();
 			    	String tmp;
@@ -204,6 +212,7 @@ public class CurlHttpSessionServiceClassGeneratorImpl extends CurlClassGenerator
 		    		
 		    		noReturn = CurlSpecUtil.marshalCurlTypeWithSignature(method.getReturnType());
 		    		m.setMethodReturnType(noReturn);
+		    		m.setJavadocContent(JavaElementAnalyzer.getJavaDoc(method));
 
 		    		methodsList.add(m);
 		    	}
@@ -219,6 +228,7 @@ public class CurlHttpSessionServiceClassGeneratorImpl extends CurlClassGenerator
 			context.put("className",className );
 			context.put("methodsList", methodsList);
 			context.put("completeStatus", completeStatus);
+			context.put("classJavadoc", classJavadoc);
 			
 			return context;
 		}

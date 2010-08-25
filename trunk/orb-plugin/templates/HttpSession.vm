@@ -12,32 +12,35 @@
 ###{import * from $import_package}
 ####end
 
+#docstring ( $classJavadoc, true )
 {define-class public $className {inherits HttpSessionClient}
 
 #foreach ($method in $methodsList)
+#docstring ( $method.javadocContent, false )
 #set ($p = $method.getMethodParams())
 #if ($p =="NoParams")
 #if($method.getMethodReturnType() == "void")
   {method public {$method.getMethodName4Curl()}:void
     {self.invoke "$method.getMethodName()"}
   }
+
 #else
   {method public {$method.getMethodName4Curl()}:$method.getMethodReturnType()
     {return {self.invoke "$method.getMethodName()"} asa $method.getMethodReturnType()}
   }
+
 #end
 #else
 #if($method.getMethodReturnType() == "void")
- {method public {$method.getMethodName4Curl() $method.getMethodParams()}:void
-    { 
-         self.invoke 
-            "$method.getMethodName()",
-            arguments = {FastArray $method.getMethodArguments4Curl()}
+  {method public {$method.getMethodName4Curl() $method.getMethodParams()}:void
+    {self.invoke 
+        "$method.getMethodName()",
+        arguments = {FastArray $method.getMethodArguments4Curl()}
     }
   }
 
 #else
- {method public {$method.getMethodName4Curl() $method.getMethodParams()}:$method.getMethodReturnType()
+  {method public {$method.getMethodName4Curl() $method.getMethodParams()}:$method.getMethodReturnType()
     {return 
         {self.invoke 
             "$method.getMethodName()",
@@ -45,11 +48,10 @@
         } asa $method.getMethodReturnType()
     }
   }
-#end
-  
-#end
-#end
 
+#end
+#end
+#end
   {constructor public {default}
 	{construct-super.HttpSessionClient "$packageName.$className"}
   }
