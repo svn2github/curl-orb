@@ -11,8 +11,11 @@ import org.eclipse.jdt.core.dom.TypeDeclaration;
 public class JavaElementAnalyzer {
 		
 	public static JavadocContent getJavaDoc(IMember member) throws JavaModelException {
+		if (member.getJavadocRange() == null)
+			return null;
+			
 		// target
-		ICompilationUnit source = member.getCompilationUnit();
+		ICompilationUnit source = member.getCompilationUnit();		
 		ISourceRange range = member.getSourceRange();
 		int offset = range.getOffset();
 		int length = range.getLength();

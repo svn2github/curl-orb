@@ -14,6 +14,8 @@
 
 package com.curlap.orb.plugin.generator.bean;
 
+import com.curlap.orb.plugin.common.JavadocContent;
+
 /**
  * Method
  * 
@@ -35,6 +37,8 @@ public class Method {
 	private String methodReturnType;
 	// arguments in Curl method body
 	private String methodArguments4Curl;
+	// javadoc
+	private JavadocContent javadocContent;
 	
 	public String getMethodName() {
 		return methodName;
@@ -65,5 +69,11 @@ public class Method {
 	}
 	public void setMethodArguments4Curl(String methodArguments4Curl) {
 		this.methodArguments4Curl = methodArguments4Curl;
+	}
+	public JavadocContent getJavadocContent() {
+		return javadocContent;
+	}
+	public void setJavadocContent(JavadocContent javadocContent) {
+		this.javadocContent = javadocContent;
 	}
 }

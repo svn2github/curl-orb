@@ -15,6 +15,9 @@ public class ASTJavadocVisitor extends ASTVisitor {
 	}
 	
 	public boolean visit(Javadoc node) {
+		if (javadocContent != null)
+			return super.visit(node);
+		
 		JavadocContent content = new JavadocContent();
 		for (Object tag : node.tags()) {
 			TagElement element = (TagElement) tag;
@@ -27,6 +30,8 @@ public class ASTJavadocVisitor extends ASTVisitor {
 				content.getParams().add(parseToParam(element));
 			else if (tagName.equals("@return"))
 				content.setReturnValue(parseToText(element));
+			else if (tagName.equals("@author"))
+				content.setAuthor(parseToText(element));
 		}
 		javadocContent = content;
 		return super.visit(node);
@@ -38,6 +43,7 @@ public class ASTJavadocVisitor extends ASTVisitor {
 			if (fragment instanceof TextElement) {
 				String text = ((TextElement) fragment).getText();
 				strBuilder.append(text);
+				strBuilder.append('\n');
 			}
 		return trimSpaces(strBuilder.toString());
 	}

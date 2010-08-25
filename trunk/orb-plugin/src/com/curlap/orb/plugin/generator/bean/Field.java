@@ -14,6 +14,8 @@
 
 package com.curlap.orb.plugin.generator.bean;
 
+import com.curlap.orb.plugin.common.JavadocContent;
+
 /**
  * Field
  * 
@@ -36,6 +38,8 @@ public class Field {
 	private String getterModifier;
 	// public, package, protected, private +(transient) + "-set"
 	private String setterModifier;
+	// javadoc
+	private JavadocContent javadocContent;
 	
 	public String getName() {
 		return name;
@@ -78,5 +82,11 @@ public class Field {
 	}
 	public void setSetterModifier(String setterModifier) {
 		this.setterModifier = setterModifier;
+	}
+	public JavadocContent getJavadocContent() {
+		return javadocContent;
+	}
+	public void setJavadocContent(JavadocContent javadocContent) {
+		this.javadocContent = javadocContent;
 	}
 }

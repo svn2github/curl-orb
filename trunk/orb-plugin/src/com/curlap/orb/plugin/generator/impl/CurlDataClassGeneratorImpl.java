@@ -30,7 +30,9 @@ import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.search.TypeNameMatch;
 
 import com.curlap.orb.plugin.common.CurlSpecUtil;
+import com.curlap.orb.plugin.common.JavaElementAnalyzer;
 import com.curlap.orb.plugin.common.JavaElementSearcher;
+import com.curlap.orb.plugin.common.JavadocContent;
 import com.curlap.orb.plugin.generator.CurlClassGenerator;
 import com.curlap.orb.plugin.generator.CurlGenerateException;
 import com.curlap.orb.plugin.generator.bean.Field;
@@ -105,6 +107,8 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 			String packageName = null;
 			String className = null;
 			String superClassName = null;
+			JavadocContent classJavadoc = null;
+			
 			for (IType iType : source.getAllTypes())
 			{
 				// package
@@ -118,6 +122,9 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 				className = iType.getElementName();
 				if (className == null)
 					throw new CurlGenerateException("There is no class name.");
+				
+				// javadoc
+				classJavadoc = JavaElementAnalyzer.getJavaDoc(iType);
 		    	
 				// superclass
 				if (iType.getSuperclassName() != null)
@@ -156,6 +163,7 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 		    			modifier = "package";
 		    		field.setGetterModifier(modifier + "-get");
 		    		field.setSetterModifier(modifier + "-set");
+		    		field.setJavadocContent(JavaElementAnalyzer.getJavaDoc(iField));
 		    		fields.add(field);
 				}
 				
@@ -223,6 +231,7 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 			context.put("package_name", packageName);
 			context.put("import_packages", importPackages);
 			context.put("class_name", className);
+			context.put("classJavadoc", classJavadoc);
 			if (superClassName != null)
 			{
 				context.put("has_superclass", true);
