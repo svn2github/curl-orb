@@ -19,13 +19,12 @@
 #foreach ($field in $fields)
 #docstring ( $field.javadocContent, false )
 #if ($field.isTransient)
-  field transient $field.getterModifier $field.setterModifier $field.name:$field.type
-
+  field transient $field.getterModifier $field.setterModifier $field.name:$field.type $field.comment
 #else
-  field $field.getterModifier $field.setterModifier $field.name:$field.type
+  field $field.getterModifier $field.setterModifier $field.name:$field.type $field.comment
+#end
+#end
 
-#end
-#end
 #if ($fields.size() > 0 || $superclass_fields.size() > 0)
   {constructor public {default
 #set ($count = 0)

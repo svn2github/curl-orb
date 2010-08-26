@@ -48,12 +48,34 @@ public class CurlSpecUtil
 		return false;
 	}
 	
+	private static int indexOfGenericsComma(String generics)
+	{
+		char comma = ',';
+		int index = generics.indexOf(comma);
+		if (index != -1 && index != generics.lastIndexOf(comma))
+		{
+			boolean skip = false;
+			for (int i = 0; i < generics.length(); i++)
+			{
+				char c = generics.charAt(i);
+				if (c == '<') 
+					skip = true;
+				else if (c == '>') 
+					skip = false;
+				else
+					if (!skip && c == comma) 
+						return i; 
+			}
+		}
+		return index;
+	}
+	
 	// marshal Curl data type
 	//  e.g) boolean --> bool, int[] --> #{FastArray-of int}
 	public static String marshalCurlType(
 			String javaType,
-			boolean isAllowNull, 
-			boolean isCurlCodingStyle)
+			boolean isAllowNull,
+			boolean generateGenerics)
 	{
 		String v = javaType;
 		if (equalsOneOf(v, null, "null", "void", "V"))
@@ -79,11 +101,11 @@ public class CurlSpecUtil
 
 		String result;
 		if (v.endsWith("[]"))
-			result = "{FastArray-of " + marshalCurlType(v.substring(0, v.length() - 2), isAllowNull, isCurlCodingStyle) + "}";
+			result = "{FastArray-of " + marshalCurlType(v.substring(0, v.length() - 2), isAllowNull, generateGenerics) + "}";
 		else if (v.startsWith("[L"))
-			result = "{FastArray-of " + marshalCurlType(v.substring(2, v.length() - 1), isAllowNull, isCurlCodingStyle) + "}";
+			result = "{FastArray-of " + marshalCurlType(v.substring(2, v.length() - 1), isAllowNull, generateGenerics) + "}";
 		else if (v.startsWith("["))
-			result = "{FastArray-of " + marshalCurlType(v.substring(1), isAllowNull, isCurlCodingStyle) + "}";
+			result = "{FastArray-of " + marshalCurlType(v.substring(1), isAllowNull, generateGenerics) + "}";
 		else if (equalsOneOf(v, "java.lang.String", "String"))
 			result = v;
 		else if (equalsOneOf(v, "java.util.Date", "Date"))
@@ -104,32 +126,74 @@ public class CurlSpecUtil
 			result = "COM.CURLAP.ORB.TYPE.BigDecimal";
 		else if (equalsOneOf(v, "java.util.List", "java.util.ArrayList", "List", "ArrayList"))
 			result = "Array";
+		else if (startsWithOneOf(v, "java.util.List", "java.util.ArrayList", "List", "ArrayList"))
+		{
+			// generics
+			if (generateGenerics)
+			{
+				String generics = v.substring(v.indexOf('<') + 1, v.lastIndexOf('>'));
+				result = "{Array-of "  + marshalCurlType(generics, isAllowNull, generateGenerics) + "}";
+			}
+			else
+				result = "Array";
+		}
 		else if (equalsOneOf(v, "java.util.Map", "java.util.HashMap", "java.util.Hashtable", "Map", "HashMap", "Hashtable"))
 			result = "HashTable";
-		else if (equalsOneOf(v, "java.util.HashSet", "java.util.HashSet", "HashSet", "HashSet"))
+		else if (startsWithOneOf(v, "java.util.Map", "java.util.HashMap", "java.util.Hashtable", "Map", "HashMap", "Hashtable"))
+		{
+			// generics
+			if (generateGenerics)
+			{
+				String generics = v.substring(v.indexOf('<') + 1, v.lastIndexOf('>'));
+				int comma = indexOfGenericsComma(generics);
+				String key = marshalCurlType(generics.substring(0, comma).trim(), isAllowNull, generateGenerics);
+				String val = marshalCurlType(generics.substring(comma + 1).trim(), isAllowNull, generateGenerics);
+				result = "{HashTable-of "  + key + ", " + val + "}";
+			}
+			else
+				result = "HashTable";
+		}
+		else if (equalsOneOf(v, "java.util.Set", "java.util.HashSet", "Set", "HashSet"))
 			result = "Set";
+		else if (startsWithOneOf(v, "java.util.Set", "java.util.HashSet", "Set", "HashSet"))
+		{
+			// generics
+			if (generateGenerics)
+			{
+				String generics = v.substring(v.indexOf('<') + 1, v.lastIndexOf('>'));
+				result = "{Set-of "  + marshalCurlType(generics, isAllowNull, generateGenerics) + "}";
+			}
+			else
+				result = "Set";
+		}
 		else 
 			result = v;
 		return (isAllowNull ? "#" : "") + result;
 	}
 	public static String marshalCurlType(String javaType)
 	{
-		return marshalCurlType(javaType, true, true);
+		return marshalCurlType(javaType, true, false);
 	}
 	
 	// marshal Curl data type from jdt style signature
 	//  e.g) Z --> bool, [I --> #{FastArray-of int}
 	public static String marshalCurlTypeWithSignature(
 			String javaType,
-			boolean isAllowNull, 
-			boolean isCurlCodingStyle) throws IllegalArgumentException
+			boolean isAllowNull,
+			boolean generateGenerics) throws IllegalArgumentException
 	{
 		String v = (javaType != null ? Signature.toString(javaType) : "void");
-		return marshalCurlType(v, isAllowNull, isCurlCodingStyle);
+		return marshalCurlType(v, isAllowNull, generateGenerics);
 	}
 	public static String marshalCurlTypeWithSignature(String javaType)
 	{
-		return CurlSpecUtil.marshalCurlTypeWithSignature(javaType, true, true);
+		return CurlSpecUtil.marshalCurlTypeWithSignature(javaType, true, false);
+	}
+	
+	// parameterized type or not
+	public static boolean isCurlGenericsType(String curlType)
+	{
+		return equalsOneOf(curlType, "Array", "HashTable", "Set", "#Array", "#HashTable", "#Set");
 	}
 	
 	// marshal curl package 
@@ -296,18 +360,19 @@ public class CurlSpecUtil
 				boolean.class,
 				Character.class,
 				int[].class,
+				List.class,
 				List[].class,
 				java.math.BigInteger.class
 		};
 		for (Class<?> c : types)
-			print(c.getName(), "-->", marshalCurlType(c.getName(), true, true));
+			print(c.getName(), "-->", marshalCurlType(c.getName(), true));
 
 		print("-----------------------");
 		
 		for (Class<?> c : types) {
 			String typeName = c.getCanonicalName();
 			String typeSign = Signature.createTypeSignature(typeName, false);
-			print(typeName, "-->", marshalCurlTypeWithSignature(typeSign, true, true));
+			print(typeName, "-->", marshalCurlTypeWithSignature(typeSign, true));
 		}
 		
 		print("-----------------------");
@@ -364,6 +429,26 @@ public class CurlSpecUtil
 		
 		print(getClassNameFromPackageName("COM.CURL.TEST.Foo"));
 		print(getClassNameFromPackageName("Foo"));
+		
+		print("-----------------------");
+		String[] genericsTypes = {
+				"List<long>",
+				"List<List<long>>",
+				"List<List<List<Foo>>>",
+				"Set<Foo>",
+				"Set<Set<String>>",
+				"Set<Set<Set<short>>>",
+				"List<Set<List<String>>>",
+			
+				"Map<String, long>",
+				"Map<String, HashMap<int, short>>",
+				"Map<HashMap<int, short>, long>",
+				"Map<HashMap<Foo, short>, HashMap<Foo, short>>",
+				"Map<Set<Foo>, List<Foo>>",
+				"Map<HashMap<Foo, HashMap<Foo, short>>, HashMap<Foo, HashMap<Foo, short>>>"
+		};
+		for (String v : genericsTypes)
+			print(v, "-->", marshalCurlType(v, true));
 	}
 	*/
 }

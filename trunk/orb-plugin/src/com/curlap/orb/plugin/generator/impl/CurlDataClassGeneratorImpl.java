@@ -163,6 +163,19 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 		    		field.setGetterModifier(modifier + "-get");
 		    		field.setSetterModifier(modifier + "-set");
 		    		field.setJavadocContent(JavaElementAnalyzer.getJavaDoc(iField));
+		    		field.setComment( 
+		    				(CurlSpecUtil.isCurlGenericsType(field.getType()) ?
+		    						"|| " +
+		    						CurlSpecUtil.marshalCurlTypeWithSignature(
+		    								addImportedPackageIfNecessaryWithSignature(
+		    										importPackages, 
+		    										iField.getTypeSignature()
+		    								),
+		    								true,
+		    								true
+		    						) : ""
+		    				)
+		    		);
 		    		fields.add(field);
 				}
 				

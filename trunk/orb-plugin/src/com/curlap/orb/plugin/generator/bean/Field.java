@@ -38,6 +38,8 @@ public class Field {
 	private String setterModifier;
 	// javadoc
 	private JavadocContent javadocContent;
+	// comment
+	private String comment;
 	
 	public String getName() {
 		return name;
@@ -80,5 +82,11 @@ public class Field {
 	}
 	public void setJavadocContent(JavadocContent javadocContent) {
 		this.javadocContent = javadocContent;
+	}
+	public String getComment() {
+		return comment;
+	}
+	public void setComment(String comment) {
+		this.comment = comment;
 	}
 }

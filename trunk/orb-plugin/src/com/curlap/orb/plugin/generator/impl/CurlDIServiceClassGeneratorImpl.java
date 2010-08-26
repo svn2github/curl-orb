@@ -62,9 +62,6 @@ public class CurlDIServiceClassGeneratorImpl extends CurlClassGenerator
 			// NOTE: generate only "public" method. 
 			if (!Flags.toString(iMethod.getFlags()).equals("public"))
 				continue;
-			// TODO: javadoc
-			String curlDocString = CurlSpecUtil.getCurlDocString(iMethod);
-
 			Method method = new Method();
 			String methodName = iMethod.getElementName();
 			method.setMethodName(methodName);
@@ -89,7 +86,7 @@ public class CurlDIServiceClassGeneratorImpl extends CurlClassGenerator
 									iMethod.getReturnType()
 							),
 							returnTypeOfMethodIsNullable,
-							true
+							false
 					)
 			);
 			String[] paramNames = iMethod.getParameterNames();
