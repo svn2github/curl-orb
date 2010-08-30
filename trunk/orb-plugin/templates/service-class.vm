@@ -10,11 +10,12 @@
 {import * from $import_package}
 #end
 
-#parse ("templates/doc-string.vm")
+#docstring ( $javadocContent, true )
 {define-class public $class_name
   {inherits $superclass}
 
 #foreach ($method in $methods)
+#docstring ( $method.javadocContent, false )
 #if ($method.methodReturnType != "void")
 #if ($method.methodParams == "")
   {method public {$method.methodName4Curl}:$method.methodReturnType
@@ -22,9 +23,9 @@
     || TODO: Write test code here.
     {return null}
 #else
-    {return 
-        {self.invoke 
-            "$method.methodName", 
+    {return
+        {self.invoke
+            "$method.methodName",
             client-method-name = "$method.methodName4Curl"
         } asa $method.methodReturnType
     }
@@ -36,8 +37,8 @@
     || TODO: Write test code here.
     {return null}
 #else
-    {return 
-        {self.invoke 
+    {return
+        {self.invoke
             "$method.methodName",
             client-method-name = "$method.methodName4Curl",
             arguments = {FastArray $method.methodArguments4Curl}
@@ -52,8 +53,8 @@
 #if ($is_template)
     || TODO: Write test code here.
 #else
-    {self.invoke 
-        "$method.methodName", 
+    {self.invoke
+        "$method.methodName",
         client-method-name = "$method.methodName4Curl"
     }
 #end
@@ -63,7 +64,7 @@
 #if ($is_template)
     || TODO: Write test code here.
 #else
-    {self.invoke 
+    {self.invoke
         "$method.methodName",
         client-method-name = "$method.methodName4Curl",
         arguments = {FastArray $method.methodArguments4Curl}
@@ -87,8 +88,8 @@
             {splice ...}
         } asa AsyncWorker
     }
-  }
 #end
+  }
 #else
   {method public {async-$method.methodName $method.methodParams, ...:EventHandler}:AsyncWorker
 #if ($is_template)
@@ -103,8 +104,8 @@
             {splice ...}
         } asa AsyncWorker
     }
-  }
 #end
+  }
 #end
 #else
 #end
@@ -114,10 +115,10 @@
 #if ($is_template)
     || TODO: Write test code here.
 #else
-    {construct-super.ApplicationContextClient
-        "$bean_id", 
+    {construct-super.$superclass
+        "$server_component",
         server-url = server-url
     }
-  }             
 #end
+  }
 }

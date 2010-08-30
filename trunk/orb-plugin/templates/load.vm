@@ -4,7 +4,7 @@
 |||
 
 {curl 7.0 package}
-{package $packageName4Curl,
+{package $package_name,
    {compiler-directives careful? = true}
-} 
-{include "$fileUrl"}
+}
+{include "$file_url"}

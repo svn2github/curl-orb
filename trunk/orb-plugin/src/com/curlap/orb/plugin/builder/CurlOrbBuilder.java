@@ -1,3 +1,16 @@
+// Copyright (C) 1998-2010, Sumisho Computer Systems Corp. All Rights Reserved.
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package com.curlap.orb.plugin.builder;
 
 import java.io.BufferedReader;
@@ -34,77 +47,114 @@ import com.curlap.orb.plugin.OrbPlugin;
 import com.curlap.orb.plugin.generator.CurlClassGenerator;
 import com.curlap.orb.plugin.generator.CurlClassGeneratorFactory;
 import com.curlap.orb.plugin.generator.CurlGenerateException;
+import com.curlap.orb.plugin.generator.impl.CurlServiceClassGenerator;
 import com.curlap.orb.plugin.ui.PreferenceConstants;
 
+/**
+ * 
+ * 
+ * @author Wang Huailiang
+ * @since 0.8
+ */
 public class CurlOrbBuilder extends IncrementalProjectBuilder {
 
 	public static final String BUILDER_ID = "com.curlap.orb.plugin.orbbuilder";
 	private IProject fCurlProject;
 	private URI fCurlProjectLocation;
-	
+
+	@SuppressWarnings("unchecked")
 	@Override
 	protected IProject[] build(int kind, Map args, IProgressMonitor monitor)
-			throws CoreException {
+	throws CoreException {
 		// implement build processing
 		if (kind == FULL_BUILD) {
-	        fullBuild(monitor);
-	    } else {
-	        IResourceDelta delta = getDelta(getProject());
-	        if (delta == null) {
-	            fullBuild(monitor);
-	        } else {
-	            incrementalBuild(delta, monitor);
-	        }
-	    }
-	    return null;
+			fullBuild(monitor);
+		} else {
+			IResourceDelta delta = getDelta(getProject());
+			if (delta == null) {
+				fullBuild(monitor);
+			} else {
+				incrementalBuild(delta, monitor);
+			}
+		}
+		return null;
 
 	}
 
 	private void fullBuild(IProgressMonitor monitor) throws CoreException {
 		setCurlProject();
-	    getProject().accept(new IResourceVisitor() {
-	        public boolean visit(IResource resource) throws CoreException {
-	            // build processing 
-	        	if(resource instanceof IFile) {
-	        		IJavaElement element = JavaCore.create(resource);
-	        		if(element != null && element instanceof ICompilationUnit) {
-	        			 generateCurlFiles((ICompilationUnit)element);        			 
-	        		}
+		getProject().accept(new IResourceVisitor() {
+			public boolean visit(IResource resource) throws CoreException {
+				// build processing 
+				if(resource instanceof IFile) {
+					IJavaElement element = JavaCore.create(resource);
+					if(element != null && element instanceof ICompilationUnit) {
+						generateCurlFiles((ICompilationUnit)element);        			 
+					}
 
-	        	}
-	            return true;
-	        }
-	    });
+				}
+				return true;
+			}
+		});
 	}
 
-	private void incrementalBuild(IResourceDelta delta, IProgressMonitor monitor)
-	        throws CoreException {
+	private void incrementalBuild(IResourceDelta delta, IProgressMonitor monitor) throws CoreException {
 		setCurlProject();
-	    delta.accept(new IResourceDeltaVisitor() {
-	        public boolean visit(IResourceDelta delta) throws CoreException {
-	            // build processing
-	        	/*if(delta instanceof IFile) {
-	        		
+		delta.accept(new IResourceDeltaVisitor() {
+			public boolean visit(IResourceDelta delta) throws CoreException {
+				// build processing
+				/*if(delta instanceof IFile) {
+
 	        	}*/
-	        	
-	        	if(delta.getKind() == IResourceDelta.ADDED || 
-	        			delta.getKind() == IResourceDelta.CHANGED) {
-	        		IResource resource = delta.getResource();
-	        		IJavaElement element = JavaCore.create(resource);
-	        		if(element != null && element instanceof ICompilationUnit) {
-  			
-	        			generateCurlFiles((ICompilationUnit)element);
-	        		}
-	        		
-	        	}
-	        	
-	            return true;
-	        }
-	    });
+
+				if(delta.getKind() == IResourceDelta.ADDED || 
+						delta.getKind() == IResourceDelta.CHANGED) {
+					IResource resource = delta.getResource();
+					IJavaElement element = JavaCore.create(resource);
+					if (element != null && element instanceof ICompilationUnit) {
+						generateCurlFiles((ICompilationUnit)element);
+					}
+
+				}
+				return true;
+			}
+		});
 	}
-	
+
+	// create Curl source file
+	private void createCurlSourceFile(
+			CurlClassGenerator generator,
+			VelocityContext context,
+			String generatedFileName) throws CurlGenerateException
+			{
+		// write Curl source code file
+		FileWriter fileWriter = null;
+		try {
+			// Get the output file name from the context
+			String projectRootPath = fCurlProjectLocation.getPath();
+			String filePath = 
+				projectRootPath + generator.getSavePath() + "/" + generatedFileName;
+			fileWriter = new FileWriter(new File(filePath));
+			Template template = Velocity.getTemplate(generator.getVelocityTemplateName());
+			template.merge(context, fileWriter);
+			fileWriter.flush();
+			fileWriter.close();
+		} catch (Exception e) {
+			throw new CurlGenerateException(e);
+		} finally {
+			if (fileWriter != null) {
+				try {
+					fileWriter.close();
+				} catch (IOException e) {
+					fileWriter = null;
+				}
+			}
+		}
+			}
+
 	private void generateCurlFiles(ICompilationUnit source){
 		try {
+			// create Generator
 			CurlClassGenerator generator = 
 				CurlClassGeneratorFactory.getInstance().createGenerator(source);
 			if (generator == null)
@@ -112,144 +162,107 @@ public class CurlOrbBuilder extends IncrementalProjectBuilder {
 
 			VelocityContext context = generator.generateClass();
 			context.put(
-					"generate_date", SimpleDateFormat.getInstance().format(new Date())
+					"generate_date",
+					SimpleDateFormat.getInstance().format(new Date())
 			);
-
-			System.out.println(String.valueOf(context.get("completeStatus")));
-		/*	if (String.valueOf(context.get("completeStatus")) != "null")
-				completeStatus = String.valueOf(context.get("completeStatus") );
-			else
-				completeStatus = "Initialization problem!"; */
-
-			// write Curl source code file
-			FileWriter fileWriter = null;
-			try {
-				// Get the output file name from the context
-				if(generator.getSavePath() == null)
-					fileWriter = new FileWriter(new File(fCurlProjectLocation.getPath() + "\\" + generator.getFileName()));
-				else
-					fileWriter = new FileWriter(new File(fCurlProjectLocation.getPath() +generator.getSavePath() + "\\" + generator.getFileName()));
-				Template template = Velocity.getTemplate(generator.getVelocityTemplateName());
-				template.merge(context, fileWriter);
-				fileWriter.flush();
-				fileWriter.close();
-			} catch (IOException e) {
-				throw new CurlGenerateException(e);
-			} finally {
-				if (fileWriter != null)
-					fileWriter.close();
+			
+			// create test template if needs.
+			//   Note: test template is NOT added to load.scurl automatically. 
+			final String testTemplatePrefix = "_test_template_";
+			boolean generateTestTemplate = false;
+			if (generator instanceof CurlServiceClassGenerator) {
+				generateTestTemplate = (Boolean) context.get("is_template");
+				if (generateTestTemplate) {
+					String testTemplateFile = testTemplatePrefix + generator.getFileName();
+					createCurlSourceFile(
+							generator, context, testTemplateFile
+					);
+				}
 			}
 
-			// create or rewrite load file    
-			File load = null;
-			String loadFilePath;
-			String saveFilePath;
-			String saveFileName;
-			
-			loadFilePath = fCurlProjectLocation.getPath() + "\\" ;
-			
-			load = new File(loadFilePath + generator.getPackageFileName());
-			FileWriter loadFileWriter = null;
-			BufferedReader br = null;
-			FileWriter loadFileReWriter = null;
-			
-			if(generator.getSavePath() == null)
-				saveFilePath = fCurlProjectLocation.getPath() + "\\" ;
-			else
-				saveFilePath = fCurlProjectLocation.getPath() + generator.getSavePath() + "\\";
-			
-			if(saveFilePath.equals(loadFilePath))
-				saveFileName = generator.getFileName();
-			else
-				saveFileName = fCurlProjectLocation.getPath() + generator.getSavePath() + "/" + generator.getFileName();
-			//FIXME
-			System.out.println(saveFileName);
+			// create Curl source
+			context.put("is_template", false);
+			String sourceFile = generator.getFileName();
+			createCurlSourceFile(generator, context, sourceFile);
+
+			// create or rewrite load file (Curl package file)
+			File curlPackageUrl = 
+				new File(fCurlProjectLocation.getPath() + "/" + generator.getPackageFileName());
+			String includeUrl = 
+				fCurlProjectLocation.getPath() + generator.getSavePath() + "/" + sourceFile;
+			FileWriter curlPackageFileWriter = null;
 			try {
-				if (!load.exists()) { // whether the load file already exists ?
-					loadFileWriter = new FileWriter(load);
+				if (!curlPackageUrl.exists()) {
+					curlPackageFileWriter = new FileWriter(curlPackageUrl);
 					VelocityContext contextPackageFile = new VelocityContext();
 					contextPackageFile.put(
-							"packageName4Curl", 
+							"package_name", 
 							generator.getPackageName().toUpperCase()
 					);
 					contextPackageFile.put(
-							"fileUrl",
-							(saveFileName)
+							"file_url",
+							includeUrl
 					);
-
 					Template packageFileTemplate = 
 						Velocity.getTemplate(generator.getPackageVelocityTemplateName());
-					packageFileTemplate.merge(contextPackageFile, loadFileWriter);
-					loadFileWriter.flush();
+					packageFileTemplate.merge(contextPackageFile, curlPackageFileWriter);
+					curlPackageFileWriter.flush();
+					curlPackageFileWriter.close();
 				} else {
-					FileReader in = new FileReader(load);
-					br = new BufferedReader(in);
-					String line;
-					boolean included = false;
-					
-					while ((line = br.readLine()) != null) {
-						if (line.indexOf("\"" + saveFileName + "\"") != -1)
-							included = true;
-					}
-					br.close();
-					in.close();
-					if (!included) {
-						loadFileReWriter = new FileWriter(load, true);
-						loadFileReWriter.write("\n{include \"" + saveFileName + "\"}");
-						loadFileReWriter.flush();
-						loadFileReWriter.close();
+					BufferedReader curlPackageFileBufferedReader = null;
+					try {
+						FileReader curlPackageFileReader = new FileReader(curlPackageUrl);
+						curlPackageFileBufferedReader = new BufferedReader(curlPackageFileReader);
+						String line;
+						boolean included = false;
+						while ((line = curlPackageFileBufferedReader.readLine()) != null) {
+							if (line.indexOf("\"" + includeUrl + "\"") != -1)
+								included = true;
+						}
+						curlPackageFileBufferedReader.close();
+						curlPackageFileReader.close();
+						if (!included) {
+							curlPackageFileWriter = new FileWriter(curlPackageUrl, true);
+							curlPackageFileWriter.write("\n{include \"" + includeUrl + "\"}");
+							curlPackageFileWriter.flush();
+							curlPackageFileWriter.close();
+						}
+					} catch (IOException e)
+					{
+						if (curlPackageFileBufferedReader != null)
+							curlPackageFileBufferedReader.close();
 					}
 				}
 			} catch (IOException e) {
 				throw new CurlGenerateException(e);
 			} finally {
-				if (br != null)
-					br.close();
-				if (loadFileWriter != null)
-					loadFileWriter.close();
-				if (loadFileReWriter != null)
-					loadFileReWriter.close();
+				if (curlPackageFileWriter != null)
+					curlPackageFileWriter.close();
 			}
 		} catch (Exception e) {
+			// FIXME:
 			e.printStackTrace();
-		
 		}
-
-
 	}
-	
-	
+
 	@Override
-    protected void clean(IProgressMonitor monitor) throws CoreException {
-        // clean processing
-    }
+	protected void clean(IProgressMonitor monitor) throws CoreException {
+		// clean processing
+	}
 
-    @Override
-    protected void startupOnInitialize() {
-        // init processing
-    }
-    
-    private void setCurlProject() {
-    	IPreferenceStore store = OrbPlugin.getDefault().getPreferenceStore(); 
- /*   	boolean selected 
-    		= store.getBoolean(
-    			PreferenceConstants.CURL_ORB_BUILDER_ENABLED);
-        */
-  /*      //�@Java project
-    	String javaPrjName = "";  //$NON-NLS-1$
-    	javaPrjName = store.getString(PreferenceConstants.CURL_ORB_BUILDER_JAVA_PRJNAME);
-    	  */  	
-    	// Curl project
-    	String curlPrjName = "";  //$NON-NLS-1$
-    	curlPrjName = store.getString(PreferenceConstants.CURL_ORB_BUILDER_CURL_PRJNAME);
-    	
-    	IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
-    	fCurlProject = root.getProject(curlPrjName);
-    	
-    	fCurlProjectLocation = fCurlProject.getLocationURI();
-    	
+	@Override
+	protected void startupOnInitialize() {
+		// init processing
+	}
 
-    }
+	private void setCurlProject() {
+		IPreferenceStore store = OrbPlugin.getDefault().getPreferenceStore(); 
+		String curlPrjName = "";
+		curlPrjName = store.getString(PreferenceConstants.CURL_ORB_BUILDER_CURL_PRJNAME);
+		IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+		fCurlProject = root.getProject(curlPrjName);
+		fCurlProjectLocation = fCurlProject.getLocationURI();
+	}
 
 	@Override
 	public void setInitializationData(IConfigurationElement config,

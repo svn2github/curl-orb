@@ -14,163 +14,41 @@
 
 package com.curlap.orb.plugin.generator.impl;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.velocity.VelocityContext;
-import org.eclipse.jdt.core.Flags;
 import org.eclipse.jdt.core.ICompilationUnit;
-import org.eclipse.jdt.core.IField;
-import org.eclipse.jdt.core.IMethod;
-import org.eclipse.jdt.core.IPackageFragment;
-import org.eclipse.jdt.core.IType;
-import org.eclipse.jdt.core.JavaModelException;
 
-import com.curlap.orb.plugin.common.CurlSpecUtil;
-import com.curlap.orb.plugin.generator.CurlClassGenerator;
 import com.curlap.orb.plugin.generator.CurlGenerateException;
-import com.curlap.orb.plugin.generator.bean.Field;
 
 /**
- * generate Curl exception class.
- * 
- * @author Wang Huailiang
- * @since 0.8
- */
-public class CurlExceptionGeneratorImpl extends CurlClassGenerator 
+* generate Curl exception class.
+* 
+* @author Wang Huailiang
+* @since 0.8
+*/
+public class CurlExceptionGeneratorImpl extends CurlDataClassGeneratorImpl
 {
 	@Override
 	public String getVelocityTemplateName() 
 	{
-		return "templates/Exception.vm";
+		return "templates/exception-class.vm";
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public VelocityContext generateClass() throws CurlGenerateException
 	{
-		ICompilationUnit source = iCompilationUnit;
-		try
-		{
-			Set<String> importPackages = new HashSet<String>();
-			List<Field> fields = new ArrayList<Field>();
-
-			String packageName = null;
-			String className = null;
-			for (IType iType : source.getAllTypes())
-			{
-				// package
-				IPackageFragment iPackageFragment = iType.getPackageFragment();
-				packageName = 
-					(iPackageFragment != null ? 
-							iPackageFragment.getElementName().toUpperCase() : ""
-					);
-
-				// class name
-				className = iType.getElementName();
-				if (className == null)
-					throw new CurlGenerateException("There is no class name.");
-
-				// fields
-				for (IField iField : iType.getFields())
-				{
-					// skip static method
-					if (Flags.isStatic(iField.getFlags()))
-						continue;
-					String name = iField.getElementName();
-					Field field = new Field();
-		    		field.setName(name);
-		    		field.setType(
-		    				CurlSpecUtil.marshalCurlTypeWithSignature(
-		    						addImportedPackageIfNecessaryWithSignature(
-		    								importPackages, 
-		    								iField.getTypeSignature()
-		    						)
-		    				)
-		    		);
-		    		field.setIsTransient(Flags.isTransient(iField.getFlags()));
-		    		String modifier = 
-		    			CurlSpecUtil.getCurlModifier(Flags.toString(iField.getFlags()));
-		    		field.setGetterModifier(modifier + "-get");
-		    		field.setSetterModifier(modifier + "-set");
-		    		fields.add(field);
-				}
-				
-				// methods 
-				// NOTE: Extract getter and setter. The other methods is skipped.
-				for (IMethod method : iType.getMethods())
-				{
-					// skip static method
-					if (Flags.isStatic(method.getFlags()))
-						continue;
-					String name = method.getElementName();
-					// getter into field
-					if (CurlSpecUtil.isGetter(name))
-					{
-						if (method.getParameterNames().length == 0)
-						{
-							String returnType = 
-								CurlSpecUtil.marshalCurlTypeWithSignature(
-										addImportedPackageIfNecessaryWithSignature(
-												importPackages, 
-												method.getReturnType()
-										)
-								);
-				    		String modifier = 
-				    			CurlSpecUtil.getCurlModifier(Flags.toString(method.getFlags()));
-							for (Field field : fields)
-							{
-								String fieldName = 
-									CurlSpecUtil.getGetterOrSetterName(name);
-								if (fieldName.equals(field.getName()) && 
-										returnType.equals(field.getType()))
-									field.setGetterModifier(modifier + "-get");
-							}
-						}
-					}
-					// setter into field
-					if (CurlSpecUtil.isSetter(name))
-					{
-						if (CurlSpecUtil.marshalCurlTypeWithSignature(method.getReturnType()).equals("void") && 
-								method.getParameterNames().length == 1)
-						{
-							String argumentType = 
-								CurlSpecUtil.marshalCurlTypeWithSignature(
-										addImportedPackageIfNecessaryWithSignature(
-												importPackages, 
-												method.getParameterTypes()[0]
-										)
-								);
-				    		String modifier = 
-				    			CurlSpecUtil.getCurlModifier(Flags.toString(method.getFlags()));
-							for (Field field : fields)
-							{
-								String fieldName = 
-									CurlSpecUtil.getGetterOrSetterName(name);
-								if (fieldName.equals(field.getName()) && 
-										argumentType.equals(field.getType()))
-									field.setSetterModifier(modifier + "-set");
-							}
-						}
-					}
-				}
-			}
-
-			// merge to velocity.
-			VelocityContext context = new VelocityContext();
-			context.put("package_name", packageName);
-			context.put("import_packages", importPackages);
-			context.put("class_name", className);
-			context.put("fields", fields);
-			return context;
-		}
-		catch (JavaModelException e) 
-		{
-			throw new CurlGenerateException(e);
-		}
+		VelocityContext context = super.generateClass();
+		//String superClassName = (String) context.get("superclass_name");
+		//if (superClassName.equals("RuntimeException") || superClassName.equals("Throwable") || superClassName.equals("Error"))
+		//	context.put("superclass_name", "Exception");
+		context.put("superclass_name", "Exception");
+		List<String> fields = (List<String>) context.get("fields");
+		fields.addAll((List<String>) context.get("superclass_fields"));
+		return context;
 	}
-
+	
 	public CurlExceptionGeneratorImpl(
 			ICompilationUnit iCompilationUnit,
 			String savePath) 

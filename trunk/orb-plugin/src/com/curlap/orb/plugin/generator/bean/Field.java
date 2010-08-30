@@ -19,7 +19,7 @@ import com.curlap.orb.plugin.common.JavadocContent;
 /**
  * Field
  * 
- * @author 
+ * @author Wang Huailiang
  * @since 0.8
  */
 public class Field {

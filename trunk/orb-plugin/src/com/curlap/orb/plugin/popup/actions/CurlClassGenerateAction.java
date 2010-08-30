@@ -22,8 +22,6 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
@@ -49,17 +47,14 @@ import com.curlap.orb.plugin.generator.CurlGenerateException;
  */
 public class CurlClassGenerateAction implements IObjectActionDelegate {
 
-	private Log log;
 	private Shell shell;
 	private ICompilationUnit source;
-	private String completeStatus = "Initial...";
 
 	/**
 	 * Constructor for Action1.
 	 */
 	public CurlClassGenerateAction() {
 		super();
-		this.log = LogFactory.getLog(getClass());
 	}
 
 	/**
@@ -75,21 +70,17 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 	public void run(IAction action) {
 
 		try {
+			// get proper generotor.
 			CurlClassGenerator generator = 
 				CurlClassGeneratorFactory.getInstance().createGenerator(source);
 			if (generator == null)
 				return;
 
+			// generate
 			VelocityContext context = generator.generateClass();
 			context.put(
 					"generate_date", SimpleDateFormat.getInstance().format(new Date())
 			);
-
-			System.out.println(String.valueOf(context.get("completeStatus")));
-			if (String.valueOf(context.get("completeStatus")) != "null")
-				completeStatus = String.valueOf(context.get("completeStatus") );
-			else
-				completeStatus = "Initialization problem!"; 
 
 			// write Curl source code file
 			FileWriter fileWriter = null;
@@ -108,56 +99,56 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 			}
 
 			// create or rewrite load file     
-			File load = new File(generator.getPackageFileName());
-			FileWriter loadFileWriter = null;
-			BufferedReader br = null;
-			FileWriter loadFileReWriter = null;
+			File curlPackageFile = new File(generator.getPackageFileName());
+			FileWriter curlPackageFileWriter = null;
 			try {
-				if (!load.exists()) { // whether the load file already exists ?
-					loadFileWriter = new FileWriter(load);
-					VelocityContext contextPackageFile = new VelocityContext();
-					contextPackageFile.put(
-							"packageName4Curl", 
+				if (!curlPackageFile.exists()) {
+					curlPackageFileWriter = new FileWriter(curlPackageFile);
+					VelocityContext curlPackageFileContext = new VelocityContext();
+					curlPackageFileContext.put(
+							"package_name", 
 							generator.getPackageName().toUpperCase()
 					);
-					contextPackageFile.put(
-							"fileUrl",
+					curlPackageFileContext.put(
+							"file_url",
 							generator.getFileName()
 					);
-
 					Template packageFileTemplate = 
 						Velocity.getTemplate(generator.getPackageVelocityTemplateName());
-					packageFileTemplate.merge(contextPackageFile, loadFileWriter);
-					loadFileWriter.flush();
+					packageFileTemplate.merge(curlPackageFileContext, curlPackageFileWriter);
+					curlPackageFileWriter.flush();
+					curlPackageFileWriter.close();
 				} else {
-					log.debug("Load file Already exits!");
-					FileReader in = new FileReader(load);
-					br = new BufferedReader(in);
-					String line;
-					boolean included = false;
-					while ((line = br.readLine()) != null) {
-						log.debug(line);
-						if (line.indexOf("\"" + generator.getFileName() + "\"") != -1)
-							included = true;
-					}
-					br.close();
-					in.close();
-					if (!included) {
-						loadFileReWriter = new FileWriter(load, true);
-						loadFileReWriter.write("\n{include \"" + generator.getFileName() + "\"}");
-						loadFileReWriter.flush();
-						loadFileReWriter.close();
+					BufferedReader currentCurlPackageFileReader = null;
+					FileWriter curlPackageFileReWriter = null;
+					try {
+						currentCurlPackageFileReader = 
+							new BufferedReader(new FileReader(curlPackageFile));
+						String line;
+						boolean included = false;
+						while ((line = currentCurlPackageFileReader.readLine()) != null) {
+							if (line.indexOf("\"" + generator.getFileName() + "\"") != -1)
+								included = true;
+						}
+						currentCurlPackageFileReader.close();
+						if (!included) {
+							curlPackageFileReWriter = new FileWriter(curlPackageFile, true);
+							curlPackageFileReWriter.write("\n{include \"" + generator.getFileName() + "\"}");
+							curlPackageFileReWriter.flush();
+							curlPackageFileReWriter.close();
+						}
+					} catch (IOException e) {
+						if (currentCurlPackageFileReader != null)
+							currentCurlPackageFileReader.close();
+						if (curlPackageFileReWriter != null)
+							curlPackageFileReWriter.close();
 					}
 				}
 			} catch (IOException e) {
 				throw new CurlGenerateException(e);
 			} finally {
-				if (br != null)
-					br.close();
-				if (loadFileWriter != null)
-					loadFileWriter.close();
-				if (loadFileReWriter != null)
-					loadFileReWriter.close();
+				if (curlPackageFileWriter != null)
+					curlPackageFileWriter.close();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -166,12 +157,13 @@ public class CurlClassGenerateAction implements IObjectActionDelegate {
 					"CurlORB generator", 
 					"Failed to generate Curl class."
 			);
+			return;
 		}
 
 		MessageDialog.openInformation(
 				shell,
 				"ORB",
-				completeStatus
+				"Generate Curl class successfully."
 		);
 	}
 

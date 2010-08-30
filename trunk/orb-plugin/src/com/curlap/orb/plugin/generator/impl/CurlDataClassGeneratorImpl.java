@@ -48,20 +48,24 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
 	@Override
 	public String getVelocityTemplateName() 
 	{
-		return "templates/DataClass.vm";
+		return "templates/data-class.vm";
 	}
 	
-	private List<Field> getAllSuperclassFields(
+	protected List<Field> getAllSuperclassFields(
 			Set<String> importPackages,
-			String superclass
-			) throws JavaModelException
+			String superclass) throws JavaModelException
 	{
 		List<Field> fields = new ArrayList<Field>();
 		TypeNameMatch typeNameMatch = 
 			new JavaElementSearcher(iCompilationUnit).searchClassInfo(superclass);
+		if (typeNameMatch == null)
+			return fields;
 		IType iType = typeNameMatch.getType();
 		for (IField iField : iType.getFields())
 		{
+			// skip static field
+			if (Flags.isStatic(iField.getFlags()))
+				continue;
 			String name = iField.getElementName();
 			Field field = new Field();
     		field.setName(name);
@@ -74,18 +78,13 @@ public class CurlDataClassGeneratorImpl extends CurlClassGenerator
     				)
     		);
     		field.setDefaultValue(CurlSpecUtil.getDefaultValue(field.getType()));
-    		/* Currently not necessary. */
-    		/*
-    		field.setIsStatic(
-    				(Flags.isStatic(iField.getFlags()) ? "let" : "field")
-    		);
     		field.setIsTransient(Flags.isTransient(iField.getFlags()));
     		String modifier = Flags.toString(iField.getFlags());
     		if (modifier.length() == 0)
     			modifier = "package";
     		field.setGetterModifier(modifier + "-get");
     		field.setSetterModifier(modifier + "-set");
-    		*/
+    		field.setComment("");
     		fields.add(field);
 		}
 		// more superclasses
