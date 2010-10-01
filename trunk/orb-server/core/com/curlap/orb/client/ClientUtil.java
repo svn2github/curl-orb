@@ -46,16 +46,28 @@ class ClientUtil {
 
 	private HttpClient httpClient;
 
-	// constructor
+	/* constructors */
 	ClientUtil() {
 		httpClient = new HttpClient();
 	}
+	ClientUtil(ORBSession orbSession) {
+		httpClient = orbSession.getHttpClient();
+	}
 
-	Object requestToORB(InstanceManagementRequest request, String uri) throws ORBClientException, ORBServerException {
+
+	/* methods */
+	Object requestToORB(
+			InstanceManagementRequest request,
+			String uri
+	) throws ORBClientException, ORBServerException {
 		return requestToORB(request, uri, false);
 	}
 
-	Object requestToORB(InstanceManagementRequest request, String uri, boolean hasManyResult) throws ORBClientException, ORBServerException {
+	Object requestToORB(
+			InstanceManagementRequest request, 
+			String uri, 
+			boolean hasManyResult
+	) throws ORBClientException, ORBServerException {
 		AbstractSerializer serializer = SerializerFactory.getInstance().getSerializer();
 		OutputStream outputStream = new ByteArrayOutputStream();
 		Object returnedObject = null;
@@ -65,8 +77,14 @@ class ClientUtil {
 			serializer.serialize(request, null, outputStream);
 			httpClient.getParams().setCookiePolicy(CookiePolicy.BROWSER_COMPATIBILITY);
 			method = new PostMethod(uri);
-			method.setRequestHeader("Content-Length", ((ByteArrayOutputStream) outputStream).size() + "");
-			method.setRequestEntity(new ByteArrayRequestEntity(((ByteArrayOutputStream) outputStream).toByteArray(), "application/octet-stream; charset=UTF-8"));
+			method.setRequestHeader(
+					"Content-Length", 
+					((ByteArrayOutputStream) outputStream).size() + ""
+			);
+			method.setRequestEntity(
+					new ByteArrayRequestEntity(((ByteArrayOutputStream) outputStream).toByteArray(),
+					"application/octet-stream; charset=UTF-8")
+			);
 			httpClient.executeMethod(method);
 			method.getResponseBody();
 			inputStream = (ByteArrayInputStream) method.getResponseBodyAsStream();
@@ -76,12 +94,12 @@ class ClientUtil {
 				List<Object> resultList = new ArrayList<Object>();
 				resultList.add(returnedObject);
 				Object innerresult = null;
-				while((innerresult = deserializer.read()) != null)
+				while ((innerresult = deserializer.read()) != null)
 					resultList.add(innerresult);
 				return resultList;
 			}
 			if (returnedObject instanceof ExceptionContent) {
-				throw new ORBServerException((ExceptionContent)returnedObject);
+				throw new ORBServerException((ExceptionContent) returnedObject);
 			}
 		} catch (SerializerException e) {
 			throw new ORBClientException(e);
@@ -96,7 +114,7 @@ class ClientUtil {
 				} catch (IOException e) {
 					throw new ORBClientException(e);
 				} finally {
-					if(inputStream != null) {
+					if (inputStream != null) {
 						try {
 							inputStream.close();
 						} catch (IOException e) {

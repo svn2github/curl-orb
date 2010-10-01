@@ -1,4 +1,4 @@
-// Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+// Copyright (C) 1998-2010, Sumisho Computer Systems Corp. All Rights Reserved.
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,12 +28,15 @@ import com.curlap.orb.common.NewInstanceRequest;
  */
 public class HttpSessionClient {
 
-	private ClientUtil clientUtil = null; 
-	private String objectId = null;
-	private String serverUrl = null;
+	private ClientUtil clientUtil; 
+	private String objectId;
+	private String serverUrl;
+
+	/* constructors */
 
 	/**
-	 * Instantiate the class with your own ORB server URL and your own context name
+	 * Instantiate the class with your own ORB server URL and your own context name <p>
+	 * 
 	 * @param serverUrl   the ORB server URL
 	 * @param contextName the context name for instantiation
 	 * @param className   the class name you want to instantiate
@@ -41,45 +44,166 @@ public class HttpSessionClient {
 	 * @throws ORBClientException  Exception thrown during client side operation
 	 * @throws ORBServerException  Exception thrown during server side operation
 	 */
-	public HttpSessionClient(String serverUrl, String contextName, String className, Object[] args) throws ORBClientException, ORBServerException  {
+	public HttpSessionClient(
+			String serverUrl,
+			String contextName,
+			String className,
+			Object[] args
+	) throws ORBClientException, ORBServerException  {
 		newInstance(serverUrl, contextName, className, args);
 	}
 	/**
-	 * Instantiate the class with default ORB server URL and your own context name
+	 * Instantiate the class with default ORB server URL and your own context name <p>
+	 * 
 	 * default URL: http://localhost:8080/curl-orb-server
+	 * 
 	 * @param contextName the context name for instantiation
 	 * @param className   the class name you want to instantiate
 	 * @param args          arguments needed for the class instantiation
 	 * @throws ORBClientException  Exception thrown during client side operation
 	 * @throws ORBServerException  Exception thrown during server side operation
 	 */
-	public HttpSessionClient(String contextName, String className, Object[] args) throws ORBClientException, ORBServerException  {
+	public HttpSessionClient(
+			String contextName,
+			String className,
+			Object[] args
+	) throws ORBClientException, ORBServerException  {
 		newInstance(ORBDefaultServerUrl.DEFAULT_SERVER_URL, contextName, className, args);
 	}
 	/**
-	 * Instantiate the class with default ORB server URL and default context name
+	 * Instantiate the class with default ORB server URL and default context name <p>
+	 * 
 	 * default URL: http://localhost:8080/curl-orb-server
 	 * default context name:  /new-instance
+	 * 
 	 * @param className   the class name you want to instantiate
 	 * @param args          arguments needed for the class instantiation
 	 * @throws ORBClientException  Exception thrown during client side operation
 	 * @throws ORBServerException  Exception thrown during server side operation
 	 */
-	public HttpSessionClient(String className, Object[] args) throws ORBClientException, ORBServerException  {
-		newInstance(ORBDefaultServerUrl.DEFAULT_SERVER_URL, ORBDefaultServerUrl.NEW_INSTANCE_CONTEXT_NAME, className, args);
+	public HttpSessionClient(
+			String className,
+			Object[] args
+	) throws ORBClientException, ORBServerException  {
+		newInstance(
+				ORBDefaultServerUrl.DEFAULT_SERVER_URL,
+				ORBDefaultServerUrl.NEW_INSTANCE_CONTEXT_NAME,
+				className, 
+				args
+		);
 	}
 
-	private void newInstance(String serverUrl, String contextName, String className, Object[] args) throws ORBClientException, ORBServerException {
+	/**
+	 * Instantiate the class with ORBSession, your own ORB server URL and your own context name <p>
+	 * 
+	 * @param orbSession the session to keep the connection with server.
+	 * @param serverUrl   the ORB server URL
+	 * @param contextName the context name for instantiation
+	 * @param className   the class name you want to instantiate
+	 * @param args          arguments needed for the class instantiation
+	 * @throws ORBClientException  Exception thrown during client side operation
+	 * @throws ORBServerException  Exception thrown during server side operation
+	 */
+	public HttpSessionClient(
+			ORBSession orbSession,
+			String serverUrl,
+			String contextName,
+			String className,
+			Object[] args
+	) throws ORBClientException, ORBServerException  {
+		newInstance(orbSession, serverUrl, contextName, className, args);
+	}
+	/**
+	 * Instantiate the class with ORBSession, default ORB server URL and your own context name <p>
+	 * 
+	 * default URL: http://localhost:8080/curl-orb-server
+	 * 
+	 * @param orbSession the session to keep the connection with server.
+	 * @param contextName the context name for instantiation
+	 * @param className   the class name you want to instantiate
+	 * @param args          arguments needed for the class instantiation
+	 * @throws ORBClientException  Exception thrown during client side operation
+	 * @throws ORBServerException  Exception thrown during server side operation
+	 */
+	public HttpSessionClient(
+			ORBSession orbSession,
+			String contextName,
+			String className,
+			Object[] args
+	) throws ORBClientException, ORBServerException  {
+		newInstance(
+				orbSession,
+				ORBDefaultServerUrl.DEFAULT_SERVER_URL,
+				contextName,
+				className,
+				args
+		);
+	}
+	/**
+	 * Instantiate the class with ORBSession, default ORB server URL and default context name <p>
+	 * 
+	 * default URL: http://localhost:8080/curl-orb-server
+	 * default context name:  /new-instance
+	 * 
+	 * @param orbSession the session to keep the connection with server.
+	 * @param className   the class name you want to instantiate
+	 * @param args          arguments needed for the class instantiation
+	 * @throws ORBClientException  Exception thrown during client side operation
+	 * @throws ORBServerException  Exception thrown during server side operation
+	 */
+	public HttpSessionClient(
+			ORBSession orbSession,
+			String className,
+			Object[] args
+	) throws ORBClientException, ORBServerException  {
+		newInstance(
+				orbSession,
+				ORBDefaultServerUrl.DEFAULT_SERVER_URL,
+				ORBDefaultServerUrl.NEW_INSTANCE_CONTEXT_NAME,
+				className, 
+				args
+		);
+	}
+
+	/* methods */
+
+	private void _newInstance(
+			String serverUrl,
+			String contextName,
+			String className,
+			Object[] args
+	) throws ORBClientException, ORBServerException {
 		this.serverUrl = serverUrl;
-		clientUtil = new ClientUtil();
 		NewInstanceRequest request = new NewInstanceRequest();
 		request.setClassName(className);
 		request.setArguments(args);
 		objectId = (String) clientUtil.requestToORB(request, serverUrl + contextName);
 	}
 
+	private void newInstance(
+			String serverUrl,
+			String contextName,
+			String className,
+			Object[] args
+	) throws ORBClientException, ORBServerException {
+		clientUtil = new ClientUtil();
+		_newInstance(serverUrl, contextName, className, args);
+	}
+
+	private void newInstance(
+			ORBSession orbSession,
+			String serverUrl,
+			String contextName,
+			String className,
+			Object[] args
+	) throws ORBClientException, ORBServerException {
+		clientUtil = new ClientUtil(orbSession);
+		_newInstance(serverUrl, contextName, className, args);
+	}
+
 	/**
-	 * Invoke method with your own context name and receive the data with stream type
+	 * Invoke method with your own context name and receive the data with stream type <p>
+	 * 
 	 * @param contextName   the context for method invocation
 	 * @param methodName    the method name you want to invoke
 	 * @param args          arguments needed for the method
@@ -89,11 +213,16 @@ public class HttpSessionClient {
 	 * @throws ORBServerException  Exception thrown during server side operation
 	 */
 	// Not support since 0.7 (public -> package)
-	Object invokeMethod(String contextName, String methodName,Object[] args, boolean isStream) throws ORBClientException, ORBServerException {
+	Object invokeMethod(
+			String contextName, 
+			String methodName,
+			Object[] args,
+			boolean isStream
+	) throws ORBClientException, ORBServerException {
 		InvokeHttpSessionRequest request = new InvokeHttpSessionRequest();
 		if (isStream) {
 			request.setHeader(new HashMap<Object, Object>());
-			request.getHeader().put("com.curlap.orb.internal-stream-response",true);
+			request.getHeader().put("com.curlap.orb.internal-stream-response", true);
 		}
 		request.setMethodName(methodName);
 		request.setArguments(args);
@@ -101,7 +230,8 @@ public class HttpSessionClient {
 		return clientUtil.requestToORB(request, serverUrl + contextName, isStream);
 	}
 	/**
-	 * Invoke method with your own context name
+	 * Invoke method with your own context name <p>
+	 * 
 	 * @param contextName   the context for method invocation
 	 * @param methodName    the method name you want to invoke
 	 * @param args          arguments needed for the method
@@ -109,13 +239,19 @@ public class HttpSessionClient {
 	 * @throws ORBClientException  Exception thrown during client side operation
 	 * @throws ORBServerException  Exception thrown during server side operation
 	 */
-	public Object invokeMethod(String contextName, String methodName,Object[] args) throws ORBClientException, ORBServerException {
+	public Object invokeMethod(
+			String contextName, 
+			String methodName,
+			Object[] args
+	) throws ORBClientException, ORBServerException {
 		return invokeMethod(contextName, methodName, args, false);
 	}
-	
+
 	/**
-	 * Invoke method with default context name and receive the data with stream type
+	 * Invoke method with default context name and receive the data with stream type <p>
+	 * 
 	 * default context name : /invoke-http-session
+	 * 
 	 * @param methodName    the method name you want to invoke
 	 * @param args          arguments needed for the method
 	 * @param isStream      set "true" for receiving data by Stream type, default is "false"
@@ -124,23 +260,32 @@ public class HttpSessionClient {
 	 * @throws ORBServerException  Exception thrown during server side operation
 	 */
 	// Not support since 0.7 (public -> package)
-	Object invokeMethod(String methodName, Object[] args, boolean isStream) throws ORBClientException, ORBServerException {
+	Object invokeMethod(
+			String methodName,
+			Object[] args,
+			boolean isStream
+	) throws ORBClientException, ORBServerException {
 		return invokeMethod(ORBDefaultServerUrl.INVOKE_HTTPSESSION_NAME, methodName, args,isStream);
 	}
-	
+
 	/**
-	 * Invoke method with default context name
+	 * Invoke method with default context name <p>
+	 * 
 	 * default context name : /invoke-http-session
+	 * 
 	 * @param methodName    the method name you want to invoke
 	 * @param args          arguments needed for the method
 	 * @return response against the request
 	 * @throws ORBClientException  Exception thrown during client side operation
 	 * @throws ORBServerException  Exception thrown during server side operation
 	 */
-	public Object invokeMethod(String methodName, Object[] args) throws ORBClientException, ORBServerException {
+	public Object invokeMethod(
+			String methodName,
+			Object[] args
+	) throws ORBClientException, ORBServerException {
 		return invokeMethod(ORBDefaultServerUrl.INVOKE_HTTPSESSION_NAME, methodName, args, false);
 	}
-	
+
 	// destroy
 	/**
 	 * Destroy the Object you instantiated with your own context name
@@ -165,7 +310,8 @@ public class HttpSessionClient {
 
 	// invokeStaticMethod	
 	/**
-	 * Invoke static method with your own ORB server URL and context name receiving data with stream type
+	 * Invoke static method with your own ORB server URL and context name receiving data with stream type <p>
+	 * 
 	 * @param serverUrl     the ORB server URL
 	 * @param contextName   the context for method invocation
 	 * @param className     the class name 
@@ -177,12 +323,19 @@ public class HttpSessionClient {
 	 * @throws ORBServerException  Exception thrown during server side operation
 	 */
 	// Not support since 0.7 (public -> package)
-	static Object invokeStaticMethod(String serverUrl, String contextName, String className, String methodName,Object[] args,boolean isStream) throws ORBClientException, ORBServerException {
+	static Object invokeStaticMethod(
+			String serverUrl, 
+			String contextName,
+			String className,
+			String methodName,
+			Object[] args,
+			boolean isStream
+	) throws ORBClientException, ORBServerException {
 		ClientUtil staticmessengerutil = new ClientUtil();
 		InvokeHttpSessionRequest request = new InvokeHttpSessionRequest();
 		if (isStream) {
 			request.setHeader(new HashMap<Object, Object>());
-			request.getHeader().put("com.curlap.orb.internal-stream-response",true);
+			request.getHeader().put("com.curlap.orb.internal-stream-response", true);
 		}
 		request.setClassName(className);
 		request.setMethodName(methodName);
@@ -191,7 +344,8 @@ public class HttpSessionClient {
 	}
 
 	/**
-	 * Invoke static method with your own ORB server URL and context name
+	 * Invoke static method with your own ORB server URL and context name <p>
+	 * 
 	 * @param serverUrl     the ORB server URL
 	 * @param contextName   the context for method invocation
 	 * @param className     the class name 
@@ -201,12 +355,25 @@ public class HttpSessionClient {
 	 * @throws ORBClientException  Exception thrown during client side operation
 	 * @throws ORBServerException  Exception thrown during server side operation
 	 */
-	public static Object invokeStaticMethod(String serverUrl, String contextName, String className, String methodName, Object[] args) throws ORBClientException, ORBServerException {
-		return invokeStaticMethod(serverUrl,contextName,className, methodName, args, false);
+	public static Object invokeStaticMethod(
+			String serverUrl,
+			String contextName,
+			String className,
+			String methodName,
+			Object[] args
+	) throws ORBClientException, ORBServerException {
+		return invokeStaticMethod(
+				serverUrl,contextName,
+				className,
+				methodName,
+				args,
+				false
+		);
 	}
 
 	/**
-	 * Invoke static method with default ORB server URL and context name 
+	 * Invoke static method with default ORB server URL and context name  <p>
+	 * 
 	 * default URL: http://localhost:8080/curl-orb-server
 	 * @param contextName   the context for method invocation
 	 * @param className     the class name 
@@ -216,12 +383,25 @@ public class HttpSessionClient {
 	 * @throws ORBClientException  Exception thrown during client side operation
 	 * @throws ORBServerException  Exception thrown during server side operation
 	 */
-	public static Object invokeStaticMethod(String contextName, String className, String methodName, Object[] args) throws ORBClientException, ORBServerException {
-		return invokeStaticMethod(ORBDefaultServerUrl.DEFAULT_SERVER_URL, contextName, className, methodName, args, false);
+	public static Object invokeStaticMethod(
+			String contextName,
+			String className,
+			String methodName,
+			Object[] args
+	) throws ORBClientException, ORBServerException {
+		return invokeStaticMethod(
+				ORBDefaultServerUrl.DEFAULT_SERVER_URL,
+				contextName, 
+				className, 
+				methodName,
+				args, 
+				false
+		);
 	}
 
 	/**
-	 * Invoke static method with default ORB server URL and your own context name receiving data with stream type
+	 * Invoke static method with default ORB server URL and your own context name receiving data with stream type <p>
+	 * 
 	 * default URL: http://localhost:8080/curl-orb-server
 	 * @param contextName   the context for method invocation
 	 * @param className     the class name 
@@ -233,12 +413,25 @@ public class HttpSessionClient {
 	 * @throws ORBServerException  Exception thrown during server side operation
 	 */
 	// Not support since 0.7 (public -> package)
-	static Object invokeStaticMethod(String contextName, String className, String methodName,Object[] args, boolean isStream) throws ORBClientException, ORBServerException {
-		return invokeStaticMethod(ORBDefaultServerUrl.DEFAULT_SERVER_URL, contextName, className, methodName, args, isStream);
+	static Object invokeStaticMethod(
+			String contextName, 
+			String className,
+			String methodName,
+			Object[] args, 
+			boolean isStream
+	) throws ORBClientException, ORBServerException {
+		return invokeStaticMethod(
+				ORBDefaultServerUrl.DEFAULT_SERVER_URL,
+				contextName,
+				className, 
+				methodName,
+				args,
+				isStream
+		);
 	}
-	
+
 	/**
-	 * Invoke static method with default ORB server URL and context name
+	 * Invoke static method with default ORB server URL and context name <p>
 	 * default URL: http://localhost:8080/curl-orb-server
 	 * default context name : /invoke-http-session
 	 * @param className     the class name 
@@ -248,24 +441,45 @@ public class HttpSessionClient {
 	 * @throws ORBClientException  Exception thrown during client side operation
 	 * @throws ORBServerException  Exception thrown during server side operation
 	 */
-	public static Object invokeStaticMethod(String className, String methodName, Object[] args) throws ORBClientException, ORBServerException {
-		return invokeStaticMethod(ORBDefaultServerUrl.INVOKE_HTTPSESSION_NAME, className, methodName, args, false);
+	public static Object invokeStaticMethod(
+			String className,
+			String methodName,
+			Object[] args
+	) throws ORBClientException, ORBServerException {
+		return invokeStaticMethod(
+				ORBDefaultServerUrl.INVOKE_HTTPSESSION_NAME, 
+				className,
+				methodName,
+				args,
+				false
+		);
 	}
-	
+
 	/**
-	 * Invoke static method with default ORB server URL and context name receiving data with stream type
+	 * Invoke static method with default ORB server URL and context name receiving data with stream type <p>
 	 * default URL: http://localhost:8080/curl-orb-server
 	 * default context name : /invoke-http-session
 	 * @param className     the class name 
 	 * @param methodName    the method name
 	 * @param args          arguments needed for the method
- 	 * @param isStream      set "true" for receiving data by Stream type, default is "false"
+	 * @param isStream      set "true" for receiving data by Stream type, default is "false"
 	 * @return response against the request
 	 * @throws ORBClientException  Exception thrown during client side operation
 	 * @throws ORBServerException  Exception thrown during server side operation
 	 */
 	// Not support since 0.7 (public -> package)
-	static Object invokeStaticMethod(String className, String methodName,Object[] args, boolean isStream) throws ORBClientException, ORBServerException {
-		return invokeStaticMethod(ORBDefaultServerUrl.INVOKE_HTTPSESSION_NAME, className, methodName, args, isStream);
+	static Object invokeStaticMethod(
+			String className,
+			String methodName,
+			Object[] args,
+			boolean isStream
+	) throws ORBClientException, ORBServerException {
+		return invokeStaticMethod(
+				ORBDefaultServerUrl.INVOKE_HTTPSESSION_NAME, 
+				className, 
+				methodName, 
+				args,
+				isStream
+		);
 	}
 }

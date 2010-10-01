@@ -29,10 +29,10 @@ public class ExceptionContent implements java.io.Serializable
 {
 	private static final long serialVersionUID = 1L;
 
-	private final String exceptionName;
-    private final String message;
-    private final ExceptionContent cause;
-    private final List<Object> exceptionFields;
+	private String exceptionName;
+    private String message;
+    private ExceptionContent cause;
+    private List<Object> exceptionFields;
 
     /**
      * Create new ExceptionContent.
@@ -53,6 +53,13 @@ public class ExceptionContent implements java.io.Serializable
         	throw new InstanceManagementException();
         }
         cause = (throwable.getCause() != null ? new ExceptionContent(throwable.getCause()) : null);
+    }
+    
+    // NOTE: To deserialize an exception object
+    //       when com.curlap.orb.client receives exception.
+    public ExceptionContent()
+    {
+    	// do nothing
     }
 
 	/* (non-Javadoc) */

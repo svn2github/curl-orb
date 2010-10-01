@@ -1,4 +1,4 @@
-// Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+// Copyright (C) 1998-2010, Sumisho Computer Systems Corp. All Rights Reserved.
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,10 +26,10 @@ import com.curlap.orb.common.InvokeApplicationContextRequest;
  */
 public class ApplicationContextClient {
 
-	final private ClientUtil clientUtil = new ClientUtil(); 
-	private String serverUrl = null;
+	private ClientUtil clientUtil;
+	private String serverUrl;
 	private String contextNameInvoke = ORBDefaultServerUrl.INVOKE_APPLICATIONCONTEXT_NAME;
-	private String componentName = null;
+	private String componentName;
 
 	/**
 	 * Create a new ApplicationContextClient with your own ORB server URL. <p>
@@ -38,10 +38,10 @@ public class ApplicationContextClient {
 	 * @param componentName the component name you want to call
 	 */
 	public ApplicationContextClient(String serverUrl, String componentName) {
+		clientUtil = new ClientUtil();
 		this.serverUrl = serverUrl;
 		this.componentName = componentName;
 	}
-
 	/**
 	 * Create a new ApplicationContextClient with default URL. <p>
 	 * 
@@ -49,8 +49,41 @@ public class ApplicationContextClient {
 	 *
 	 * @param componentName the component name you want to call
 	 */
-	public ApplicationContextClient(String componentName) {
+	public ApplicationContextClient(
+			String componentName
+	) {
 		this(ORBDefaultServerUrl.DEFAULT_SERVER_URL, componentName);
+	}
+	
+	/**
+	 * Create a new ApplicationContextClient with your own ORB server URL. <p>
+	 * 
+	 * @param orbSession the session to keep the connection with server.
+	 * @param serverUrl the ORB server URL
+	 * @param componentName the component name you want to call
+	 */
+	public ApplicationContextClient(
+			ORBSession orbSession, 
+			String serverUrl,
+			String componentName
+	) {
+		clientUtil = new ClientUtil(orbSession);
+		this.serverUrl = serverUrl;
+		this.componentName = componentName;
+	}
+	/**
+	 * Create a new ApplicationContextClient with default URL. <p>
+	 * 
+	 * default URL: http://localhost:8080/curl-orb-server
+	 *
+	 * @param orbSession the session to keep the connection with server.
+	 * @param componentName the component name you want to call
+	 */
+	public ApplicationContextClient(
+			ORBSession orbSession, 
+			String componentName
+	) {
+		this(orbSession, ORBDefaultServerUrl.DEFAULT_SERVER_URL, componentName);
 	}
 
 	/**
