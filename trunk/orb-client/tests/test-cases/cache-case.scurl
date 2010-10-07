@@ -80,7 +80,7 @@
                 {TestCondition.assert {foo.echo-record-set rs2} != rs2}
                 
                 || register cache
-                {ClientInterceptor.register 
+                {register-orb-interceptors
                     {get-test-cache-interceptor t,
                         cache-name, request-interceptor, response-handler, 
                         Foo, Fuga
@@ -113,7 +113,7 @@
                 def fuga2 = {Fuga2}
                 {fuga2.method1}
                 
-                {ClientInterceptor.clear}
+                {clear-orb-interceptors}
                 
                 || after caching
                 set foo = {Foo}
@@ -135,10 +135,10 @@
                 set rs2 = {non-null {foo.create-record-set}}
                 {TestCondition.assert {foo.echo-record-set rs1} != rs1}
                 {TestCondition.assert {foo.echo-record-set rs2} != rs2}
-                {ClientInterceptor.clear}
+                {clear-orb-interceptors}
                 
                 || register again
-                {ClientInterceptor.register 
+                {register-orb-interceptors 
                     {get-test-cache-interceptor t,
                         cache-name, request-interceptor, response-handler, 
                         Foo, Fuga
@@ -146,11 +146,11 @@
                 }
                 set foo = {Foo}
                 {TestCondition.assert {foo.echo "k1"} == CACHE-STRING}
-                {ClientInterceptor.clear}
+                {clear-orb-interceptors}
                 
                 || remove and register
                 {remove-caches cache-name}
-                {ClientInterceptor.register 
+                {register-orb-interceptors 
                     {get-test-cache-interceptor t,
                         cache-name, request-interceptor, response-handler, 
                         Foo, Fuga
@@ -164,18 +164,16 @@
                 {TestCondition.assert {foo.echo "k1"} == "k1"}
                 {TestCondition.assert {foo.echo "k2"} == CACHE-STRING}
                 {remove-caches cache-name}
-                {ClientInterceptor.clear}
+                {clear-orb-interceptors}
                 
                 || register two interceptors
-                {ClientInterceptor.register 
+                {register-orb-interceptors
                     {get-test-cache-interceptor t,
                         cache-name, 
                         request-interceptor, || run 1st
                         response-handler, 
                         Foo, Fuga
-                    }
-                }
-                {ClientInterceptor.register 
+                    },
                     {get-test-cache-interceptor t,
                         cache-name, 
                         request-interceptor, || run 2nd
@@ -192,7 +190,7 @@
                 {TestCondition.assert {foo.echo "k1"} == "Fooooooo!"}
                 {TestCondition.assert {foo.echo "k2"} == "Fooooooo!"}
                 {remove-caches cache-name}
-                {ClientInterceptor.clear}
+                {clear-orb-interceptors}
             }
         },
         
@@ -323,14 +321,12 @@
                     }
                 }
             
-            {ClientInterceptor.register
+            {register-orb-interceptors
                 {{CacheClientInterceptor-of LRUCache}
                     "cache01",
                     request-interceptor1, response-handler1,
                     Foo ||
-                }
-            }
-            {ClientInterceptor.register
+                },
                 {{CacheClientInterceptor-of SimpleCache}
                     "cache02",
                     request-interceptor2, response-handler2,
@@ -350,7 +346,7 @@
             {fuga.method1}
             
             {remove-caches "cache01", "cache02"}
-            {ClientInterceptor.clear}
+            {clear-orb-interceptors}
         },
         
         {test-case "lru performance",
@@ -382,7 +378,7 @@
                 }
             
             def cache-name = "lru-performance-cache01"
-            {ClientInterceptor.register
+            {register-orb-interceptors
                 {{CacheClientInterceptor-of LRUCache}
                     cache-name,
                     request-interceptor, response-handler,
@@ -419,7 +415,7 @@
             }
             
             {remove-caches cache-name}
-            {ClientInterceptor.clear}
+            {clear-orb-interceptors}
             
             || TODO: SimpleCache, too. (But absolutely faster than LRUCache.)
         }

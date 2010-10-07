@@ -29,24 +29,24 @@
 
     || sync
     {test-case "String",
-        {ClientInterceptor.clear}
-        {ClientInterceptor.register {InterceptorGZip}}
+        {clear-orb-interceptors}
+        {register-orb-interceptors {InterceptorGZip}}
         let cmp:TestCastCompression = {TestCastCompression}
         {cmp.set-field-name "cmp"}
         let name:#String = {cmp.get-field-name}
         {TestCondition.assert name == "cmp"}
-        {ClientInterceptor.clear}
+        {clear-orb-interceptors}
     },
     {test-case "class",
-        {ClientInterceptor.register {InterceptorGZip}}
+        {register-orb-interceptors {InterceptorGZip}}
         let cmp:TestCastCompression = {TestCastCompression}
         let person:#Person = {cmp.get-person}
         {TestCondition.assert person.name == "Mr.CMP"}
         {TestCondition.assert person.birthday == 20.5}
-        {ClientInterceptor.clear}
+        {clear-orb-interceptors}
     },
     {test-case "Array-of",
-        {ClientInterceptor.register {InterceptorGZip}}
+        {register-orb-interceptors {InterceptorGZip}}
         let cmp:TestCastCompression = {TestCastCompression}
         let list:#Array = {cmp.test-list}
         {TestCondition.assert list[0] == "LUCK"}
@@ -54,10 +54,10 @@
         set list[2].name = "listName"
         {TestCondition.assert list[2].name == "listName"}
         {TestCondition.assert list[4] == true}
-        {ClientInterceptor.clear}
+        {clear-orb-interceptors}
     },
     {test-case "HashTable-of",
-        {ClientInterceptor.register {InterceptorGZip}}
+        {register-orb-interceptors {InterceptorGZip}}
         let cmp:TestCastCompression = {TestCastCompression}
         let hashMap:#HashTable = {cmp.test-hash-map}
         {TestCondition.assert hashMap["Test"][0] == "O.K."}
@@ -66,55 +66,55 @@
         set hashMap["Person"].nickname = "school"
         {TestCondition.assert hashMap["Person"].nickname == "school"}
         {TestCondition.assert hashMap["bool"] == false}
-        {ClientInterceptor.clear}
+        {clear-orb-interceptors}
     },
     {test-case "Set-of",
-        {ClientInterceptor.register {InterceptorGZip}}
+        {register-orb-interceptors {InterceptorGZip}}
         let cmp:TestCastCompression = {TestCastCompression}
         let tempset:#Set = {cmp.test-set}
         {TestCondition.assert {tempset.get-member 1} == 1}
         {TestCondition.assert {tempset.get-member null} == null}
         {TestCondition.assert {tempset.get-member "sfsgfl121!!@"} == "sfsgfl121!!@"}
         {TestCondition.assert {tempset.get-member true} == true}
-        {ClientInterceptor.clear}
+        {clear-orb-interceptors}
     },
     {test-case "double[]",
-        {ClientInterceptor.register {InterceptorGZip}}
+        {register-orb-interceptors {InterceptorGZip}}
         let Compression:TestCastCompression = {TestCastCompression}
         let tempDouble:#{FastArray-of double} = {Compression.testdouble-array}
         {TestCondition.assert tempDouble[0] == 0.0}
         {TestCondition.assert tempDouble[1] == -0.06667}
         {TestCondition.assert tempDouble[2] == 3.22255666}
-        {ClientInterceptor.clear}
+        {clear-orb-interceptors}
     },
     {test-case "String[][]",
-        {ClientInterceptor.register {InterceptorGZip}}
+        {register-orb-interceptors {InterceptorGZip}}
         let cmp:TestCastCompression = {TestCastCompression}
         let tempTwoString:#{FastArray-of #{FastArray-of #String}} = {cmp.test-two-string}
         {TestCondition.assert tempTwoString[0][0] == "1"}
         {TestCondition.assert tempTwoString[0][1] == "123"}
         {TestCondition.assert tempTwoString[1][0] == "hah"}
         {TestCondition.assert tempTwoString[1][1] == "xixi"}
-        {ClientInterceptor.clear}
+        {clear-orb-interceptors}
     },
     {test-case "non compression",
-        {ClientInterceptor.clear}
-        {ClientInterceptor.register {NonInterceptorGZip}}
+        {clear-orb-interceptors}
+        {register-orb-interceptors {NonInterceptorGZip}}
         let cmp:TestCastCompression = {TestCastCompression}
         {cmp.set-field-name "cmp"}
         let name:#String = {cmp.get-field-name}
         {TestCondition.assert name == "cmp"}
-        {ClientInterceptor.clear}
+        {clear-orb-interceptors}
     },
     {test-case "throw exception",
-        {ClientInterceptor.register {InterceptorGZip}}
+        {register-orb-interceptors {InterceptorGZip}}
         {bind-exception "tests1.TestException1", TestException1}
         let cmp:TestCastCompression = {TestCastCompression}
         {require-exception TestException1 do
             {cmp.throw-test-exception1}
         }
         {clear-exceptions}
-        {ClientInterceptor.clear}
+        {clear-orb-interceptors}
     },
 
     
@@ -122,7 +122,7 @@
     || async
     ||
     {test-case "async String",
-        {ClientInterceptor.register {InterceptorGZip}}
+        {register-orb-interceptors {InterceptorGZip}}
         let done?:bool
         let cmp:TestCastCompression = {TestCastCompression}
         {cmp.async-set-field-name "async-cmp",
@@ -145,10 +145,10 @@
         {while not done? do
             {dispatch-events true}
         }
-        {ClientInterceptor.clear}
+        {clear-orb-interceptors}
     },
     {test-case "async class",
-        {ClientInterceptor.register {InterceptorGZip}}
+        {register-orb-interceptors {InterceptorGZip}}
         let cmp:TestCastCompression = {TestCastCompression}
         let done?:bool
         {cmp.async-get-person
@@ -162,10 +162,10 @@
         {while not done? do
             {dispatch-events true}
         }
-        {ClientInterceptor.clear}
+        {clear-orb-interceptors}
     },
     {test-case "async Array-of",
-        {ClientInterceptor.register {InterceptorGZip}}
+        {register-orb-interceptors {InterceptorGZip}}
         let cmp:TestCastCompression = {TestCastCompression}
         let done?:bool
         {cmp.async-test-list
@@ -182,10 +182,10 @@
         {while not done? do
             {dispatch-events true}
         }
-        {ClientInterceptor.clear}
+        {clear-orb-interceptors}
     },
     {test-case "async HashTable-of",
-        {ClientInterceptor.register {InterceptorGZip}}
+        {register-orb-interceptors {InterceptorGZip}}
         let cmp:TestCastCompression = {TestCastCompression}
         let done?:bool
         {cmp.async-test-hash-map
@@ -203,10 +203,10 @@
         {while not done? do
             {dispatch-events true}
         }
-        {ClientInterceptor.clear}
+        {clear-orb-interceptors}
     },
     {test-case "async Set-of",
-        {ClientInterceptor.register {InterceptorGZip}}
+        {register-orb-interceptors {InterceptorGZip}}
         let cmp:TestCastCompression = {TestCastCompression}
         let done?:bool
         {cmp.async-test-set
@@ -222,10 +222,10 @@
         {while not done? do
             {dispatch-events true}
         }
-        {ClientInterceptor.clear}
+        {clear-orb-interceptors}
     },
     {test-case "async double[]",
-        {ClientInterceptor.register {InterceptorGZip}}
+        {register-orb-interceptors {InterceptorGZip}}
         let cmp:TestCastCompression = {TestCastCompression}
         let done?:bool
         {cmp.async-testdouble-array
@@ -240,10 +240,10 @@
         {while not done? do
             {dispatch-events true}
         }
-        {ClientInterceptor.clear}
+        {clear-orb-interceptors}
     },
     {test-case "async String[][]",
-        {ClientInterceptor.register {InterceptorGZip}}
+        {register-orb-interceptors {InterceptorGZip}}
         let cmp:TestCastCompression = {TestCastCompression}
         let done?:bool
         {cmp.async-test-two-string
@@ -259,11 +259,11 @@
         {while not done? do
             {dispatch-events true}
         }
-        {ClientInterceptor.clear}
+        {clear-orb-interceptors}
     },
     {test-case "asyn non compression",
-        {ClientInterceptor.clear}
-        {ClientInterceptor.register {NonInterceptorGZip}}
+        {clear-orb-interceptors}
+        {register-orb-interceptors {NonInterceptorGZip}}
         let done?:bool
         let cmp:TestCastCompression = {TestCastCompression}
         {cmp.async-set-field-name "async-cmp",
@@ -286,10 +286,10 @@
         {while not done? do
             {dispatch-events true}
         }
-        {ClientInterceptor.clear}
+        {clear-orb-interceptors}
     },
     {test-case "async throw exception",
-        {ClientInterceptor.register {InterceptorGZip}}
+        {register-orb-interceptors {InterceptorGZip}}
         {bind-exception "tests1.TestException1", TestException1}
         let done?:bool
         let cmp:TestCastCompression = {TestCastCompression}
@@ -307,6 +307,6 @@
             {dispatch-events true}
         }
         {clear-exceptions}
-        {ClientInterceptor.clear}
+        {clear-orb-interceptors}
     }
 }

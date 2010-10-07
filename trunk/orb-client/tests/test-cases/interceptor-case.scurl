@@ -30,8 +30,9 @@
     || interceptor
     ||
     {test-case "interceptor",
-        {ClientInterceptor.register {InterceptorA}}
-        {ClientInterceptor.register {InterceptorB}}
+        {register-orb-interceptors 
+            {InterceptorA}, {InterceptorB}
+        }
         {TestCondition.assert interceptor-result.size == 0}
 
         let foo:Foo = {Foo}
@@ -45,7 +46,7 @@
 
         {foo.echo "foo"}
 ||--        {foo.async-sleeping 10}
-        {ClientInterceptor.clear}
+        {clear-orb-interceptors}
         {interceptor-result.clear}
     },
     
@@ -53,7 +54,9 @@
     || TODO: caching tests
     || FIXME: (Bugs) server/client method name
     {test-case "stop server request",
-        {ClientInterceptor.register {InterceptorC}}
+        {register-orb-interceptors
+            {InterceptorC}
+        }
         def foo = {Foo}
         
         || sync
@@ -73,6 +76,6 @@
             {dispatch-events true}
         }
         {TestCondition.assert result == "STOP-REQUEST"}
-        {ClientInterceptor.clear}
+        {clear-orb-interceptors}
     }
 }
