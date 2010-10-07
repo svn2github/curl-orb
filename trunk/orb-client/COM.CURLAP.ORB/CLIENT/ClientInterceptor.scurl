@@ -26,21 +26,23 @@
 {define-class public abstract ClientInterceptor
 
   || ClientInterceptors
-  def package interceptors = {{Array-of ClientInterceptor}}
+  def private interceptors = {{Array-of ClientInterceptor}}
 
+  || deprecated since 0.8 (See register-orb-interceptors proc)
   {doc-next
     {purpose register ClientInterceptor}
     {parameter interceptor, ClinetInterceptor}
   }
-  {define-proc public inline {register interceptor:ClientInterceptor}:void
+  {define-proc package inline {register interceptor:ClientInterceptor}:void
     {ClientInterceptor.interceptors.append interceptor}
   }
 
+  || deprecated since 0.8 (See unregister-orb-interceptors proc)
   {doc-next
     {purpose Unregister the ClientInterceptor.}
     {parameter interceptor, ClientInterceptor}
   }
-  {define-proc public inline {unregister interceptor:ClientInterceptor}:void
+  {define-proc package inline {unregister interceptor:ClientInterceptor}:void
     def interceptors = ClientInterceptor.interceptors
     def index = {interceptors.find interceptor}
     {if index != -1 then
@@ -48,8 +50,9 @@
     }
   }
 
+  || deprecated since 0.8 (See clear-orb-interceptors proc)
   {doc-next {purpose clear all}}
-  {define-proc public inline {clear}:void
+  {define-proc package inline {clear}:void
     {ClientInterceptor.interceptors.clear}
   }
   
@@ -278,3 +281,33 @@
   }
 }
 
+|| procedures
+|| since 0.8
+{doc-next
+    {purpose register ClientInterceptors.}
+}
+{define-proc public {register-orb-interceptors
+                        ...:ClientInterceptor
+                    }:void
+    {for ci in {splice ...} do
+        {ClientInterceptor.register ci}
+    }
+}
+
+{doc-next
+    {purpose unregister ClientInterceptors.}
+}
+{define-proc public {unregister-orb-interceptors
+                        ...:ClientInterceptor
+                    }:void
+    {for ci in {splice ...} do
+        {ClientInterceptor.unregister ci}
+    }
+}
+
+{doc-next
+    {purpose unregister all ClientInterceptors.}
+}
+{define-proc public {clear-orb-interceptors}:void
+    {ClientInterceptor.clear}
+}
