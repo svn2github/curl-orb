@@ -193,7 +193,7 @@ public class DefaultInstanceManagementFilter implements Filter
 				}
 				catch (IOException e)
 				{
-					setFailedResponse(response, e);
+					// ignored
 				}
 			}
 		}
@@ -242,7 +242,7 @@ public class DefaultInstanceManagementFilter implements Filter
 				}
 				catch (IOException e)
 				{
-					setFailedResponse(response, e);
+					// ignored
 				}
 			}
 		}
