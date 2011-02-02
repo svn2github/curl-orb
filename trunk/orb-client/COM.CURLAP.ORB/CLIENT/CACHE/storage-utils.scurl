@@ -31,7 +31,10 @@
         set SQLiteDatabase = {p.lookup "SQLiteDatabase", check-imports? = true}
         set the-database = 
             {SQLiteDatabase 
-                {manifest-url "file", "orb-cache-database"},
+                {manifest-url 
+                    "file", "cache-database",
+                    manifest = {get-current-manifest}
+                },
                 auto-vacuum? = true,
                 encryption-type = {if encryption-key != null then "aes256" else "none"},
                 key = {if encryption-key != null then {non-null encryption-key} else null}
@@ -95,7 +98,10 @@
         set SQLiteDatabase = {p.lookup "SQLiteDatabase", check-imports? = true}
         set the-database = 
             {SQLiteDatabase 
-                {manifest-url "file", "orb-cache-database"},
+                {manifest-url
+                    "file", "cache-database",
+                    manifest = {get-current-manifest}    
+                },
                 auto-vacuum? = true,
                 encryption-type = {if encryption-key != null then "aes256" else "none"},
                 key = {if encryption-key != null then {non-null encryption-key} else null}
@@ -170,6 +176,14 @@
     {stmt.bind cache-name}
     {stmt.step}
   }
+}
+
+{define-proc {get-current-manifest}:ComponentManifest
+    {return
+        {evaluate
+            |"{get-default-manifest}"|
+        } asa ComponentManifest
+    }
 }
 
 || write local file

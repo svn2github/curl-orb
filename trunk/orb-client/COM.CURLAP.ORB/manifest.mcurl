@@ -59,9 +59,6 @@
 {delegate-to COM.CURL.CDK,
     location = "CLIENT/CACHE/COM.CURL.CDK/manifest.mcurl"
 }
-{component file orb-cache-database,
-    location = "resources/database/orb-cache.db"
-}
 
 || Curl code generator
 {component file code-generator.dcurl,
