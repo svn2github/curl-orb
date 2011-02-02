@@ -23,6 +23,10 @@
 {delegate-to COM.CURLAP.ORB,
     location = "../COM.CURLAP.ORB/manifest.mcurl"
 }
+{component file cache-database,
+    location = "resources/database/orb-cache.db"
+}
+
 
 || tests package
 {delegate-to COM.CURL.CDU,
@@ -58,3 +62,4 @@
 {component package TESTS6,
     location = "TESTS6/load.scurl"
 }
+

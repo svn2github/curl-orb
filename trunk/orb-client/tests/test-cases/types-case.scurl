@@ -32,42 +32,42 @@
 |||
 {TestSuite "orb types",
     
-    || generics for collection class
-    {test-case "generics",
-        def service = {CollectionService}
-        || echo {Array-of <>}
-        def list = {{Array-of String} "str1", "str2"}
-        |#
-        def ret-list = {service.echo-list list}
-        {for v in ret-list do
-            {dump v}
-        }
-        #|
-        
-        || echo {HashTable-of <>, <>}
-        def map = {{HashTable-of int, String} 10, "str1", 20, "str2"}
-        |#
-        def ret-map = {service.echo-map map}
-        {for v key k in ret-map do
-            {dump k, v}
-        }
-        #|
-        || DTO
-        def dto = {CollectionDto}
-        set dto.normal-list1 = list
-        set dto.normal-list2 = {{Array-of String} "str3", "str4", "str5"}
-        set dto.normal-list3 = {{Array-of String} "str6"}
-        set dto.normal-list4 = {{Array-of int} 3, 2, 1}
-||++    set dto.poo = "poo"
-||++    set dto.normal-map = map
-||++    set dto.str-2-list = {{Array-of {Array-of String}} 
-||++                             {{Array-of String} "s11", "s12"},
-||++                             {{Array-of String} "s21", "s22"}
-||++                         }
-||++    set dto.poo2 = "poo2"
-        def ret-dto = {service.echo-dto dto}
-        
-    },
+||--    || generics for collection class
+||--    {test-case "generics",
+||--        def service = {CollectionService}
+||--        || echo {Array-of <>}
+||--        def list = {{Array-of String} "str1", "str2"}
+||--        |#
+||--        def ret-list = {service.echo-list list}
+||--        {for v in ret-list do
+||--            {dump v}
+||--        }
+||--        #|
+||--        
+||--        || echo {HashTable-of <>, <>}
+||--        def map = {{HashTable-of int, String} 10, "str1", 20, "str2"}
+||--        |#
+||--        def ret-map = {service.echo-map map}
+||--        {for v key k in ret-map do
+||--            {dump k, v}
+||--        }
+||--        #|
+||--        || DTO
+||--        def dto = {CollectionDto}
+||--        set dto.normal-list1 = list
+||--        set dto.normal-list2 = {{Array-of String} "str3", "str4", "str5"}
+||--        set dto.normal-list3 = {{Array-of String} "str6"}
+||--        set dto.normal-list4 = {{Array-of int} 3, 2, 1}
+||--||++    set dto.poo = "poo"
+||--||++    set dto.normal-map = map
+||--||++    set dto.str-2-list = {{Array-of {Array-of String}} 
+||--||++                             {{Array-of String} "s11", "s12"},
+||--||++                             {{Array-of String} "s21", "s22"}
+||--||++                         }
+||--||++    set dto.poo2 = "poo2"
+||--        def ret-dto = {service.echo-dto dto}
+||--        
+||--    },
     
     || Primitive Array
     {test-case "primitive array",
