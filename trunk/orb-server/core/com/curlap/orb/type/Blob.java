@@ -19,6 +19,7 @@ import java.sql.SQLException;
 import javax.sql.rowset.serial.SerialBlob;
 
 import com.curl.io.serialize.SerializeException;
+import com.curl.io.serialize.types.ByteArray;
 
 /**
  * Proxy class of java.sql.Blob to serializer and deserialize.
@@ -34,12 +35,12 @@ public class Blob extends AbstractSerializableProxyType {
      * A serialized array of uninterpreted bytes representing the
      * value of this Blob object.
      */
-	private byte[] bytes = null;
-
+	private ByteArray bytes = null;
+	
 	@Override
 	public Object extractProperObject() throws SerializeException {
-		try {			
-			return new SerialBlob(bytes);
+		try {
+			return new SerialBlob(bytes.getByteArray());
 		} catch (SQLException se) {
 			throw new SerializeException(se);
 		}
@@ -49,7 +50,7 @@ public class Blob extends AbstractSerializableProxyType {
 	public void injectProperObject(Object obj) throws SerializeException {
 		java.sql.Blob blob = (java.sql.Blob)obj; 
 		try {
-			bytes = blob.getBytes(1, (int)blob.length());
+			bytes = new ByteArray(blob.getBytes(1, (int)blob.length()));
 		} catch (SQLException se) {
 			throw new SerializeException(se);
 		}
