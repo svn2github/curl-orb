@@ -18,7 +18,7 @@
 
 {doc-next
     {purpose
-        Blob Class ,correspond to the type javax.sql.rowset.serial.SerialBlob.                
+        Blob Class, correspond to the type javax.sql.rowset.serial.SerialBlob.                
     }
     {details
         A serialized mapping in the Java programming language of an SQL
@@ -28,179 +28,24 @@
         The detail,please see the Java API Document.
     }
 }
-{define-class public serializable Blob {inherits AbstractExtraSerializableType}
-
+{define-class public serializable Blob
+  {inherits AbstractExtraSerializableType}
+  
   {doc-next
     {purpose
         A serialized array of uninterpreted bytes representing the
         value of this Blob object.
     }
   }
-  || bytes
-  field private _bytes:{Array-of uint8}
+  field public-get private-set bytes:ByteArray || {Array-of uint8}
   
-  {doc-next
-    {purpose
-        A Blob object,use it to create a new Blob object who is equal to self.
-    }
-  }
-  field private _blob:#Blob
-
   {doc-next
     {purpose
         The number of bytes in this Blob object's array of bytes.
     }
   }
-  field private _length:int64
-
-  {doc-next
-    {purpose
-        Constructs a Blob object that is a serialized version of
-        the given byte array.
-    }
-    {parameter bytes,
-        it is a object of {Array-of uint8}.Use it to construct a Blob object.
-        
-    }
-  }
-  {constructor public {default bytes:{Array-of uint8}}
-    set self.length = bytes.size
-    set self._bytes = bytes
-  }
-
-  {doc-next
-    {purpose
-        Constructs a Blob object that is a serialized
-        version of the given Blob object. 
-    }
-    {parameter blob,
-        it is a object of Blob.Use it to construct a Blob object.
-        
-    }
-  }
-  {constructor public {from-blob blob:Blob}
-    set self._length = blob.length
-    set self._bytes = blob.bytes
-    set self._blob = blob
-  }
-
-  {doc-next
-    {purpose
-        set a new ByteArray to this Blob object.
-    }
-    {parameter bytes,
-        the new one will be set to this Blob object.
-        
-    }
-  }
-  {setter public {bytes bytes:ByteArray}:void
-    set self._bytes = bytes
-  }
+  field public-get private-set length:int64
   
-  {doc-next
-    {purpose
-        get this object's ByteArray
-    }
-    {return-vals ByteArray,
-        return the bytes value of this object
-        
-    }
-  }
-  {getter public {bytes}:ByteArray
-    {return self._bytes}
-  }
-
-  {doc-next
-    {purpose
-        set a new Blob to this Blob object.
-    }
-    {parameter blob,
-        the new one will be set to this Blob object.
-        
-    }
-  }
-  {setter public {blob blob:Blob}:void
-    set self._blob = blob
-  }
-
-  {doc-next
-    {purpose
-        get this object's Blob
-    }
-    {return-vals #Blob,
-        return  the blob value of this object
-        
-    }
-  }
-  {getter public {blob}:#Blob
-    {return self._blob}
-  }
-
-  {doc-next
-    {purpose
-        set a new length to this Blob object.
-    }
-    {parameter len,
-        the new length will be set to this Blob object.
-        
-    }
-  }
-  {setter private {length len:int64}:void
-    set self._length = len
-  }
-  
-  {doc-next
-    {purpose
-        get this object's length
-    }
-    {return-vals int64,
-        return  the length value of this object
-        
-    }
-  }
-  {getter public {length}:int64
-    {return {if self._length == 0 then self.bytes.size else 0}}
-  }
-
-  {doc-next
-    {purpose
-        Returns an ByteInputStream object that contains a partial Blob value
-    }
-    {return-vals ByteInputStream,
-        Returns an ByteInputStream object that contains a partial Blob value
-        
-    }
-  }
-  || getBinaryStream
-  {method public {get-binary-stream}:ByteInputStream
-    {return {{ByteInputStream-from ByteArray} self._bytes}}
-    
-  }
-
-  {doc-next
-    {purpose
-        Retrieves a stream that can be used to write to the BLOB
-        value that this Blob object represents.
-    }
-    {parameter pos,
-        pos the position in the BLOB value at which
-        to start writing
-    }
-    {return-vals ByteOutputStream,
-        Returns an ByteOutputStream object that contains a partial Blob value
-        
-    }
-  }
-  || setBinaryStream
-  {method public {set-binary-stream pos:int64}:ByteOutputStream
-    {if-non-null self.blob, {self.blob.set-binary-stream pos} then
-        {return {self._blob.set-binary-stream pos}}
-     else
-        {error "Unsupported operation. Blob cannot return a writable 
-            binary stream, unless instantiated with a Blob object that provides a setBinaryStream() implementation"}
-    }
-  }
-
   {doc-next
     {purpose
         Copies the specified number of bytes, starting at the given
@@ -218,10 +63,8 @@
     }
     {return-vals ByteArray,
         Returns an ByteArary which the current Blob contains
-        
     }
   }
-  || get ByteArray
   {method public {get-bytes pos:int64, len:int}:ByteArray
     {if len > self.length then
         set len = self.length asa int
@@ -234,7 +77,7 @@
     {dec pos} || correct pos to array index
     {return {self.bytes.clone-range pos asa int, len}}        
   }
-
+  
   {doc-next
     {purpose
         Deserializes from serialization stream.
@@ -246,14 +89,13 @@
         a SerializeInputStream.
     }
   }
-  ||Deserializes from serialization stream
   {constructor public {object-deserialize in:SerializeInputStream}
     {in.read-class-version}
     {construct-super.AbstractExtraSerializableType.object-deserialize in}   
-    def byteArray = {deserialize in, {FastArray-of int8}}
-    set self._bytes = {{Array-of uint8} {splice byteArray}}
+    set self.bytes = {deserialize in, ByteArray}
+    set self.length = self.bytes.size
   }
-
+  
   {doc-next
     {purpose
         serializes from serialization stream.
@@ -265,13 +107,24 @@
         The SerializeOutputStream that called this method.
     }
   }
-  ||
   {method public {object-serialize out:SerializeOutputStream}:void
     {out.write-class-version 0}
     {super.object-serialize out}
-    {out.write-one {{FastArray-of int8} {splice self.bytes}}}
+    {out.write-one self.bytes}
   }
   
+  {doc-next
+    {purpose
+        Constructs a Blob object that is a serialized version of
+        the given byte array.
+    }
+    {parameter bytes,
+        it is a object of {Array-of uint8}.Use it to construct a Blob object.
+        
+    }
+  }
+  {constructor public {default bytes:ByteArray}
+    set self.length = bytes.size
+    set self.bytes = bytes
+  }
 }
-
-
