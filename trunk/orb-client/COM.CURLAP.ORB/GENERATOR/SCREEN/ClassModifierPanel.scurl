@@ -1088,23 +1088,27 @@
              else {non-null data.server-method-name}
             }
         set self.method-name.oldValue = self.method-name.textField.value
-        
-        let arguments:String = ""
-        {for i in d.argument-types asa {FastArray-of #String} do
-            set arguments = arguments & ", " & {i.tail {i.find '.', search-direction = "backward"} + 1}
+        def args-buf = {StringBuf}
+        {if-non-null arg-types = d.argument-types then
+            {for arg-type key i in arg-types do
+                {if i > 0 then
+                    {args-buf.concat ", "} 
+                }
+                def at = {non-null arg-type}
+                {args-buf.concat {at.tail {at.find '.', search-direction = "backward"} + 1}}
+            }
         }
-        {if arguments.size != 0 then
-            set arguments = {arguments.substr 1, arguments.size - 1}
-        }
-
-        def return-type = {d.return-type.tail {d.return-type.find '.', search-direction = "backward"} + 1}
-        set self.method-name.tooltip = {Tooltip "\{ " & arguments & " \}:" & return-type}
+        def return-type = 
+            {d.return-type.tail {d.return-type.find '.', search-direction = "backward"} + 1}
+        set self.method-name.tooltip = 
+            {Tooltip {format "\{ %s \}:%s", {args-buf.to-String}, return-type}}
         set self._tip = self.method-name.tooltip
         set self.user-data =
             {{HashTable-of any, any}
                 "return-type", {return-type.trim-clone},
-                "arguments", {arguments.trim-clone}
+                "arguments", {{args-buf.to-String}.trim-clone}
             }
+
         || FIXED: aBC, getABC -> a-bc, get-a-bc 
         || set self.method-name.textField.value = {change-to-curl-style self.method-name.textField.value
         set self.method-name.textField.value =
