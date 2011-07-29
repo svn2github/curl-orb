@@ -1,0 +1,277 @@
+|| Copyright 2008 Christopher Barber
+||
+|| Licensed under the Apache License, Version 2.0 (the "License"); you may not 
+|| use this file except in compliance with the License. You may obtain a copy
+|| of the License at http://www.apache.org/licenses/LICENSE-2.0
+||
+|| Unless required by applicable law or agreed to in writing, software
+|| distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+|| WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+|| License for the specific language governing permissions and limitations 
+|| under the License. 
+
+
+|| There is a bug with Curl regular expressions that prevents the
+|| use of regular expressions containing any type of '\' escape
+|| in a macro expanded while compiling a package. This prevents
+|| us from using \. or \+ in regular expressions. As a workaround
+|| we swap '.' and '+' with '\u0001' and '\u0002' in the input string,
+|| and the regular expression. This function should be used to
+|| perform the transposition.
+{define-proc package {regexp-transpose-hack buf:StringBuf}:void
+    {for c key i in buf do
+        {switch c
+         case '.'      do set buf[i] = '\u0001'
+         case '+'      do set buf[i] = '\u0002'
+         case '\u0001' do set buf[i] = '.'
+         case '\u0002' do set buf[i] = '+'
+        }
+    }
+}
+
+{doc-next
+    {purpose
+        Support conditional compilation based on curl-version.
+    }
+    {syntax
+        {ctext
+            {curl-version-switch{escape {br}}
+                \ case {metavar version-specifier} [, ... ] do{escape {br}}
+                \ \ \ {metavar body}{escape {br}}
+                \ ... {escape {br}}
+                \ [else {metavar else-body}]{escape {br}}
+            }
+        }
+    }
+    {details
+        This macro is an extension of the built-in {docref api-version-switch}
+        macro that allows you to conditionally compile based on the version
+        of the installed Curl RTE as represented by the {docref curl-version}
+        constant. In addition to specifying simple version strings, such as
+        "6.0" or "6.0.2+", you can also request a match against a specific or
+        minimum build for a beta release of the RTE.
+
+        For regular production releases of the Curl RTE, the
+        {ctext curl-version} string will only contain a version number
+        such as "6.0.2". Beta or experimental releases can be identified
+        by extra information after the version:
+
+        {ctext [{metavar tag}] {metavar branch}-{metavar build}}
+
+        For instance, the {ctext curl-version} string for one beta
+        release of 7.0 was:
+
+        {ctext "7.0.0 [beta] kendall/0-34"}
+
+        This version string indicates that this is a beta release of
+        Curl 7.0 from branch kendall/0 using build 34.
+
+        Each {metavar version-specifier} is a string literal using the following
+        syntax:
+
+        {ctext
+            {metavar version} [{metavar release-tag} {metavar build-number}][+]
+        }
+
+        The {metavar version} is a dot-separated version number, such as
+        5, 7.0, 6.0.2, etc. The {metavar release-tag} and {metavar build-number}
+        may be omitted or must both be specified. Version specifers of the
+        form {metavar version}[+] behave just like they do in
+        {docref api-version-switch} and will match any release provided the
+        version number alone matches.
+
+        If the {metavar release-tag} and {metavar build-number} are included
+        in the specifier, then the match behavior will depend on whether
+        the specifier ends in '{ctext +}' or not. If it does not, then the
+        {metavar version} and {metavar build-number} must match exactly
+        and the {metavar release-tag} must match a substring of the
+        {metavar tag} and {metavar branch} portion of {ctext curl-version}.
+        If the specifier does end in '{ctext +}' then it will also match
+        versions with the same version number and {metavar release-tag} but
+        with higher build numbers, and it will match official releases
+        whose version the specifier version. See the examples below.
+    }
+    {for-example
+        Given that the {ctext curl-version} string for the installed
+        release is:
+
+        {ctext "7.0.0 [beta] kendall/0-34"}
+
+        then any of the following version specifiers would match it:
+
+        {itemize
+            {item {ctext "7.0beta22+"}}
+            {item {ctext "7 beta 34"}}
+            {item {ctext "7.0.0 [beta] kendall 34+"}}
+            {item {ctext "7.0"}}
+            {item {ctext "6 [beta] jackson 12+"}}
+        }
+
+        If you wanted to conditionalize the use of an API that
+        was first introduced in that beta release you might use
+        the specifier
+
+        {ctext "7 beta 34+"}.
+
+        This will match any
+        beta release of 7.0 with a build number of at least 34;
+        it will match the official 7.0 release; and it will match
+        any beta or non-beta release with a version number greater
+        than 7.0.
+
+        If you just want to make sure that code will only be compiled under
+        the official release, you can either specify a very large build
+        number or use a {metavar release-tag} that is not likely to match
+        any beta releases:
+
+        {ctext "7 official 999+"}
+    }
+    {notes
+        The canonical definition of this syntax is from
+        the {monospace ZUZU.LIB} library in the
+        {link href = {url "http://code.google.com/p/zuzu-curl/"}, zuzu-curl project}.
+    }
+}
+{define-macro public {curl-version-switch
+                         ?test-version-string:{optional ?:{literal String}}
+                         ?clauses:{sequence
+                                      case
+                                      ?:{bounded-comma-sequence
+                                            1, infinity, ?:{literal String}
+                                        }
+                                   do
+                                      ?:tokens
+                                  }
+                         ?final:{optional else ?:tokens}
+                     }
+
+    def this-version-string = {StringBuf curl-version}
+
+    {syntax-switch test-version-string
+     case {pattern ?str:{literal String}} do
+        || This allows the 'curl-version' to be overridden in order
+        || to test this syntax.
+        {this-version-string.set-contents {str.literal} asa String}
+    }
+
+    || HACK: because of a bug, we cannot use \ escape sequences in
+    || our regular expressions and have to resort to this hack.
+    {regexp-transpose-hack this-version-string}    
+    
+    let this-version-as-string:#String
+    let this-middle:#String
+    let this-build-string:#String
+
+    def curl-version-regexp =
+        {Matcher "([0-9]+(?:\u0001[0-9]+)*)(?:(.*)[^0-9]([0-9]+))?"} ||""
+
+    {if-non-null ms = {curl-version-regexp.match this-version-string} then
+        {regexp-transpose-hack this-version-string}
+        set this-version-as-string = ms[1]
+        set this-middle = ms[2]
+        set this-build-string = ms[3]
+    }
+
+    def this-version =
+        {if-non-null this-version-as-string then
+            {VersionNumber.from-string this-version-as-string}
+         else
+            curl-version-number || UNCOVERED
+        }
+
+    def this-build =
+        {if-non-null this-build-string then
+            {this-build-string.to-int}
+         else
+            0
+        }
+
+    def version-specifier-regexp =
+        {Matcher
+            ||""((
+            "(?P<version>[0-9]+(?:\u0001[0-9]+)*)" &
+            "(?: *(?P<middle>.*[^ ]) *(?P<build>(?<![0-9])[0-9]+))?" &
+            "(?P<plus>\u0002?)"
+            ||""))
+        }
+    
+    let result:#CurlSource
+
+    {for clause in clauses do
+        {syntax-switch clause, must-match? = true
+         case
+            {pattern
+                case ?specifiers:{comma-sequence ?:{literal String}} do
+                ?body:tokens
+            }
+         do
+            {for specifier in specifiers do
+                def str = {StringBuf {specifier.literal}}
+                {regexp-transpose-hack str}
+                def ms = {version-specifier-regexp.match str}
+                {if ms == null then
+                    {specifier.parse-error
+                        {format "Bad version specifier %w.", str} ||""
+                    }
+                }
+                {regexp-transpose-hack str}
+                
+                {if result != null then
+                    || Although the result is already known, we continue
+                    || instead of breaking to make sure that we check
+                    || the validity of all the version specifiers.
+                    {continue}
+                }
+
+                ||""((
+                def version =
+                    {VersionNumber.from-string ms["version"] & ms["plus"]}
+                
+                {if not {version.partial-match? this-version} then
+                    {continue}
+                }
+
+                {if-non-null
+                    middle = ms["middle"], 
+                    build-str = ms["build"]
+                 then
+                    def build = {build-str.to-int}
+                    def plus? = not ms["plus"].empty?
+                    
+                    {if {version.compare-to this-version} >= 0 then
+                        {if-non-null this-middle then
+                            {if {this-middle.find-string middle} < 0 then
+                                {continue}
+                            }
+                            {if build != this-build and
+                                (not plus? or build > this-build)
+                             then
+                                {continue}
+                            }
+                         elseif not plus? then
+                            {continue}
+                        }
+                    }
+                }
+                ||""))
+                
+                set result = body
+            }
+        }
+    }
+    
+    {if-non-null result then
+        {return result}
+    }
+
+    || Otherwise use the "else" clause, if any.
+    {syntax-switch final
+     case {pattern else ?body:tokens} do
+        {return body}
+    }
+
+    || Otherwise do nothing
+    {return {expand-template}}
+    
+} || curl-version-switch
+

@@ -14,41 +14,51 @@
 ||| See the License for the specific language governing permissions and
 ||| limitations under the License.
 
-{curl 7.0 manifest}
+{curl 7.0, 8.0 manifest}
 {manifest COM.CURL.CDK,
     version = "1.1"}
 
+|| core modules
+|| --------------------
 {component package COM.CURL.CDK.SQLITE,
-    location = "SQLITE/load.pcurl"
+    location = "SQLITE/load.scurl"
 }
 
 {component package COM.CURL.CDK.SQLITE-BASE,
-    location = "SQLITE/base-load.pcurl"
+    location = "SQLITE/base-load.scurl"
 }
 
 {component package COM.CURL.CDK.SQLITE-LIBRARY-SYNTAX,
-    location = "SQLITE/library-syntax.pcurl"
+    location = "SQLITE/library-syntax.scurl"
 }
 
 {component package COM.CURL.CDK.SQLITE-LIBRARY,
-    location = "SQLITE/library-load.pcurl"
+    location = "SQLITE/library-load.scurl"
 }
 
 {component package COM.CURL.CDK.SQLITE-SYNTAX,
-    location = "SQLITE/syntax.pcurl"
+    location = "SQLITE/syntax.scurl"
 }
 
 {component package COM.CURL.CDK.SQL-BASE,
-    location = "SQL/load.pcurl"
+    location = "SQL/load.scurl"
 }
 
 {component package COM.CURL.CDK.SQLITE-RECORDSET,
-    location = "SQLITE/recordset-load.pcurl"
+    location = "SQLITE/recordset-load.scurl"
 }
+
+|| foreign libraries
+|| --------------------
 {component file libsqlite,
     platform = "win32",
     location = "SQLITE/sqlite_3-6-10.dll"
 }
+||--{component file libsqlite,
+||--    platform = "win32",
+||--    location = "SQLITE/sqlite3.dll"
+||--}
+
 {component file libsqlite,
     platform = "linux",
     location = "SQLITE/sqlite_3-6-10.so"
@@ -63,6 +73,16 @@
     arch = "ppc",
     location = "SQLITE/sqlite_3-6-10.ppc.dylib"
 }
+
+
+|| localization
+|| --------------------
 {component directory resources,
     location = "resources"
 }
+
+
+
+
+
+

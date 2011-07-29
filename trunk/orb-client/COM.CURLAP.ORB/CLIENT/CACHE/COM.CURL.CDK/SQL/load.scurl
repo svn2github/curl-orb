@@ -1,4 +1,6 @@
-||| Copyright (C) 1998-2011, Sumisho Computer Systems Corp. All Rights Reserved.
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
 
 ||| Licensed under the Apache License, Version 2.0 (the "License");
 ||| you may not use this file except in compliance with the License.
@@ -12,17 +14,25 @@
 ||| See the License for the specific language governing permissions and
 ||| limitations under the License.
 
-|||
-||| @author Hitoshi Okada
-|||
+{curl 7.0, 8.0 package}
+{package COM.CURL.CDK.SQL-BASE,
+    version = "1.1",
+    resource-directory = "../resources/",
+    translations-file = "messages.xml",
+    {compiler-directives careful? = true}
+}
 
-{curl 6.0, 7.0, 8.0 package}
-{package COM.CURLAP.ORB.GENERATOR}
+{doc
+    type = package,
+    COM.CURL.CDK.SQL-BASE
+    {purpose
+        The package provides generic support for working with SQL databases.
+    }
+}
 
-{import * from COM.CURLAP.ORB.COMMON}
+{import * from CURL.DATA-ACCESS.BASE}
+{import * from CURL.DATA-ACCESS.CONNECTED}
 
-{include
-    "Properties.scurl",
-    "Generator.scurl",
-    "Exception.scurl"
+{include 
+    "base.scurl"
 }

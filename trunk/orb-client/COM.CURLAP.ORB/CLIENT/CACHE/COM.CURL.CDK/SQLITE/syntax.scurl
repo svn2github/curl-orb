@@ -1,0 +1,226 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+{curl 7.0, 8.0 package}
+{package COM.CURL.CDK.SQLITE-SYNTAX,
+    version = "1.1",
+    resource-directory = "../resources/",
+    translations-file = "messages.xml",
+    {compiler-directives careful? = true}
+}
+
+
+{doc
+    type = package,
+    COM.CURL.CDK.SQLITE-SYNTAX
+    {purpose
+        The package defines syntax extensions useful with
+        {docref COM.CURL.CDK.SQLITE} package.
+    }
+    {details
+        This is a separate package so that it can be used by
+        {ctext COM.CURL.CDK.SQLITE}, but you should never import this directly,
+        just import {ctext COM.CURL.CDK.SQLITE}
+        and it will re-export all of the macros below.
+    }
+}
+
+{import * from CURL.LANGUAGE.SOURCE}
+
+
+|| transaction shorthand
+|| --------------------
+{doc-next
+    {purpose Execute code containing SQLite database operations
+        as an atomic transaction. This ensures that either
+        all operations succeed, and the transaction is committed
+        or else, if any exception is thrown,
+        then the transaction is rolled back.
+    }
+    {syntax
+        The "with-transaction" macro uses the following syntax:
+        
+        {ctext
+            {with-transaction in {metavar database}
+                [{metavar lock-type}]
+             do {metavar body}}
+        }
+
+        where the {metavar body} is executed inside a try/catch block,
+        preceded by SQL {monospace BEGIN {metavar lock-type}}
+        and followed by either SQL {monospace COMMIT} or SQL {monospace REVERT}.
+    }
+    {details
+        The {metavar lock-type} governs how aggressively the SQLite engine
+        locks access to the database during the transaction.
+        This is relevant when more than one process might be using the database.
+        Allowable values are
+        {itemize
+            {item {ctext deferred} - this is the default,
+                if {metavar lock-type} is unspecified}
+            {item {ctext immediate}}
+            {item {ctext exclusive}}
+        }
+        See {link href = {url "http://www.sqlite.org"}, SQLite}
+        documentation pages for a full explanation of how
+        SQLite handles locking and concurrency.
+    }
+    {notes
+        SQLite transactions can {bold not} be nested.
+    }
+}
+{define-macro public {with-transaction
+                      in ?db:expression
+                         ?lock:{one-of 
+                                   {pattern deferred},
+                                   {pattern immediate},
+                                   {pattern exclusive},
+                                   {pattern}}
+                      do
+                         ?body:statements
+                     }
+    let lock-type:String =
+        {syntax-switch lock
+         case {pattern} do "deferred"
+         else {{lock.get-text}.to-String}}
+    let body-succeeded:CurlSource = {Identifier.unique prefix="body-succeeded"}
+    let database:CurlSource = {Identifier.unique prefix="db"}
+    {return
+        {expand-template
+            {value
+                let ?database:{compile-time-type-of ?db} = ?db
+                let ?body-succeeded:bool
+                {?database.execute "BEGIN " & ?{Literal lock-type}}
+                {try
+                    ?body
+                    set ?body-succeeded = true
+                 finally
+                    {if ?body-succeeded then
+                        {?database.execute "COMMIT"}
+                     else
+                        {?database.execute "ROLLBACK"}
+                    }
+                }
+            }
+        }
+    }
+}
+
+|| ecological shorthand
+|| --------------------
+{doc-next
+    {purpose Execute code using an SQLite database,
+        ensuring that the database is always closed.
+    }
+    {syntax
+        The "with-database" macro uses the following syntax:
+        
+        {ctext
+            {with-database
+                {metavar database} = {metavar expr}
+             do {metavar body}}
+        }
+
+        where within {metavar body}, the variable {metavar database}
+        is bound to the {docref SQLiteDatabase} created
+        from {metavar expr}.
+    }
+}
+{define-macro public {with-database
+                         ?db:identifier = ?database:expression               
+                      do
+                         ?body:statements
+                      }
+    {return
+        {expand-template
+            {value
+                let constant ?db:{compile-time-type-of ?database} = 
+                    ?database
+                {try ?body
+                 finally {?db.close}}}
+        }
+    }
+}
+{doc-next
+    {purpose Execute code using a prepared SQL statement,
+        ensuring that statement is always finalized.
+    }
+    {syntax
+        The "with-statement" macro uses the following syntax:
+        
+        {ctext
+            {with-statement in {metavar database}
+                {metavar statement} = {metavar SQL}
+             do {metavar body}}
+        }
+
+        where within {metavar body}, the variable {metavar statement}
+        is bound to the {docref SQLiteStatement} prepared
+        from the {ctext String} {metavar SQL}.
+    }
+    {notes
+        Every {ctext SQLiteStatement} will eventually be finalized,
+        and its resources released, either when its applet is suspended,
+        or if it is garbage collected.
+        However, using the {ctext with-statement} macro
+        causes that to happen immediately. 
+    }
+}
+{define-macro public {with-statement
+                      in ?db:expression               
+                          ?stmt:identifier = ?sql:expression 
+                      do
+                          ?body:statements
+                     }
+    {return
+        {expand-template
+            {value
+                let constant ?stmt:?={Identifier "SQLiteStatement"} = 
+                    {?db.create-statement ?sql}
+                {try ?body
+                 finally {?stmt.finalize}}}
+        }
+    }
+}
+
+{define-macro public {if-use-built-in
+                         ?body:statements
+                         ?else-and-body:{optional else ?:statements}
+                     }
+    let (v:any, found?:bool) =
+        {macro-env.meta-data.get-if-exists "use-built-in?"}
+    {return
+        {if found? and v == true then
+            {expand-template
+                ?body
+            }
+         else
+            {syntax-switch else-and-body
+             case {pattern else ?else-body:statements} do
+                {expand-template
+                    ?else-body
+                }
+             else
+                {EmptySource}
+            }
+        }
+    }
+}
+
+|| NOTE: used for rejecting early beta releases
+{import * from CURL.LANGUAGE.REGEXP}
+{include "curl-version-switch.scurl"}
+

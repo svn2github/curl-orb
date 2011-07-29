@@ -1,0 +1,413 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+{doc-next
+    {purpose
+        {docref Domain} used by {docref SQLiteRecordSet} for
+        {docref RecordField}s.}
+    {details
+        Datatype conversion and validation behavior duplicates that
+        of the {link href = {url "http://www.sqlite.org/datatype3.html"},
+        underlying SQLite engine}.}
+}
+{define-class public SQLiteVariantDomain {inherits Domain}
+  {doc-next
+    {purpose The type affinity declared in the SQLite database.}
+    {notes
+        The SQLite engine is {link href = {url "http://www.sqlite.org/datatype3.html"},
+        more flexible about datatypes} than the typical database:
+        columns can contain values off different types. This is convenient for cases
+        where dynamic data is used.  The engine will convert between datatypes when
+        necessary, according to definite rules.  Input values are converted
+        according to the "type affinity" of the column, which is based on
+        the declared type from the {ctext CREATE TABLE} statement,
+        using rules which match the conventional SQL datatype declarations.}
+  }
+  field public-get constant affinity:SQLiteDatatypeAffinity
+  
+  {doc-next
+    {purpose Indicates whether the {docref Domain.type}
+        should enforce the {docref-abbr SQLiteVariantDomain.affinity}}
+  }
+  field public-get constant strict?:bool
+  
+  field constant _type:Type
+  
+  {doc-next
+    {purpose Create a {ctext SQLiteVariantDomain} object.}
+    {parameter affinity, the {docref-abbr SQLiteVariantDomain.affinity}.}
+    {parameter strict?, whether the {docref Domain.type}
+        should enforce the {ctext affinity}}
+  }
+  {constructor public {default 
+                          affinity:SQLiteDatatypeAffinity = 
+                              SQLiteDatatypeAffinity.NONE,
+                          strict?:bool = false}
+    set self.affinity = affinity
+    set self.strict? = strict?
+    set self._type =
+        {if strict? then
+            || domain enforces declared type affinity
+            {self.curl-type-for affinity}
+         else
+            || allow any type, as does SQLite
+            any}
+  }
+  
+  {doc-next
+    {purpose Create a {ctext SQLiteVariantDomain} object.}
+    {parameter affinity, the {docref-abbr SQLiteVariantDomain.affinity}.}
+    {parameter strict?, whether the {docref Domain.type}
+        should enforce the {ctext affinity}}
+  }
+  {factory public {from-affinity
+                      affinity:SQLiteDatatypeAffinity,
+                      strict?:bool = false
+                  }:SQLiteVariantDomain
+    || Use of tuple in this way fails, until Bug 28778 is fixed.
+||--    def spec =
+||--        {{Tuple2-of SQLiteDatatypeAffinity, bool} affinity, strict?}
+||--    {return SQLiteVariantDomain.cache[spec]}
+    {return
+        {if strict? then
+            SQLiteVariantDomain.cache-strict[affinity]
+         else
+            SQLiteVariantDomain.cache[affinity]}
+    }
+  }
+  def cache =
+      {{Memoizer-of SQLiteDatatypeAffinity, SQLiteVariantDomain}
+        {proc {affinity:SQLiteDatatypeAffinity}:SQLiteVariantDomain
+            {return
+                {SQLiteVariantDomain
+                    affinity = affinity,
+                    strict? = false}}
+        }}
+  def cache-strict =
+      {{Memoizer-of SQLiteDatatypeAffinity, SQLiteVariantDomain}
+        {proc {affinity:SQLiteDatatypeAffinity}:SQLiteVariantDomain
+            {return
+                {SQLiteVariantDomain
+                    affinity = affinity,
+                    strict? = true}}
+        }}
+  || This will not work until Bug 28778 is fixed
+||--  def cache =
+||--      {{Memoizer-of
+||--           {Tuple2-of SQLiteDatatypeAffinity, bool},
+||--           SQLiteVariantDomain}
+||--        {proc {spec:{Tuple2-of SQLiteDatatypeAffinity, bool}
+||--              }:SQLiteVariantDomain
+||--            {return
+||--                {SQLiteVariantDomain
+||--                    affinity = spec.t0,
+||--                    strict? = spec.t1}}
+||--        }}
+  
+  {method public {validate x:any}:#ValidationException
+    let (dt:SQLiteDatatype, valid?:bool) = {self.storage-class-for {type-of x}}
+    {return 
+        {if not valid? then
+            {ValidationException {lmessage Illegal type: {type-of x}}}
+         else
+            {try
+                || castable to type
+                x asa self.type
+                null
+             catch e:CastException do
+                || wrong type
+                {self.type-mismatch-exception x}
+            }
+        }}
+  }
+  {getter public {type}:Type
+    {return self._type}
+  }
+  {getter public {default-value}:any
+    {return null}
+  }
+  {method public {compare x:any, y:any}:int
+    let tx:SQLiteDatatype = {self.storage-class-for {type-of x}}
+    let ty:SQLiteDatatype = {self.storage-class-for {type-of y}}
+    let kx:int = SQLiteDatatypeOrdering[tx.value]
+    let ky:int = SQLiteDatatypeOrdering[ty.value]
+    || TODO: Record.compare-field seems to force nulls last
+    || -- but SQLite wants them first
+    {return 
+        {if kx != ky then 
+            {signum kx - ky}
+         else 
+            {switch tx
+             case SQLiteDatatype.INTEGER, SQLiteDatatype.REAL do
+                {with-compiler-directives allow-any-calls? = true,
+                    allow-implicit-any-casts? = true
+                 do
+                    {signum x - y}}
+             case SQLiteDatatype.TEXT do
+                let sx:String = x asa String
+                let sy:String = y asa String
+                {sx.compare sy}
+             case SQLiteDatatype.NULL do 0
+             case SQLiteDatatype.BLOB do
+                let xs:ByteArray = x asa ByteArray
+                let ys:ByteArray = y asa ByteArray
+                {ByteArray-compare xs, ys}
+             else {unreachable}
+            }}}
+  }
+  {method public {parse x:String}:any
+    || TODO: inefficient 
+    let xx:String = {x.trim-clone}
+    || NOTE: empty String or whitespace is not a number
+    {if xx.empty? then
+        {return x}}
+    || follow type affinity
+    {switch self.affinity 
+     case SQLiteDatatypeAffinity.INTEGER, 
+        SQLiteDatatypeAffinity.NUMERIC
+     do
+        || INTEGER
+        let (xi:int64, xin:int) = {xx.to-int64}
+        {if xin == xx.size then
+            {return
+                {if xi > max-int32 or xi < min-int32 then xi 
+                 else xi asa int}}}
+    }
+    {switch self.affinity 
+     case SQLiteDatatypeAffinity.NUMERIC, 
+        SQLiteDatatypeAffinity.REAL
+     do
+        || DOUBLE
+        let (xd:double, xdn:int) = {xx.to-double}
+        {if xdn == xx.size then
+            {return xd}}
+    }
+    || BLOB
+    {if {xx.prefix? "x'", ignore-case? = true} and {xx.suffix? "'"} then
+        {return {hex-decode xx}}}
+    || TEXT
+    {return x}
+  }
+  {method public {convert x:any}:any
+    {return
+        {if self.strict? then
+            def t = self.type
+            {try
+                {type-switch x
+                 case x:String do
+                    {self.parse x} asa t
+                 case x:Null do
+                    null
+                 else
+                    x asa t}
+             catch e:CastException do
+                {throw {self.type-mismatch-exception x}}}
+         else
+            || let SQLite do any conversion
+            x}}
+  }
+  {method public {format x:any}:String
+    {return 
+        {type-switch x
+         case x:String do x
+         case x:Null do ""  || TODO: how distinguish?
+         case x:ByteArray do {hex-encode x}
+         case x:double do {format "%.16g", x}
+         else {String x}
+        }}
+  }
+  {method {storage-class-for t:Type}:(SQLiteDatatype, bool)
+    {return
+        {switch t
+         case String do ("TEXT", true)
+         case double do ("REAL", true)
+         case int, int8, int16, int64, uint8, uint16 do ("INTEGER", true)
+         case uint32, uint64 do ("INTEGER", true)
+         case Null do ("NULL", true)
+         case ByteArray do ("BLOB", true)
+         else ("NULL", false)}}
+  }
+  {method {curl-type-for a:SQLiteDatatypeAffinity}:Type
+    {return
+        {switch a
+         case SQLiteDatatypeAffinity.TEXT do String
+         case SQLiteDatatypeAffinity.INTEGER do int || TODO: int64 ?
+         case SQLiteDatatypeAffinity.NUMERIC, SQLiteDatatypeAffinity.REAL do
+            double
+         else any
+        }
+    }
+  }
+  {method {type-mismatch-exception x:any}:ValidationException
+    {return
+        {ValidationException
+            {lmessage Wrong type '{type-of x}' for '{type-of self}'}}}
+  }
+}
+|| 1,2,3,4,5 => INTEGER, REAL, TEXT, BLOB, NULL
+{let constant package SQLiteDatatypeOrdering:ByteVec =
+    {ByteVec 99, 1, 1, 2, 3, 0}
+}
+{define-enum public SQLiteDatatypeAffinity
+    INTEGER,
+    NUMERIC,
+    REAL,
+    TEXT,
+    NONE
+}
+
+{define-proc public {SQLiteDatatypeAffinity-from-declared-type 
+                        decltype:String
+                    }:SQLiteDatatypeAffinity
+  {return
+      {if decltype.empty?
+       then
+          SQLiteDatatypeAffinity.NONE
+
+       elseif {decltype.find-string "INT", ignore-case? = true} >= 0
+       then
+          SQLiteDatatypeAffinity.INTEGER
+
+       elseif ({decltype.find-string "CHAR", ignore-case? = true} >= 0 or
+               {decltype.find-string "TEXT", ignore-case? = true} >= 0 or
+               {decltype.find-string "CLOB", ignore-case? = true} >= 0)
+       then
+          SQLiteDatatypeAffinity.TEXT
+
+       || SQLite docs say that BLOB has affinity NONE, which seems weird.
+       elseif {decltype.find-string "BLOB", ignore-case? = true} >= 0
+       then
+          SQLiteDatatypeAffinity.NONE
+
+       elseif {decltype.find-string "FLOA", ignore-case? = true} >= 0 or
+          {decltype.find-string "REAL", ignore-case? = true} >= 0 or
+          {decltype.find-string "DOUB", ignore-case? = true} >= 0
+       then
+          SQLiteDatatypeAffinity.REAL
+       else || BOOLEAN, TIMESTAMP, NUMERIC, made up type
+          SQLiteDatatypeAffinity.NUMERIC
+      }
+  }
+}
+{define-proc package {ByteArray-compare xs:ByteArray, ys:ByteArray}:int
+    let n:int = {min xs.size, ys.size}
+    {for i = 0 below n do
+        let d:int = xs[i] - ys[i]
+        {if d != 0 then
+            {return {signum d}}}}
+    {return {signum xs.size - ys.size}}
+}
+{define-proc package {hex-encode bs:ByteArray}:String    
+    let buf:StringBuf = {StringBuf "x'"}
+    {for b in bs do
+        {format out = buf, "%02x", b}}
+    {buf.append '\''}
+    {return {buf.to-String}}
+}
+{define-proc package {hex-decode x:StringInterface}:ByteArray
+    let n:int = x.size
+    || enforce "x'dddd' pattern
+    {if not {x.prefix? "x'"} || prefix: x'
+        or n mod 2 == 0      || even number of characters (made odd by x'')
+        or x[n - 1] != '\''  || suffix: '
+     then
+        {error {lmessage Unexpected format in 'hex-decode'}}}
+    let bs:ByteArray = {ByteArray efficient-size = n div 2}
+    {for i = 2 below n - 1 step 2 do
+        let (b:int, bn:int) = {{SubString x, i, 2}.to-int radix = 16}
+        || reject if malformed
+        {if bn != 2 then
+            {error {lmessage Unexpected format in 'hex-decode'}}}
+        {bs.append b asa byte}}
+    {return bs}
+}
+
+{define-proc package {decode-literal
+                         s:String, affinity:SQLiteDatatypeAffinity
+                     }:any
+    {if ({s.prefix? "'"} and {s.suffix? "'"}) or 
+        {s.prefix? "\""} and {s.suffix? "\""}
+     then
+        let buf:StringBuf = {StringBuf}
+        let last-was-quote?:bool
+        {for i = 1 below (s.size - 1) do
+            let c:char = s[i]
+            || We assume that the next char will be a single-quote
+            {if not last-was-quote? and c == '\'' then
+                set last-was-quote? = true
+                {continue}
+            }
+            {buf.append c}
+            set last-was-quote? = false
+        }
+        {return {buf.to-String}}
+    }
+    {if {s.equal? "CURRENT_TIMESTAMP", ignore-case? = true} then
+        {return
+            {proc {rf:RecordField, rs:RecordSet}:any
+                let d:DateTimeInfo = {DateTime zone = DateTimeZone.utc}.info
+                {return
+                    {format "%04d-%02d-%02d %02d:%02d:%02d",
+                        d.year, d.month, d.day,
+                        d.hour, d.minute, d.second
+                    }
+                }
+            }
+        }
+     elseif {s.equal? "CURRENT_TIME", ignore-case? = true} then
+        {return
+            {proc {rf:RecordField, rs:RecordSet}:any
+                let d:DateTimeInfo = {DateTime zone = DateTimeZone.utc}.info
+                {return {format "%02d:%02d:%02d", d.hour, d.minute, d.second}}
+            }
+        }
+     elseif {s.equal? "CURRENT_DATE", ignore-case? = true} then
+        {return
+            {proc {rf:RecordField, rs:RecordSet}:any
+                let d:DateTimeInfo = {DateTime zone = DateTimeZone.utc}.info
+                {return
+                    {format "%04d-%02d-%02d",
+                        d.year, d.month, d.day
+                    }
+                }
+            }
+        }
+     elseif {s.equal? "NULL", ignore-case? = true} then
+        {return null}
+     elseif {s.prefix? "x'", ignore-case? = true} and {s.suffix? "'"} then
+        {return {hex-decode s}}
+    }
+    {if affinity == SQLiteDatatypeAffinity.INTEGER or
+        affinity == SQLiteDatatypeAffinity.NUMERIC or
+        affinity == SQLiteDatatypeAffinity.NONE
+     then
+        let (xi:int64, xin:int) = {s.to-int64}
+        {if xin == s.size then
+            {return
+                {if xi > max-int32 or xi < min-int32 then xi
+                else xi asa int}}}
+    }
+
+    {if affinity == SQLiteDatatypeAffinity.REAL or
+        affinity == SQLiteDatatypeAffinity.NUMERIC or
+        affinity == SQLiteDatatypeAffinity.NONE
+     then
+        let (xd:double, xdn:int) = {s.to-double}
+        {if xdn == s.size then
+            {return xd}}
+    }
+    {return s}
+}

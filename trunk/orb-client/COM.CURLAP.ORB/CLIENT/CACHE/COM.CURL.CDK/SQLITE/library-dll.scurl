@@ -1,0 +1,134 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+{define-proc package {http-url? loc:Url}:bool
+    {return
+        {loc.stem.name.prefix? "http"}}
+}
+{doc-next
+    {purpose
+        If {param loc} is not an http {docref Url} return it,
+        otherwise copy it to {ctext "curl://user-data/<path>"},
+        and return that location.
+    }
+}
+{define-proc public {user-data-copy-of
+                        loc:Url,
+                        path:String,
+                        force-copy?:bool = false
+                    }:Url
+    {if not {http-url? loc} then
+        {return loc}}
+    def uloc = "curl://user-data/" & path
+    def cloc = {{url uloc}.canonicalize}
+    {return {local-copy-of loc, cloc, force-copy? = force-copy?}}
+}
+{doc-next
+    {purpose
+        If {param loc} is not an http {docref Url} return it,
+        otherwise copy it to {ctext "curl://local-data/<path>"},
+        and return that location.
+    }
+}
+{define-proc public {local-data-copy-of
+                        loc:Url,
+                        path:String,
+                        force-copy?:bool = false
+                    }:Url
+    {if not {http-url? loc} then
+        {return loc}}
+    || Note that this will cause a popup, which may be undesirable.
+    {request-local-data-permission}
+    def uloc = "curl://local-data/" & path
+    def cloc = {{url uloc}.canonicalize}
+    || TODO: Should this try to fallback to get-temp-filename or choose-file?
+    {return {local-copy-of loc, cloc, force-copy? = force-copy?}}
+}
+
+{define-proc package {local-copy-of
+                        loc:Url,
+                        dir:Url,
+                        force-copy?:bool = false
+                    }:Url
+    {if not {http-url? loc} then
+        {return loc}}
+    {assert dir.local-filename !=  null}
+    def file = {dir.concat loc.filename}
+    || FIXME: check validators: timestamp, content-size, maybe content-hash
+    || Should there be a file next to this file on the HTTP server to help 
+    || with this, similar to what OCC stuff does?  Or should there be a local
+    || file with previous HTTP header info in it?
+    {if force-copy? or not {local-file-exists? file} then
+        {create-Directory dir,
+            create-missing-parents? = true,
+            error-if-exists? = false}
+        {with-local-file-lock file do
+            {copy loc, file,
+                error-if-exists? = false}}
+    }
+    {return file}
+}
+
+{define-proc public {local-library-url name:String}:Url
+    || manifest specifies library location
+    || - qualified by platform
+    def mloc =
+        {platform-switch
+         case "win32" do
+            || built as below, under mingw
+            {manifest-url "file", name,
+                platform = "win32"}
+         case "linux" do
+            || Built with
+            || CFLAGS="-Os -DSQLITE_OMIT_UTF16=1 -DSQLITE_DLL=1 \
+            || -DSQLITE_HAS_CODEC=1 -DSQLITE_ENABLE_COLUMN_METADATA=1" \
+            || ./configure --enable-threadsafe 
+            ||
+            || and stripped with:
+            || strip -S -x --strip-unneeded .libs/libsqlite3.so.0.8.6 
+            {manifest-url "file", name,
+                platform = "linux"}
+         case "mac" do
+            || Note: to build the shared libraries for OSX, you have to
+            || do configure --disable-tcl --enable-threadsafe and then edit
+            || the Makefile to add -no-undefined to libtool command line used
+            || to make shared libraries called LTLINK.  Then copy the dylib
+            || from the .libs directory.  Or it might just work without
+            || that, since with 3.6.2 it seemed to be fine.
+            || The libraries were stripped with "strip -x -u -r".
+            {platform-switch
+             case "x86" do
+                {manifest-url "file", name,
+                    platform = "mac", arch = "x86"}
+             case "ppc" do
+                {manifest-url "file", name,
+                    platform = "mac", arch = "ppc"}
+             else
+                {error {lmessage SharedLibrary {value name} not available for this platform.}}
+            }
+         else
+            {error {lmessage SharedLibrary {value name} not available for this platform.}}
+        }
+    || if HTTP, copy library to LocalFile
+    def loc = 
+        {if {http-url? mloc} then
+            || TODO: dguide recommends "curl://common/"
+            {user-data-copy-of mloc, name, force-copy? = false}
+        else
+            mloc
+        }
+    {return loc}
+}

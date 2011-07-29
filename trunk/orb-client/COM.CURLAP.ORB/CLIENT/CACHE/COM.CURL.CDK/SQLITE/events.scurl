@@ -1,0 +1,89 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+
+{doc-next
+    {purpose
+        Parent class for various SQLite events.
+    }
+}
+{define-class public abstract SQLiteEvent {inherits Event}
+}
+
+{doc-next
+    {purpose
+        {docref Event} sent if {param rollback-events?} {ctext = true}
+        is provided to {docref SQLiteDatabase.default}.
+    }
+}
+{define-class public SQLiteRollbackEvent {inherits SQLiteEvent}
+}
+
+{doc-next
+    {purpose
+        {docref Event} sent if {param commit-events?} {ctext = true}
+        is provided to {docref SQLiteDatabase.default}.
+    }
+}
+{define-class public SQLiteCommitEvent {inherits SQLiteEvent}
+  {doc-next
+    {purpose
+        If set to {ctext true} then commit will be canceled, and
+        the transaction will be rolled back.
+    }
+  }
+  field public consumed?:bool = false
+}
+
+{doc-next
+    {purpose
+        {docref Event} sent if {param update-events?} {ctext = true}
+        is provided to {docref SQLiteDatabase.default}.
+    }
+}
+{define-class public SQLiteUpdateEvent {inherits SQLiteEvent}
+
+  field public constant database-name:String
+
+  field public constant table-name:String
+  {doc-next
+    {purpose
+        Will be {ctext SQLiteOperation.INSERT},
+        {ctext SQLiteOperation.DELETE}, or
+        {ctext SQLiteOperation.UPDATE}.
+    }
+  }
+  field public constant operation:SQLiteOperation
+  {doc-next
+    {purpose
+        Rowid of the affected row, for an update, this is the rowid after
+        the update.
+    }
+  }
+  field public constant rowid:int64
+
+  {constructor public {default
+                          database-name:String,
+                          table-name:String,
+                          operation:SQLiteOperation,
+                          rowid:int64
+                      }
+    set self.database-name = database-name
+    set self.table-name = table-name
+    set self.operation = operation
+    set self.rowid = rowid
+  }
+}

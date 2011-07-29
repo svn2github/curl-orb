@@ -1,4 +1,4 @@
-||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+||| Copyright (C) 1998-2011, Sumisho Computer Systems Corp. All Rights Reserved.
 
 ||| Licensed under the Apache License, Version 2.0 (the "License");
 ||| you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 ||| @author ucai zhang
 |||
 
-{curl 6.0, 7.0 package}
+{curl 6.0, 7.0, 8.0 package}
 {package COM.CURLAP.ORB.GENERATOR.SCREEN,
     {compiler-directives careful? = true}
 }
@@ -39,7 +39,7 @@
 
 || For version 7.0
 {api-version-switch
- case "7.0+" do
+ case "8.0+", "7.0+" do
     || do nothing
  case "6.0+" do
     {import * from COM.CURL.GUI.STYLED-CONTROLS}

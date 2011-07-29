@@ -1,4 +1,4 @@
-||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+||| Copyright (C) 1998-2011, Sumisho Computer Systems Corp. All Rights Reserved.
 
 ||| Licensed under the Apache License, Version 2.0 (the "License");
 ||| you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 ||| @author Hitoshi Okada
 |||
 
-{curl 6.0, 7.0 package}
+{curl 6.0, 7.0, 8.0 package}
 {package COM.CURLAP.ORB.COMMON}
 
 {import public * from CURL.IO.HTTP}

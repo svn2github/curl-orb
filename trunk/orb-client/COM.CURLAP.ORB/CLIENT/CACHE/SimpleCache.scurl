@@ -63,9 +63,34 @@
     }
   }
   
+  {method public {keys-to-Iterator}:{Iterator-of String}
+    {return {self.cache-table.keys-to-Iterator}}
+  }
+  
+  {method public {to-Iterator}:{Iterator-of any}
+    {return {self.cache-table.to-Iterator}}
+  }
+  
   {method public {object-serialize out:SerializeOutputStream}:void
     {super.object-serialize out}
     {serialize-vars out, compact? = true, self.cache-table}
+  }
+  
+  
+  || override
+  {method public {object-describe
+                         out:TextOutputStream,
+                         locale:Locale
+                 }:void
+    {format 
+        out = out,
+        locale = locale,
+        "[SimpleCache name=%s] ",
+        self.name
+    }
+    {for v key k in self.cache-table do
+        {out.write-one-string {format "%s=%s ", k, v}}
+    }
   }
   
   || constructor

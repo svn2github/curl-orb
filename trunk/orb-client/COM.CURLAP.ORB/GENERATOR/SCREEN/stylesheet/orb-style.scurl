@@ -1,4 +1,4 @@
-||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp. All Rights Reserved.
+||| Copyright (C) 1998-2011, Sumisho Computer Systems Corp. All Rights Reserved.
 
 ||| Licensed under the Apache License, Version 2.0 (the "License");
 ||| you may not use this file except in compliance with the License.
@@ -25,9 +25,9 @@
                         prefix:String,
                         margin-spec:OffsetSpec = {OffsetSpec 0px},
                         draw-bottom-edge?:bool = true,
-                        || For version 7.0
+                        || For version 6.0
                         {api-version-switch
-                         case "7.0+" do
+                         case "7.0+", "8.0+" do
                             overlay-decoration:#SkinOverlayDecoration = null
                          case "6.0+" do
                             overlay-decoration:#ShadedOverlayDecoration = null
