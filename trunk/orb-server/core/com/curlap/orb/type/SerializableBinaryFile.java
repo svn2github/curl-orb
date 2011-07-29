@@ -16,13 +16,13 @@ package com.curlap.orb.type;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.FileNotFoundException;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
-import com.curl.io.serialize.types.ByteArray;
+import curl.language.containers.ByteArray;
 
 /**
  * A serializable binary file class to download and upload.
@@ -82,7 +82,7 @@ public class SerializableBinaryFile extends AbstractSerializableFile implements 
     {
         fileDescriptor.clear();
         bytes = (ByteArray)content;
-        fileDescriptor.put(RESERVED_KEY_SIZE, bytes.getByteArray().length);
+        fileDescriptor.put(RESERVED_KEY_SIZE, bytes.getRawBytes().length);
     }
     
     @Override
@@ -92,7 +92,7 @@ public class SerializableBinaryFile extends AbstractSerializableFile implements 
         try
         {
             stream = new FileOutputStream(new File(url));
-            stream.write(bytes.getByteArray());
+            stream.write(bytes.getRawBytes());
         }
         catch (FileNotFoundException e)
         {

@@ -18,10 +18,11 @@ import java.util.Date;
 
 import junit.framework.TestCase;
 
-import com.curl.io.serialize.types.DateTime;
 import com.curlap.orb.type.SerializableRecordData;
 import com.curlap.orb.type.SerializableRecordField;
 import com.curlap.orb.type.SerializableRecordSet;
+
+import curl.language.date_time.DateTime;
 
 /**
  * SerializableRecordSetTest
@@ -58,7 +59,7 @@ public class SerializableRecordSetTest extends TestCase
         	SerializableRecordData record = (SerializableRecordData)records.getRecord(i);
             assertEquals("RecordSet test", record.get("name"), "str" + i);
             assertEquals("RecordSet test", record.get("money"), i);
-            assertTrue("RecordSet test", ((DateTime)record.get("date")).data.getDate().compareTo(new Date()) <= 0);
+            assertTrue("RecordSet test", ((DateTime)record.get("date")).getData().getDate().compareTo(new Date()) <= 0);
         }
         
         // clear

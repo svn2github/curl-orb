@@ -1,6 +1,6 @@
 package tests2;
 
-import com.curl.io.serialize.types.DateTime;
+import curl.language.date_time.DateTime;
 
 
 public class ComplexTypeDto implements java.io.Serializable

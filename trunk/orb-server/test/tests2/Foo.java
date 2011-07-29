@@ -14,8 +14,9 @@ import tests1.NullIndexDto;
 import tests1.Person;
 import tests1.StringDto;
 
-import com.curl.io.serialize.types.DateTime;
 import com.curlap.orb.security.RemoteService;
+
+import curl.language.date_time.DateTime;
 
 @Service("foo2")
 @RemoteService

@@ -8,13 +8,14 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.curl.io.serialize.types.DateTime;
 import com.curlap.orb.security.RemoteService;
 import com.curlap.orb.type.CTimestamp;
 import com.curlap.orb.type.DataTypeException;
 import com.curlap.orb.type.SerializableRecordData;
 import com.curlap.orb.type.SerializableRecordField;
 import com.curlap.orb.type.SerializableRecordSet;
+
+import curl.language.date_time.DateTime;
 
 //application context or session class
 @Service("foo1")

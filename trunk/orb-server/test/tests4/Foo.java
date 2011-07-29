@@ -8,9 +8,10 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import com.curl.io.serialize.types.ByteArray;
-import com.curl.io.serialize.types.DateTime;
 import com.curlap.orb.type.SerializableRecordSet;
+
+import curl.language.containers.ByteArray;
+import curl.language.date_time.DateTime;
 
 //import curl.serialize.types.data_access.base.DefaultRecordData;
 

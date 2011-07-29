@@ -94,8 +94,11 @@ public class AdvancedSerializer6_0 extends Serializer6_0 {
 	/** protected and private methods **/
 
 	/** override **/
-	protected void writeCommon(Object val) throws SerializeException, IOException {	
-		super.writeCommon(AdvancedSerializerUtil.writeCommon(val));
+//	protected void writeCommon(Object val, boolean isCompact) throws SerializeException, IOException {	
+//		super.writeCommon(AdvancedSerializerUtil.writeCommon(val), isCompact);
+//	}
+	protected void writeCommon(Object val, boolean isCompact) throws SerializeException, IOException {	
+		super.writeCommon(AdvancedSerializerUtil.writeCommon(val), isCompact);
 	}
 
 	// First convert the java.sql.* type array or java.math.* type array to 

@@ -8,6 +8,7 @@ import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
@@ -18,10 +19,10 @@ import com.curlap.orb.security.RemoteService;
 public class ComplexTypeService 
 {
 	public ComplexTypeDto echoComplexType(ComplexTypeDto dto) {
-		//Map<String, Map<String, String>> hashInHash = dto.getHashInHash();
-		//for (Map.Entry<String, Map<String, String>> e : hashInHash.entrySet()) {
-		//	System.out.println(e.getKey() + " " + e.getValue());
-		//}
+		Map<String, Map<String, String>> hashInHash = dto.getHashInHash();
+		for (Map.Entry<String, Map<String, String>> e : hashInHash.entrySet()) {
+			System.out.println(e.getKey() + " " + e.getValue());
+		}
 		return dto;
 	}
 	

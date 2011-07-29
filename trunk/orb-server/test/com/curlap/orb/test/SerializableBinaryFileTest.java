@@ -18,13 +18,14 @@
 
 package com.curlap.orb.test;
 
-import com.curl.io.serialize.types.ByteArray;
+import junit.framework.TestCase;
+
 import com.curlap.orb.type.AbstractSerializableFile;
 import com.curlap.orb.type.DataTypeException;
 import com.curlap.orb.type.SerializableBinaryFile;
 import com.curlap.orb.type.SerializableTextFile;
 
-import junit.framework.TestCase;
+import curl.language.containers.ByteArray;
 
 /**
  * SerializableBinaryTest
@@ -38,7 +39,7 @@ public class SerializableBinaryFileTest extends TestCase
     {
         byte[] bytes = new byte[]{'t', 'e', 's', 't'};
 
-        // write
+        // writes
         AbstractSerializableFile writer = new SerializableBinaryFile();
         writer.setContent(new ByteArray(bytes));
         assertEquals("SerializableBinary test", 
@@ -57,7 +58,7 @@ public class SerializableBinaryFileTest extends TestCase
                 reader.getFileDescriptor().get(reader.RESERVED_KEY_SIZE),
                 bytes.length
         );
-        byte[] tmp = ((ByteArray)reader.getContent()).getByteArray();
+        byte[] tmp = ((ByteArray)reader.getContent()).getRawBytes();
         for (int i = 0; i < bytes.length; i++)
             assertEquals("SerializableBinary test", bytes[i], tmp[i]);
     }

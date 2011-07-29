@@ -18,13 +18,14 @@ import org.springframework.stereotype.Service;
 
 import tests1.TestException1;
 
-import com.curl.io.serialize.types.ByteArray;
-import com.curl.io.serialize.types.DateTime;
 import com.curlap.orb.security.RemoteService;
 import com.curlap.orb.type.CTimestamp;
 import com.curlap.orb.type.SerializableRecordData;
 import com.curlap.orb.type.SerializableRecordField;
 import com.curlap.orb.type.SerializableRecordSet;
+
+import curl.language.containers.ByteArray;
+import curl.language.date_time.DateTime;
 
 //This class is special for SerializableRecordSet test.
 @Service("RecordSetTest")
