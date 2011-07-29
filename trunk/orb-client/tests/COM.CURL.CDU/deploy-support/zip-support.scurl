@@ -26,6 +26,7 @@
                         directory:Url
                     }:Url
 
+    || find zip command
     def zip-exec-loc =
         {platform-switch
          case "win32" do
@@ -38,38 +39,41 @@
                 locs[0]}
           else
             {error {lmessage create-zip-archive: only defined for windows platform}}}
-    
+    def zip-exec-path = {non-null zip-exec-loc.local-filename}
+
+    || verify subject directory
     {if not {local-directory-exists? directory} then
         {error {lmessage create-zip-archive:
                    directory '{value directory}' does not exist.}}}
 
+    || path and file names
     def zip-directory-name = directory.filename
     def zip-archive-loc = {directory.set-extension ".zip"}
     def zip-archive-name = zip-archive-loc.filename
-    
+    def zip-archive-path = {non-null zip-archive-loc.parent.local-filename}
+
+    || zip command
+    || - NOTE: avoid 'set-host-working-directory-url'
+    || - may cause run-host-shell to fail
     def zip-command-pattern =
-        "%s a -r -tzip %s %s"
-    let zip-exec-filename:String = {non-null zip-exec-loc.local-filename}
-    || guard against spaces in directory name
-    {if {zip-exec-filename.find ' '} >= 0 then
-        set zip-exec-filename =
-            {format |""%s""|, zip-exec-filename}}
+        |"cd "%s" && "%s" a -r -tzip %s %s"|
     def zip-command =
         {format zip-command-pattern,
-            zip-exec-filename,
+            zip-archive-path,
+            zip-exec-path,
             zip-archive-name,
             zip-directory-name}
 
+    || delete existing archive, if any
     {if {local-file-exists? zip-archive-loc} then
         {delete zip-archive-loc}}
-    
-    {set-host-working-directory-url directory.parent}
-||--    {output {message PWD: {value directory.parent.local-filename}}}
-||--    {output {message RUN: {value zip-command}}}
+
+    || execute zip command
     {run-host-shell
         suppress-console-window? = true,
         zip-command}
-    
+
+    || verify successful operation
     {assert {local-file-exists? zip-archive-loc}}
     {return zip-archive-loc}
 }

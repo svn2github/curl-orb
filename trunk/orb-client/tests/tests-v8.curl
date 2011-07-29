@@ -1,6 +1,4 @@
-||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
-|||
-||| An OpenCurl project.
+||| Copyright (C) 1998-2011, Sumisho Computer Systems Corp. All Rights Reserved.
 
 ||| Licensed under the Apache License, Version 2.0 (the "License");
 ||| you may not use this file except in compliance with the License.
@@ -14,20 +12,26 @@
 ||| See the License for the specific language governing permissions and
 ||| limitations under the License.
 
-{curl 6.0, 7.0, 8.0 package}
-{package COM.CURL.CDU.CURL-UNIT-UI,
-    version = "0.3",
-    {compiler-directives careful? = true}
-}
+|||
+||| @author Hitoshi Okada
+|||
 
-{import * from CURL.GUI.STANDARD}
-{import * from CURL.UTIL.OBSERVER}
+|| do tests for v8.0
+{curl 8.0 applet}
+{applet manifest = "manifest.mcurl"}
+
 {import * from COM.CURL.CDU.CURL-UNIT}
+{import * from COM.CURL.CDU.CURL-UNIT-UI}
+{include "test-list.scurl"}
 
-{include
-    "support.scurl",
-    "tree.scurl",
-    "panes.scurl",
-    "counter.scurl",
-    "ui.scurl"
+{document-style PlainDocument}
+{set-document-properties hstretch? = true, vstretch? = true}
+
+{value
+    set TestTarget.current = {RecordSetTestTarget}
+    def suite = {get-suite}
+    {Frame
+        width = 20cm, height = 15cm,
+        {test-ui suite}
+    }
 }

@@ -465,6 +465,8 @@
             {TestCondition.assert dto.clobs.size == 0}
             {TestCondition.assert dto.dts.size == 0}
             {TestCondition.assert dto.hashInHash.size == 4}
+            {dump dto.hashInHash["key1"]["k1"], dto.hashInHash["key1"]["k2"]}
+            
             {TestCondition.assert dto.hashInHash["key1"]["k1"] == "v1"}
             {TestCondition.assert dto.hashInHash["key1"]["k2"] == "k2"}
             {TestCondition.assert dto.hashInHash["key2"]["k10"] == "v10"}
@@ -477,65 +479,65 @@
             {TestCondition.fail message = "Not return complex types"}
         }
 
-        || ComplexType2 (some date types)
-        let date-dto:DateDto = {non-null {{DateTest}.get-dto}}
-        {TestCondition.assert-isa Date, date-dto.date}
-        {TestCondition.assert-isa CDate, date-dto.cdate}
-        {TestCondition.assert-isa CTime, date-dto.ctime}
-        {TestCondition.assert-isa CTimestamp, date-dto.ctimestamp}
-        {TestCondition.assert-isa Date, date-dto.date1}
-        {TestCondition.assert-isa Date, date-dto.date2}
-        {TestCondition.assert-isa Date, date-dto.date3}
-        {TestCondition.assert-isa DateTime, date-dto.datetime}
-        
-        || ComplexType3
-        set inputDto = {ComplexTypeDto}
-        set inputDto.big-integer = {BigInteger.from-String "10000"}
-        set inputDto.big-decimal = {BigDecimal.from-double 1000.00}
-        set inputDto.date = {Date}
-        set inputDto.sql-date = {CDate 20000}
-        set inputDto.sql-time = null
-        set inputDto.sql-timestamp = {CTimestamp 20000}
-        set inputDto.blobs = {{FastArray-of #Blob} {Blob {{Array-of byte} 'z'}}, {Blob {{Array-of byte} 'z'}}}
-        set inputDto.clobs = {{FastArray-of #Clob} {Clob {{Array-of char} 'a'}}, {Clob {{Array-of char} 'z'}}}
-        set inputDto.dts = {{FastArray-of #DateTime} {DateTime}, {DateTime}}
-        set inputDto.hashInHash = 
-            {HashTable
-                "key1",
-                {HashTable
-                    "k1", "v1", 
-                    "k2", "k2"
-                },
-                "key2",
-                {HashTable},
-                "key3",
-                {HashTable},
-                "key4",
-                {HashTable
-                    "k100", "v100",
-                    "k200", "k200"
-                }
-            }
-        {if-non-null dto:ComplexTypeDto = {ct.echo-complex-type inputDto} then
-            {TestCondition.assert-isa BigInteger, dto.big-integer}
-            {TestCondition.assert-isa BigDecimal, dto.big-decimal}
-            {TestCondition.assert-isa Date, dto.date}
-            {TestCondition.assert-isa CDate, dto.sql-date}
-            {TestCondition.assert dto.sql-time == null}
-            {TestCondition.assert-isa CTimestamp, dto.sql-timestamp}
-            {TestCondition.assert dto.blobs.size == 2}
-            {TestCondition.assert dto.clobs.size == 2}
-            {TestCondition.assert dto.dts.size == 2}
-            {TestCondition.assert dto.hashInHash.size == 4}
-            {TestCondition.assert dto.hashInHash["key1"]["k1"] == "v1"}
-            {TestCondition.assert dto.hashInHash["key1"]["k2"] == "k2"}
-            {TestCondition.assert dto.hashInHash["key2"].size == 0}
-            {TestCondition.assert dto.hashInHash["key3"].size == 0}
-            {TestCondition.assert dto.hashInHash["key4"]["k100"] == "v100"}
-            {TestCondition.assert dto.hashInHash["key4"]["k200"] == "k200"}
-         else
-            {TestCondition.fail message = "Not return complex types"}
-        }
+||++    || ComplexType2 (some date types)
+||++    let date-dto:DateDto = {non-null {{DateTest}.get-dto}}
+||++    {TestCondition.assert-isa Date, date-dto.date}
+||++    {TestCondition.assert-isa CDate, date-dto.cdate}
+||++    {TestCondition.assert-isa CTime, date-dto.ctime}
+||++    {TestCondition.assert-isa CTimestamp, date-dto.ctimestamp}
+||++    {TestCondition.assert-isa Date, date-dto.date1}
+||++    {TestCondition.assert-isa Date, date-dto.date2}
+||++    {TestCondition.assert-isa Date, date-dto.date3}
+||++    {TestCondition.assert-isa DateTime, date-dto.datetime}
+||++    
+||++    || ComplexType3
+||++    set inputDto = {ComplexTypeDto}
+||++    set inputDto.big-integer = {BigInteger.from-String "10000"}
+||++    set inputDto.big-decimal = {BigDecimal.from-double 1000.00}
+||++    set inputDto.date = {Date}
+||++    set inputDto.sql-date = {CDate 20000}
+||++    set inputDto.sql-time = null
+||++    set inputDto.sql-timestamp = {CTimestamp 20000}
+||++    set inputDto.blobs = {{FastArray-of #Blob} {Blob {{Array-of byte} 'z'}}, {Blob {{Array-of byte} 'z'}}}
+||++    set inputDto.clobs = {{FastArray-of #Clob} {Clob {{Array-of char} 'a'}}, {Clob {{Array-of char} 'z'}}}
+||++    set inputDto.dts = {{FastArray-of #DateTime} {DateTime}, {DateTime}}
+||++    set inputDto.hashInHash = 
+||++        {HashTable
+||++            "key1",
+||++            {HashTable
+||++                "k1", "v1", 
+||++                "k2", "k2"
+||++            },
+||++            "key2",
+||++            {HashTable},
+||++            "key3",
+||++            {HashTable},
+||++            "key4",
+||++            {HashTable
+||++                "k100", "v100",
+||++                "k200", "k200"
+||++            }
+||++        }
+||++    {if-non-null dto:ComplexTypeDto = {ct.echo-complex-type inputDto} then
+||++        {TestCondition.assert-isa BigInteger, dto.big-integer}
+||++        {TestCondition.assert-isa BigDecimal, dto.big-decimal}
+||++        {TestCondition.assert-isa Date, dto.date}
+||++        {TestCondition.assert-isa CDate, dto.sql-date}
+||++        {TestCondition.assert dto.sql-time == null}
+||++        {TestCondition.assert-isa CTimestamp, dto.sql-timestamp}
+||++        {TestCondition.assert dto.blobs.size == 2}
+||++        {TestCondition.assert dto.clobs.size == 2}
+||++        {TestCondition.assert dto.dts.size == 2}
+||++        {TestCondition.assert dto.hashInHash.size == 4}
+||++        {TestCondition.assert dto.hashInHash["key1"]["k1"] == "v1"}
+||++        {TestCondition.assert dto.hashInHash["key1"]["k2"] == "k2"}
+||++        {TestCondition.assert dto.hashInHash["key2"].size == 0}
+||++        {TestCondition.assert dto.hashInHash["key3"].size == 0}
+||++        {TestCondition.assert dto.hashInHash["key4"]["k100"] == "v100"}
+||++        {TestCondition.assert dto.hashInHash["key4"]["k200"] == "k200"}
+||++     else
+||++        {TestCondition.fail message = "Not return complex types"}
+||++    }
     },
 
     ||

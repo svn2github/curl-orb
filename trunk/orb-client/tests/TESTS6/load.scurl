@@ -1,4 +1,4 @@
-{curl 6.0, 7.0 package} 
+{curl 6.0, 7.0, 8.0 package} 
 {package TESTS6,
    {compiler-directives careful? = true}
 } 

@@ -14,7 +14,7 @@
 ||| See the License for the specific language governing permissions and
 ||| limitations under the License.
 
-{curl 7.0, 6.0 package}
+{curl 6.0, 7.0, 8.0 package}
 {package COM.CURL.CDU.CURL-UNIT,
     version = "0.3",
     {compiler-directives careful? = true}

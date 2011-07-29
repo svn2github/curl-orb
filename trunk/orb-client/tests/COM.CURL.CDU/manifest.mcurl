@@ -14,24 +14,9 @@
 ||| See the License for the specific language governing permissions and
 ||| limitations under the License.
 
-{curl 7.0, 6.0 manifest}
+{curl 6.0, 7.0, 8.0 manifest}
 
-{manifest COM.CURL.CDU,
-    version = "0.3"}
-
-{component package COM.CURL.CDU.CURL-UNIT,
-    location = "CurlUnit/base/load.scurl"}
-
-{component package COM.CURL.CDU.CURL-UNIT-UI,
-    location = "CurlUnit/ui/load.scurl"}
-
-{component package COM.CURL.CDU.DEPLOY-SUPPORT,
-    location = "deploy-support/load.scurl"}
-
-
-
-
-
-
-
-
+{manifest COM.CURL.CDU, version = "0.3"}
+{component package COM.CURL.CDU.CURL-UNIT, location = "CurlUnit/base/load.scurl"}
+{component package COM.CURL.CDU.CURL-UNIT-UI, location = "CurlUnit/ui/load.scurl"}
+{component package COM.CURL.CDU.DEPLOY-SUPPORT, location = "deploy-support/load.scurl"}

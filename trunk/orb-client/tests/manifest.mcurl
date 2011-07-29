@@ -16,7 +16,7 @@
 ||| @author Hitoshi Okada
 |||
 
-{curl 6.0, 7.0 manifest}
+{curl 6.0, 7.0, 8.0 manifest}
 {manifest TESTS}
 
 || ORB packages
@@ -40,6 +40,9 @@
 }
 {component file tests-v7.curl,
     location = "tests-v7.curl"
+}
+{component file tests-v8.curl,
+    location = "tests-v8.curl"
 }
 {component file test-list.scurl,
     location = "test-list.scurl"

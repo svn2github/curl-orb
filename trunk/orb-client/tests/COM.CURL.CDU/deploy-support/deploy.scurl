@@ -60,8 +60,8 @@
   field public target-root:Url
   field public preview?:bool
   {constructor public {default
-                          source-root:Url = {get-the-applet}.url,
-                          target-root:Url = {get-the-applet}.url,
+                          source-root:Url = {get-working-directory-url},
+                          target-root:Url = {get-working-directory-url},
                           preview?:bool = false}
     set self.source-root = source-root
     set self.target-root = target-root
@@ -435,7 +435,7 @@
                  case file:LocalFile do
                     def loc = file.url
                     {switch loc.extension
-                     case ".curl", ".mcurl" do
+                     case ".curl", ".mcurl", ".dcurl", ".xcurl" do
                         {replace-version-herald loc,
                             version-string = version-string,
                             strict? = strict?}                        
