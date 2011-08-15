@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<translation-dictionary version="2">
+
+<string>
+<original>A selector pattern may not contain white space.</original>
+<translation>セレクタ パターンは空白を含むことができません。</translation>
+</string>
+
+<string>
+<original>All insets must be positive and below max-int.</original>
+<translation>全ての inset は、正の値か max-int より小さい値でなければなりません。</translation>
+</string>
+
+<string>
+<original>At most 4 int values may be specified</original>
+<translation>最大で 4 つの int 値を指定することが可能です。</translation>
+</string>
+
+<string>
+<original>Cannot set empty String as a content tag.</original>
+<translation>コンテント タグには空文字を設定できません。</translation>
+</string>
+
+<string>
+<original>Internal error</original>
+<translation>内部エラー</translation>
+</string>
+
+<string>
+<original>Internal error: content-tag is null</original>
+<translation>内部エラー：content-tag が null です。</translation>
+</string>
+
+<string>
+<original>Selector must be a String</original>
+<translation>セレクタは String でなければなりません。</translation>
+</string>
+
+<string>
+<original>Selectors must appear before bindings.</original>
+<translation>セレクタは、バインディングより前に現れなければなりません。</translation>
+</string>
+
+<string>
+<original>Style sheets must appear before rules.</original>
+<translation>スタイル シートは、ルールより前に現れなければなりません。</translation>
+</string>
+
+<string>
+<original>The sum of highlight-boundary plus highlight-gap must be less than 1.0.</original>
+<translation>highlight-boundary と highlight-gap の合計は、1.0 より小さくなければなりません。</translation>
+</string>
+
+<string>
+<original>There must be a selector before the bindings.</original>
+<translation>バインディングより前にセレクタが存在しなければなりません。</translation>
+</string>
+
+<string>
+<original>Unknown option %1!s! for %2!s!</original>
+<translation>%2!s! に対する、未知のオプション %1!s! です。</translation>
+</string>
+
+<string>
+<original>Unrecognized decoration name %s.</original>
+<translation>認識されていないデコレーション名 %s です。</translation>
+</string>
+
+<string>
+<original>When installing a StyledLookAndFeel, the-default-look-and-feel.target-look-and-feel must be a StandardLookAndFeel.</original>
+<translation>StyledLookAndFeel をインストールする時は、the-default-look-and-feel.target-look-and-feel が StandardLookAndFeel でなければなりません。</translation>
+</string>
+
+
+</translation-dictionary>
