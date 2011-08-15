@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.servlet;
+package com.curl.orb.servlet;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -31,13 +31,13 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.curlap.orb.common.ExceptionContent;
-import com.curlap.orb.common.InstanceManagementException;
-import com.curlap.orb.common.InstanceManagementRequest;
-import com.curlap.orb.common.InstanceManagementResponse;
-import com.curlap.orb.io.AbstractSerializer;
-import com.curlap.orb.io.SerializerException;
-import com.curlap.orb.io.SerializerFactory;
+import com.curl.orb.common.ExceptionContent;
+import com.curl.orb.common.InstanceManagementException;
+import com.curl.orb.common.InstanceManagementRequest;
+import com.curl.orb.common.InstanceManagementResponse;
+import com.curl.orb.io.AbstractSerializer;
+import com.curl.orb.io.SerializerException;
+import com.curl.orb.io.SerializerFactory;
 
 /**
  * Default Filter of Curl ORB. This filter serialize and deserialize DTO (Data Transfer Object), and then, handle exceptions.

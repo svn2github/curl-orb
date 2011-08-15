@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.client;
+package com.curl.orb.client;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -28,14 +28,14 @@ import org.apache.commons.httpclient.cookie.CookiePolicy;
 import org.apache.commons.httpclient.methods.ByteArrayRequestEntity;
 import org.apache.commons.httpclient.methods.PostMethod;
 
-import com.curlap.orb.common.ExceptionContent;
-import com.curlap.orb.common.InstanceManagementRequest;
-import com.curlap.orb.common.InstanceManagementResponse;
-import com.curlap.orb.io.AbstractSerializer;
-import com.curlap.orb.io.CurlSerializableStreamReader;
-import com.curlap.orb.io.SerializableStreamReader;
-import com.curlap.orb.io.SerializerException;
-import com.curlap.orb.io.SerializerFactory;
+import com.curl.orb.common.ExceptionContent;
+import com.curl.orb.common.InstanceManagementRequest;
+import com.curl.orb.common.InstanceManagementResponse;
+import com.curl.orb.io.AbstractSerializer;
+import com.curl.orb.io.CurlSerializableStreamReader;
+import com.curl.orb.io.SerializableStreamReader;
+import com.curl.orb.io.SerializerException;
+import com.curl.orb.io.SerializerFactory;
 
 /**
  * Client utility.

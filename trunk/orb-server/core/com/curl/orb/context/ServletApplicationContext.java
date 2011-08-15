@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.context;
+package com.curl.orb.context;
 
 import java.util.Enumeration;
 import java.util.Vector;
@@ -42,7 +42,7 @@ public class ServletApplicationContext extends AbstractApplicationContext
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.curlap.orb.context.AbstractApplicationContext#getObject(java.lang.String)
+	 * @see com.curl.orb.context.AbstractApplicationContext#getObject(java.lang.String)
 	 */
 	@Override
 	public Object getObject(String name) throws ApplicationContextException
@@ -52,7 +52,7 @@ public class ServletApplicationContext extends AbstractApplicationContext
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.curlap.orb.context.AbstractApplicationContext#setObject(java.lang.String, java.lang.Object)
+	 * @see com.curl.orb.context.AbstractApplicationContext#setObject(java.lang.String, java.lang.Object)
 	 */
 	@Override
 	public void setObject(String name, Object value) throws ApplicationContextException
@@ -62,7 +62,7 @@ public class ServletApplicationContext extends AbstractApplicationContext
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.curlap.orb.context.AbstractApplicationContext#getObjectNames()
+	 * @see com.curl.orb.context.AbstractApplicationContext#getObjectNames()
 	 */
 	@Override
 	public String[] getObjectNames() throws ApplicationContextException
@@ -79,7 +79,7 @@ public class ServletApplicationContext extends AbstractApplicationContext
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.curlap.orb.context.AbstractApplicationContext#getObjectType(java.lang.String)
+	 * @see com.curl.orb.context.AbstractApplicationContext#getObjectType(java.lang.String)
 	 */
 	@Override
 	public Class<?> getObjectType(String name) throws ApplicationContextException

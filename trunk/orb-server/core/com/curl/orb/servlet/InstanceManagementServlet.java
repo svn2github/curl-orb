@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.servlet;
+package com.curl.orb.servlet;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -23,14 +23,14 @@ import javax.servlet.http.HttpSession;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.curlap.orb.common.InstanceManagementException;
-import com.curlap.orb.common.OnetimeTrue;
-import com.curlap.orb.common.RemoteObject;
-import com.curlap.orb.context.AbstractApplicationContext;
-import com.curlap.orb.context.ApplicationContextFactory;
-import com.curlap.orb.generator.ClassPathLoader;
-import com.curlap.orb.generator.GeneratorException;
-import com.curlap.orb.security.Environment;
+import com.curl.orb.common.InstanceManagementException;
+import com.curl.orb.common.OnetimeTrue;
+import com.curl.orb.common.RemoteObject;
+import com.curl.orb.context.AbstractApplicationContext;
+import com.curl.orb.context.ApplicationContextFactory;
+import com.curl.orb.generator.ClassPathLoader;
+import com.curl.orb.generator.GeneratorException;
+import com.curl.orb.security.Environment;
 
 /**
  * Abstract servlet to manage instance
@@ -43,12 +43,12 @@ public abstract class InstanceManagementServlet extends HttpServlet
 	private static final long serialVersionUID = 1L;
 
 	// reserved strings
-	static final String REQUEST_OBJECT = "com.curlap.orb.internal-request-object";
-	static final String RESPONSE_OBJECT = "com.curlap.orb.internal-response-object";
-	static final String RESPONSE_SUBORDINATE_OBJECT = "com.curlap.orb.internal-response-subordinate-object";
-	static final String ENVIRONMENT = "com.curlap.orb.environment";
-	static final String GENERATOR_FILTER = "com.curlap.orb.generator.filter";
-	static final String GENERATOR_LOAD_FILETYPE = "com.curlap.orb.generator.load-filetype";
+	static final String REQUEST_OBJECT = "com.curl.orb.internal-request-object";
+	static final String RESPONSE_OBJECT = "com.curl.orb.internal-response-object";
+	static final String RESPONSE_SUBORDINATE_OBJECT = "com.curl.orb.internal-response-subordinate-object";
+	static final String ENVIRONMENT = "com.curl.orb.environment";
+	static final String GENERATOR_FILTER = "com.curl.orb.generator.filter";
+	static final String GENERATOR_LOAD_FILETYPE = "com.curl.orb.generator.load-filetype";
 
 	// enabled an access control
 	static Environment environment = null; // none

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.test;
+package com.curl.orb.test;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -23,7 +23,7 @@ import java.util.Map;
 
 import junit.framework.TestCase;
 
-import com.curlap.orb.servlet.InstanceManagementUtil;
+import com.curl.orb.servlet.InstanceManagementUtil;
 
 /**
  * ReflectionUtilTest

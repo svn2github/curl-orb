@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.client;
+package com.curl.orb.client;
 
 import java.util.HashMap;
 
-import com.curlap.orb.common.DestroyInstanceRequest;
-import com.curlap.orb.common.InvokeHttpSessionRequest;
-import com.curlap.orb.common.NewInstanceRequest;
+import com.curl.orb.common.DestroyInstanceRequest;
+import com.curl.orb.common.InvokeHttpSessionRequest;
+import com.curl.orb.common.NewInstanceRequest;
 
 /**
  * Client to invoke a method of object managed on HttpSession.
@@ -222,7 +222,7 @@ public class HttpSessionClient {
 		InvokeHttpSessionRequest request = new InvokeHttpSessionRequest();
 		if (isStream) {
 			request.setHeader(new HashMap<Object, Object>());
-			request.getHeader().put("com.curlap.orb.internal-stream-response", true);
+			request.getHeader().put("com.curl.orb.internal-stream-response", true);
 		}
 		request.setMethodName(methodName);
 		request.setArguments(args);
@@ -335,7 +335,7 @@ public class HttpSessionClient {
 		InvokeHttpSessionRequest request = new InvokeHttpSessionRequest();
 		if (isStream) {
 			request.setHeader(new HashMap<Object, Object>());
-			request.getHeader().put("com.curlap.orb.internal-stream-response", true);
+			request.getHeader().put("com.curl.orb.internal-stream-response", true);
 		}
 		request.setClassName(className);
 		request.setMethodName(methodName);

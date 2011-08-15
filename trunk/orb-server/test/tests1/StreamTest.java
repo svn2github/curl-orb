@@ -1,6 +1,6 @@
 package tests1;
 
-import com.curlap.orb.security.RemoteService;
+import com.curl.orb.security.RemoteService;
 
 @SuppressWarnings("serial")
 @RemoteService

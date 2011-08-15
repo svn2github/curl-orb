@@ -4,7 +4,7 @@
   <!-- InvokeApplicationContextServlet -->
   <servlet>
     <servlet-name>InvokeApplicationContextServlet</servlet-name>
-    <servlet-class>com.curlap.orb.servlet.InvokeApplicationContextServlet</servlet-class>
+    <servlet-class>com.curl.orb.servlet.InvokeApplicationContextServlet</servlet-class>
   </servlet>
   <servlet-mapping>
     <servlet-name>InvokeApplicationContextServlet</servlet-name>
@@ -14,7 +14,7 @@
   <!-- NewInstanceServlet -->
   <servlet>
     <servlet-name>NewInstanceServlet</servlet-name>
-    <servlet-class>com.curlap.orb.servlet.NewInstanceServlet</servlet-class>
+    <servlet-class>com.curl.orb.servlet.NewInstanceServlet</servlet-class>
   </servlet>
   <servlet-mapping>
     <servlet-name>NewInstanceServlet</servlet-name>
@@ -24,7 +24,7 @@
   <!-- InvokeHttpSessionServlet -->
   <servlet>
     <servlet-name>InvokeHttpSessionServlet</servlet-name>
-    <servlet-class>com.curlap.orb.servlet.InvokeHttpSessionServlet</servlet-class>
+    <servlet-class>com.curl.orb.servlet.InvokeHttpSessionServlet</servlet-class>
   </servlet>
   <servlet-mapping>
     <servlet-name>InvokeHttpSessionServlet</servlet-name>
@@ -34,7 +34,7 @@
   <!-- DestroyInstanceServlet -->
   <servlet>
     <servlet-name>DestroyInstanceServlet</servlet-name>
-    <servlet-class>com.curlap.orb.servlet.DestroyInstanceServlet</servlet-class>
+    <servlet-class>com.curl.orb.servlet.DestroyInstanceServlet</servlet-class>
   </servlet>
   <servlet-mapping>
     <servlet-name>DestroyInstanceServlet</servlet-name>
@@ -44,7 +44,7 @@
   <!-- DefaultFilter -->
   <filter>
     <filter-name>DefaultFilter</filter-name>
-    <filter-class>com.curlap.orb.servlet.DefaultInstanceManagementFilter</filter-class>
+    <filter-class>com.curl.orb.servlet.DefaultInstanceManagementFilter</filter-class>
   </filter>
   <filter-mapping>
     <filter-name>DefaultFilter</filter-name>
@@ -74,19 +74,19 @@
         - production
   -->
   <context-param>
-    <param-name>com.curlap.orb.environment</param-name>
+    <param-name>com.curl.orb.environment</param-name>
     <param-value>development</param-value>
   </context-param>
 
   <!-- 
     Curl ORB - DI container integration - (since 0.6)
-      default: com.curlap.orb.context.ServletApplicationContext
-        - spring : com.curlap.orb.context.Spring2_5ApplicationContext
-        - seasar2: com.curlap.orb.context.Seasar2ApplicationContext 
+      default: com.curl.orb.context.ServletApplicationContext
+        - spring : com.curl.orb.context.Spring2_5ApplicationContext
+        - seasar2: com.curl.orb.context.Seasar2ApplicationContext 
   -->
   <context-param>
-    <param-name>com.curlap.orb.applicationContextClass</param-name>
-    <param-value>com.curlap.orb.context.Spring2_5ApplicationContext</param-value>
+    <param-name>com.curl.orb.applicationContextClass</param-name>
+    <param-value>com.curl.orb.context.Spring2_5ApplicationContext</param-value>
   </context-param>
 
   <!-- 
@@ -94,7 +94,7 @@
       NOTE: It is enabled when this environment is development. 
   -->
   <context-param>
-    <param-name>com.curlap.orb.generator.filter</param-name>
+    <param-name>com.curl.orb.generator.filter</param-name>
     <param-value>org.apache.commons.,org.springframework.,org.seasar.,ognl.,org.aopalliance.,junit.</param-value>
   </context-param>
   <!--
@@ -102,7 +102,7 @@
       NOTE: The param-value is chosen "class", "jar" and "both". The default value is "both".
   -->
   <context-param>
-    <param-name>com.curlap.orb.generator.load-filetype</param-name>
+    <param-name>com.curl.orb.generator.load-filetype</param-name>
     <param-value>class</param-value>
   </context-param>
 

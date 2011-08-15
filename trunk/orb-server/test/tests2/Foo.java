@@ -14,7 +14,7 @@ import tests1.NullIndexDto;
 import tests1.Person;
 import tests1.StringDto;
 
-import com.curlap.orb.security.RemoteService;
+import com.curl.orb.security.RemoteService;
 
 import curl.language.date_time.DateTime;
 

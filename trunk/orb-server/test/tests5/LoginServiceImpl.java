@@ -4,7 +4,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.stereotype.Service;
 
-import com.curlap.orb.security.RemoteService;
+import com.curl.orb.security.RemoteService;
 
 /* ログインサービス */
 @RemoteService

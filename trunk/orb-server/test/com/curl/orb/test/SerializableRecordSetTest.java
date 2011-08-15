@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.test;
+package com.curl.orb.test;
 
 import java.util.Date;
 
 import junit.framework.TestCase;
 
-import com.curlap.orb.type.SerializableRecordData;
-import com.curlap.orb.type.SerializableRecordField;
-import com.curlap.orb.type.SerializableRecordSet;
+import com.curl.orb.type.SerializableRecordData;
+import com.curl.orb.type.SerializableRecordField;
+import com.curl.orb.type.SerializableRecordSet;
 
 import curl.language.date_time.DateTime;
 

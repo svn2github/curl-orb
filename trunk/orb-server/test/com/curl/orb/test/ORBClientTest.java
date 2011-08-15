@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.test;
+package com.curl.orb.test;
 
 import junit.framework.TestCase;
 import tests1.Person;
 
-import com.curlap.orb.client.ApplicationContextClient;
-import com.curlap.orb.client.HttpSessionClient;
-import com.curlap.orb.client.ORBClientException;
+import com.curl.orb.client.ApplicationContextClient;
+import com.curl.orb.client.HttpSessionClient;
+import com.curl.orb.client.ORBClientException;
 
 /**
  * ORBClientTest

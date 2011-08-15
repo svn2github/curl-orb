@@ -1,10 +1,10 @@
 package tests1;
 
-import com.curlap.orb.security.RemoteService;
-import com.curlap.orb.type.DataTypeException;
-import com.curlap.orb.type.SerializableRecordData;
-import com.curlap.orb.type.SerializableRecordField;
-import com.curlap.orb.type.SerializableRecordSet;
+import com.curl.orb.security.RemoteService;
+import com.curl.orb.type.DataTypeException;
+import com.curl.orb.type.SerializableRecordData;
+import com.curl.orb.type.SerializableRecordField;
+import com.curl.orb.type.SerializableRecordSet;
 
 @RemoteService
 public class TestTestTest {

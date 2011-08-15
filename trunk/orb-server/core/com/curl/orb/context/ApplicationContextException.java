@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.context;
+package com.curl.orb.context;
 
 /**
  * Exception thrown during application context operation.

@@ -2,7 +2,7 @@ package tests3;
 
 import tests1.TestException1;
 
-import com.curlap.orb.security.RemoteService;
+import com.curl.orb.security.RemoteService;
 
 @RemoteService
 public class WrapperClassTester {

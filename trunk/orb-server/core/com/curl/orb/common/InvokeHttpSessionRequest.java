@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.common;
+package com.curl.orb.common;
 
 import java.util.Arrays;
 
@@ -42,7 +42,7 @@ public class InvokeHttpSessionRequest extends InstanceManagementRequest
 	}
 
 	/* (non-Javadoc)
-	 * @see com.curlap.orb.common.InstanceManagementRequest#getClassName()
+	 * @see com.curl.orb.common.InstanceManagementRequest#getClassName()
 	 */
 	@Override
 	public String getClassName()

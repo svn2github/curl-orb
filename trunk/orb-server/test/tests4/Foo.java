@@ -8,7 +8,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import com.curlap.orb.type.SerializableRecordSet;
+import com.curl.orb.type.SerializableRecordSet;
 
 import curl.language.containers.ByteArray;
 import curl.language.date_time.DateTime;

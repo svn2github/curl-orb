@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.servlet;
+package com.curl.orb.servlet;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -28,8 +28,8 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.beanutils.ConstructorUtils;
 import org.apache.commons.beanutils.MethodUtils;
 
-import com.curlap.orb.common.InstanceManagementRequest;
-import com.curlap.orb.io.DoNotShare;
+import com.curl.orb.common.InstanceManagementRequest;
+import com.curl.orb.io.DoNotShare;
 
 /**
  * InstanceManagement Utility

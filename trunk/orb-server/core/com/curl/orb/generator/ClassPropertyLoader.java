@@ -12,18 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.generator;
+package com.curl.orb.generator;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.logging.LogFactory;
 
-import com.curlap.orb.context.AbstractApplicationContext;
-import com.curlap.orb.context.ApplicationContextException;
-import com.curlap.orb.context.ApplicationContextFactory;
-import com.curlap.orb.security.Environment;
-import com.curlap.orb.security.RemoteService;
+import com.curl.orb.context.AbstractApplicationContext;
+import com.curl.orb.context.ApplicationContextException;
+import com.curl.orb.context.ApplicationContextFactory;
+import com.curl.orb.security.Environment;
+import com.curl.orb.security.RemoteService;
 
 /**
  * Loader of the class property to generate Curl source code.

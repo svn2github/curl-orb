@@ -4,9 +4,9 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 
-import com.curlap.orb.context.AbstractApplicationContext;
-import com.curlap.orb.context.ApplicationContextFactory;
-import com.curlap.orb.context.ServletApplicationContext;
+import com.curl.orb.context.AbstractApplicationContext;
+import com.curl.orb.context.ApplicationContextFactory;
+import com.curl.orb.context.ServletApplicationContext;
 
 public class TestServletContextLoaderListener implements ServletContextListener
 {

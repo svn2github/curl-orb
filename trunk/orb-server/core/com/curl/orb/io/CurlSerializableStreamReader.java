@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.io;
+package com.curl.orb.io;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -53,7 +53,7 @@ public class CurlSerializableStreamReader implements SerializableStreamReader
     }
     
     /* (non-Javadoc)
-     * @see com.curlap.orb.io.SerializableStreamReader#read()
+     * @see com.curl.orb.io.SerializableStreamReader#read()
      */
     public Object read() throws SerializerException 
     {
@@ -72,7 +72,7 @@ public class CurlSerializableStreamReader implements SerializableStreamReader
     }
 
     /* (non-Javadoc)
-     * @see com.curlap.orb.io.SerializableStreamReader#close()
+     * @see com.curl.orb.io.SerializableStreamReader#close()
      */
     public void close() throws SerializerException 
     {

@@ -2,7 +2,7 @@ package tests2;
 
 import org.springframework.stereotype.Service;
 
-import com.curlap.orb.security.RemoteService;
+import com.curl.orb.security.RemoteService;
 
 // package accessor class
 @Service("nonAccesibleService")

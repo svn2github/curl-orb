@@ -16,14 +16,14 @@
  * @author Hitoshi Okada
  */
 
-package com.curlap.orb.test;
+package com.curl.orb.test;
 
 import junit.framework.TestCase;
 
-import com.curlap.orb.type.AbstractSerializableFile;
-import com.curlap.orb.type.DataTypeException;
-import com.curlap.orb.type.SerializableBinaryFile;
-import com.curlap.orb.type.SerializableTextFile;
+import com.curl.orb.type.AbstractSerializableFile;
+import com.curl.orb.type.DataTypeException;
+import com.curl.orb.type.SerializableBinaryFile;
+import com.curl.orb.type.SerializableTextFile;
 
 import curl.language.containers.ByteArray;
 

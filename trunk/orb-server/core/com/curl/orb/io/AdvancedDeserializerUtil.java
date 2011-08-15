@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.io;
+package com.curl.orb.io;
 
 import java.io.IOException;
 import java.sql.Time;
@@ -22,10 +22,10 @@ import javax.sql.rowset.serial.SerialBlob;
 import javax.sql.rowset.serial.SerialClob;
 
 import com.curl.io.serialize.SerializeException;
-import com.curlap.orb.type.AbstractSerializableProxyType;
-import com.curlap.orb.type.CDate;
-import com.curlap.orb.type.CTime;
-import com.curlap.orb.type.CTimestamp;
+import com.curl.orb.type.AbstractSerializableProxyType;
+import com.curl.orb.type.CDate;
+import com.curl.orb.type.CTime;
+import com.curl.orb.type.CTimestamp;
 
 /**
  * The utility for AdvancedSerializerXX
@@ -43,7 +43,7 @@ public class AdvancedDeserializerUtil {
 	}
 
 	// Overwrite the method covertToArrayType of Deserializer6_0
-	// convert com.curlap.orb.type.* type to java.sql.* or java.math.* type.
+	// convert com.curl.orb.type.* type to java.sql.* or java.math.* type.
 	static Object covertToArrayType(Object componentType) throws SerializeException {
 		if (componentType.equals(CTime.class)) {
 			return Time.class;
@@ -51,15 +51,15 @@ public class AdvancedDeserializerUtil {
 			return Timestamp.class;
 		} else if (componentType.equals(CDate.class)) {
 			return java.sql.Date.class;
-		} else if (componentType.equals(com.curlap.orb.type.Date.class)) {
+		} else if (componentType.equals(com.curl.orb.type.Date.class)) {
 			return java.util.Date.class;
-		} else if (componentType.equals(com.curlap.orb.type.BigInteger.class)) {
+		} else if (componentType.equals(com.curl.orb.type.BigInteger.class)) {
 			return java.math.BigInteger.class;
-		} else if (componentType.equals(com.curlap.orb.type.BigDecimal.class)) {
+		} else if (componentType.equals(com.curl.orb.type.BigDecimal.class)) {
 			return java.math.BigDecimal.class;
-		} else if (componentType.equals(com.curlap.orb.type.Blob.class)) {
+		} else if (componentType.equals(com.curl.orb.type.Blob.class)) {
 			return SerialBlob.class;
-		} else if (componentType.equals(com.curlap.orb.type.Clob.class)) {
+		} else if (componentType.equals(com.curl.orb.type.Clob.class)) {
 			return SerialClob.class;
 		}
 		return componentType;		

@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.test;
+package com.curl.orb.test;
 
 import junit.framework.TestCase;
 
-import com.curlap.orb.security.AccessException;
-import com.curlap.orb.security.Environment;
-import com.curlap.orb.security.RemoteService;
-import com.curlap.orb.security.RemoteServiceAnnotationChecker;
+import com.curl.orb.security.AccessException;
+import com.curl.orb.security.Environment;
+import com.curl.orb.security.RemoteService;
+import com.curl.orb.security.RemoteServiceAnnotationChecker;
 
 /**
  * EnvironmentTest

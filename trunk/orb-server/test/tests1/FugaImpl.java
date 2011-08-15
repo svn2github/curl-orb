@@ -2,7 +2,7 @@ package tests1;
 
 import org.springframework.stereotype.Service;
 
-import com.curlap.orb.security.RemoteService;
+import com.curl.orb.security.RemoteService;
 
 @Service("fuga")
 @RemoteService

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.io;
+package com.curl.orb.io;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -22,10 +22,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.curl.io.serialize.SerializeException;
-import com.curlap.orb.type.AbstractSerializableProxyType;
-import com.curlap.orb.type.CDate;
-import com.curlap.orb.type.CTime;
-import com.curlap.orb.type.CTimestamp;
+import com.curl.orb.type.AbstractSerializableProxyType;
+import com.curl.orb.type.CDate;
+import com.curl.orb.type.CTime;
+import com.curl.orb.type.CTimestamp;
 
 /**
  * The utility for AdvancedSerializerXX
@@ -37,16 +37,16 @@ public class AdvancedSerializerUtil {
 
 	static Map<String, String> convertedTypes = new HashMap<String, String>();
 	static {
-		convertedTypes.put("java.sql.Date;", "com.curlap.orb.type.CDate;");
-		convertedTypes.put("java.util.Date;", "com.curlap.orb.type.Date;");
-		convertedTypes.put("java.sql.Time;", "com.curlap.orb.type.CTime;");
-		convertedTypes.put("java.sql.Timestamp;", "com.curlap.orb.type.CTimestamp;");
-		convertedTypes.put("java.math.BigInteger;", "com.curlap.orb.type.BigInteger;");
-		convertedTypes.put("java.math.BigDecimal;", "com.curlap.orb.type.BigDecimal;");
-		convertedTypes.put("java.sql.Blob;", "com.curlap.orb.type.Blob;");
-		convertedTypes.put("javax.sql.rowset.serial.SerialBlob;", "com.curlap.orb.type.Blob;");
-		convertedTypes.put("java.sql.Clob;", "com.curlap.orb.type.Clob;");
-		convertedTypes.put("javax.sql.rowset.serial.SerialClob;", "com.curlap.orb.type.Clob;");
+		convertedTypes.put("java.sql.Date;", "com.curl.orb.type.CDate;");
+		convertedTypes.put("java.util.Date;", "com.curl.orb.type.Date;");
+		convertedTypes.put("java.sql.Time;", "com.curl.orb.type.CTime;");
+		convertedTypes.put("java.sql.Timestamp;", "com.curl.orb.type.CTimestamp;");
+		convertedTypes.put("java.math.BigInteger;", "com.curl.orb.type.BigInteger;");
+		convertedTypes.put("java.math.BigDecimal;", "com.curl.orb.type.BigDecimal;");
+		convertedTypes.put("java.sql.Blob;", "com.curl.orb.type.Blob;");
+		convertedTypes.put("javax.sql.rowset.serial.SerialBlob;", "com.curl.orb.type.Blob;");
+		convertedTypes.put("java.sql.Clob;", "com.curl.orb.type.Clob;");
+		convertedTypes.put("javax.sql.rowset.serial.SerialClob;", "com.curl.orb.type.Clob;");
 	}
 	
 	static Object writeCommon(Object val) throws SerializeException, IOException {	
@@ -68,7 +68,7 @@ public class AdvancedSerializerUtil {
 			}
 		} else if (val instanceof java.sql.Date || val.equals(java.sql.Date.class)) {
 			if (val.equals(java.sql.Date.class))
-				return com.curlap.orb.type.CDate.class;
+				return com.curl.orb.type.CDate.class;
 			else {
 				AbstractSerializableProxyType date = new CDate();
 				date.injectProperObject(val);
@@ -76,41 +76,41 @@ public class AdvancedSerializerUtil {
 			}
 		} else if (val instanceof java.util.Date || val.equals(java.util.Date.class)) {
 			if (val.equals(java.util.Date.class))
-				return com.curlap.orb.type.Date.class;
+				return com.curl.orb.type.Date.class;
 			else {
-				AbstractSerializableProxyType date = new com.curlap.orb.type.Date();
+				AbstractSerializableProxyType date = new com.curl.orb.type.Date();
 				date.injectProperObject(val);
 				return date;
 			}
 		} else if (val instanceof java.math.BigInteger || val.equals(java.math.BigInteger.class)) {
 			if (val.equals(java.math.BigInteger.class))
-				return com.curlap.orb.type.BigInteger.class;
+				return com.curl.orb.type.BigInteger.class;
 			else {
-				AbstractSerializableProxyType bigInt = new com.curlap.orb.type.BigInteger();
+				AbstractSerializableProxyType bigInt = new com.curl.orb.type.BigInteger();
 				bigInt.injectProperObject(val);
 				return bigInt;
 			}
 		} else if (val instanceof java.math.BigDecimal || val.equals(java.math.BigDecimal.class)) {
 			if (val.equals(java.math.BigDecimal.class))
-				return com.curlap.orb.type.BigDecimal.class;
+				return com.curl.orb.type.BigDecimal.class;
 			else {
-				AbstractSerializableProxyType bigDec = new com.curlap.orb.type.BigDecimal();
+				AbstractSerializableProxyType bigDec = new com.curl.orb.type.BigDecimal();
 				bigDec.injectProperObject(val);
 				return bigDec;
 			}
 		} else if (val instanceof java.sql.Blob || val.equals(java.sql.Blob.class)) {
 			if (val.equals(java.sql.Blob.class))
-				return com.curlap.orb.type.Blob.class;
+				return com.curl.orb.type.Blob.class;
 			else {
-				AbstractSerializableProxyType blob = new com.curlap.orb.type.Blob();
+				AbstractSerializableProxyType blob = new com.curl.orb.type.Blob();
 				blob.injectProperObject(val);
 				return blob;
 			}
 		} else if (val instanceof java.sql.Clob || val.equals(java.sql.Clob.class)) {
 			if (val.equals(java.sql.Clob.class))
-				return com.curlap.orb.type.Clob.class;
+				return com.curl.orb.type.Clob.class;
 			else {
-				AbstractSerializableProxyType clob = new com.curlap.orb.type.Clob();
+				AbstractSerializableProxyType clob = new com.curl.orb.type.Clob();
 				clob.injectProperObject(val);
 				return clob;
 			}
@@ -131,7 +131,7 @@ public class AdvancedSerializerUtil {
 		return val;
 	}
 
-	// e.g) [Ljava.sql.Date --> [Lcom.curlap.orb.type.CDate
+	// e.g) [Ljava.sql.Date --> [Lcom.curl.orb.type.CDate
 	private static Class<?> convertTypeName(String src, String s1, String s2) throws SerializeException {
 		try {
 			String result = src.substring(0, src.indexOf(s1)) + s2;
@@ -153,43 +153,43 @@ public class AdvancedSerializerUtil {
 		return clazz;
 	}
 	
-	// convert the java.sql.* or java.math.* type array to com.curlap.orb.type.* type array.
+	// convert the java.sql.* or java.math.* type array to com.curl.orb.type.* type array.
 	private static Object convertToComplexTypeArray(Object val) throws SerializeException {
 		if (val instanceof java.sql.Date) {
-			AbstractSerializableProxyType date = new com.curlap.orb.type.CDate();
+			AbstractSerializableProxyType date = new com.curl.orb.type.CDate();
 			date.injectProperObject(val);
 			return date;			
 		}
 		if (val instanceof java.util.Date && val.getClass().equals(java.util.Date.class)) {
-			AbstractSerializableProxyType date = new com.curlap.orb.type.Date();
+			AbstractSerializableProxyType date = new com.curl.orb.type.Date();
 			date.injectProperObject(val);
 			return date;
 		} else if (val instanceof java.sql.Time) {
-			AbstractSerializableProxyType time = new com.curlap.orb.type.CTime();
+			AbstractSerializableProxyType time = new com.curl.orb.type.CTime();
 			time.injectProperObject(val);
 			return time;
 		} else if (val instanceof java.sql.Timestamp) {
-			AbstractSerializableProxyType timestamp = new com.curlap.orb.type.CTimestamp();
+			AbstractSerializableProxyType timestamp = new com.curl.orb.type.CTimestamp();
 			timestamp.injectProperObject(val);
 			return timestamp;
 		} else if (val instanceof java.math.BigInteger) {
-			AbstractSerializableProxyType bigInt = new com.curlap.orb.type.BigInteger();
+			AbstractSerializableProxyType bigInt = new com.curl.orb.type.BigInteger();
 			bigInt.injectProperObject(val);
 			return bigInt;
 		} else if (val instanceof java.math.BigDecimal) {
-			AbstractSerializableProxyType bigDec = new com.curlap.orb.type.BigDecimal();
+			AbstractSerializableProxyType bigDec = new com.curl.orb.type.BigDecimal();
 			bigDec.injectProperObject(val);
 			return bigDec;
 		} else if (val instanceof java.sql.Blob) {
-			AbstractSerializableProxyType blob = new com.curlap.orb.type.Blob();
+			AbstractSerializableProxyType blob = new com.curl.orb.type.Blob();
 			blob.injectProperObject(val);
 			return blob;
 		} else if (val instanceof java.sql.Clob) {
-			AbstractSerializableProxyType clob = new com.curlap.orb.type.Clob();
+			AbstractSerializableProxyType clob = new com.curl.orb.type.Clob();
 			clob.injectProperObject(val);
 			return clob;
 		}
-		// Create the com.curlap.orb.type.* type array.
+		// Create the com.curl.orb.type.* type array.
 		Object[] arrayVal = (Object[])val;
 		Object returnArray = 
 			Array.newInstance(getArrayType(val.getClass()).getComponentType(), arrayVal.length);

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.io;
+package com.curl.orb.io;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -40,7 +40,7 @@ public class CurlSerializer extends AbstractSerializer
 	}
 
 	/* (non-Javadoc)
-	 * @see com.curlap.orb.io.AbstractSerializer#serialize(java.lang.Object, java.io.OutputStream)
+	 * @see com.curl.orb.io.AbstractSerializer#serialize(java.lang.Object, java.io.OutputStream)
 	 */
 	@Override
 	public void serialize(
@@ -79,7 +79,7 @@ public class CurlSerializer extends AbstractSerializer
 	}
 
 	/* (non-Javadoc)
-	 * @see com.curlap.orb.io.AbstractSerializer#deserialize(java.io.InputStream)
+	 * @see com.curl.orb.io.AbstractSerializer#deserialize(java.io.InputStream)
 	 */
 	@Override
 	public Object deserialize(InputStream istream) throws SerializerException

@@ -6,9 +6,9 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import com.curlap.orb.security.RemoteService;
-import com.curlap.orb.type.SerializableBinaryFile;
-import com.curlap.orb.type.SerializableRecordSet;
+import com.curl.orb.security.RemoteService;
+import com.curl.orb.type.SerializableBinaryFile;
+import com.curl.orb.type.SerializableRecordSet;
 
 import curl.language.containers.ByteArray;
 import curl.language.date_time.DateTime;

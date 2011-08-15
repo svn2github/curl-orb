@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.context;
+package com.curl.orb.context;
 
 import java.lang.reflect.InvocationTargetException;
 
@@ -29,7 +29,7 @@ import org.apache.commons.logging.LogFactory;
 public class ApplicationContextFactory 
 {
 	// reserved strings
-	private final static String APPLICATION_CONTEXT_CLASS = "com.curlap.orb.applicationContextClass";
+	private final static String APPLICATION_CONTEXT_CLASS = "com.curl.orb.applicationContextClass";
 	
 	private static ApplicationContextFactory instance = null;
 	private AbstractApplicationContext applicationContext = null;

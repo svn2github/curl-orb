@@ -1,6 +1,6 @@
 package tests2;
 
-import com.curlap.orb.security.RemoteService;
+import com.curl.orb.security.RemoteService;
 
 import tests1.SuperFoo;
 

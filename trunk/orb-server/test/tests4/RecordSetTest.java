@@ -18,11 +18,11 @@ import org.springframework.stereotype.Service;
 
 import tests1.TestException1;
 
-import com.curlap.orb.security.RemoteService;
-import com.curlap.orb.type.CTimestamp;
-import com.curlap.orb.type.SerializableRecordData;
-import com.curlap.orb.type.SerializableRecordField;
-import com.curlap.orb.type.SerializableRecordSet;
+import com.curl.orb.security.RemoteService;
+import com.curl.orb.type.CTimestamp;
+import com.curl.orb.type.SerializableRecordData;
+import com.curl.orb.type.SerializableRecordField;
+import com.curl.orb.type.SerializableRecordSet;
 
 import curl.language.containers.ByteArray;
 import curl.language.date_time.DateTime;
@@ -45,19 +45,19 @@ public class RecordSetTest
 						new SerializableRecordField("double", double.class),
 						new SerializableRecordField("datetime", DateTime.class),
 						new SerializableRecordField("timestamp", CTimestamp.class),
-						new SerializableRecordField("bigint", com.curlap.orb.type.BigInteger.class),
-						new SerializableRecordField("bigdec", com.curlap.orb.type.BigDecimal.class),
+						new SerializableRecordField("bigint", com.curl.orb.type.BigInteger.class),
+						new SerializableRecordField("bigdec", com.curl.orb.type.BigDecimal.class),
 						new SerializableRecordField("bool", boolean.class),
 						new SerializableRecordField("float", float.class),
 						new SerializableRecordField("short", short.class),
 						new SerializableRecordField("long",long.class),
 						new SerializableRecordField("byte", byte.class),
 						new SerializableRecordField("char", char.class),
-						new SerializableRecordField("cdate",com.curlap.orb.type.CDate.class),
-						new SerializableRecordField("date",com.curlap.orb.type.Date.class),
-						new SerializableRecordField("blob",com.curlap.orb.type.Blob.class),
-						new SerializableRecordField("clob",com.curlap.orb.type.Clob.class),
-						new SerializableRecordField("time",com.curlap.orb.type.CTime.class)
+						new SerializableRecordField("cdate",com.curl.orb.type.CDate.class),
+						new SerializableRecordField("date",com.curl.orb.type.Date.class),
+						new SerializableRecordField("blob",com.curl.orb.type.Blob.class),
+						new SerializableRecordField("clob",com.curl.orb.type.Clob.class),
+						new SerializableRecordField("time",com.curl.orb.type.CTime.class)
 
 				}
 		);

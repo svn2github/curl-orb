@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.client;
+package com.curl.orb.client;
 
-import com.curlap.orb.common.ExceptionContent;
+import com.curl.orb.common.ExceptionContent;
 
 /**
  * Exception thrown during server side operation.

@@ -3,7 +3,7 @@ package tests6;
 import org.springframework.stereotype.Service;
 
 import com.curl.io.serialize.types.annotation.NotNull;
-import com.curlap.orb.security.RemoteService;
+import com.curl.orb.security.RemoteService;
 
 @Service
 @RemoteService

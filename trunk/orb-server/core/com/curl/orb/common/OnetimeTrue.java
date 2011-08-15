@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.common;
+package com.curl.orb.common;
 
 /**
  * Return true only once at first. This class is used the internal of ORB.

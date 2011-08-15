@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.security;
+package com.curl.orb.security;
 
 /**
  * Environment, such as PRODUCTION, TEST and DEVELOPMENT.

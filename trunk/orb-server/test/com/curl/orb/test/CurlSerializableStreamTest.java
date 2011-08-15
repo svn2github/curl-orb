@@ -16,16 +16,16 @@
  * @author Hitoshi Okada
  */
 
-package com.curlap.orb.test;
+package com.curl.orb.test;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 
-import com.curlap.orb.io.CurlSerializableStreamReader;
-import com.curlap.orb.io.CurlSerializableStreamWriter;
-import com.curlap.orb.io.SerializableStreamReader;
-import com.curlap.orb.io.SerializableStreamWriter;
+import com.curl.orb.io.CurlSerializableStreamReader;
+import com.curl.orb.io.CurlSerializableStreamWriter;
+import com.curl.orb.io.SerializableStreamReader;
+import com.curl.orb.io.SerializableStreamWriter;
 
 import junit.framework.TestCase;
 

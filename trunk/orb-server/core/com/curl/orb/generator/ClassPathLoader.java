@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.generator;
+package com.curl.orb.generator;
 
 import java.io.File;
 import java.io.IOException;
@@ -80,7 +80,7 @@ public class ClassPathLoader
 		{
 			// TODO: make new ClassLoaderFilter interface(?)
 			String name = classProperty.getName();
-			if (!(name.startsWith("com.curlap.orb.")
+			if (!(name.startsWith("com.curl.orb.")
 					|| name.startsWith("com.curl.io.serialize.")
 					|| name.startsWith("java.")
 					|| name.startsWith("javax.")

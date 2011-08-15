@@ -8,12 +8,12 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.curlap.orb.security.RemoteService;
-import com.curlap.orb.type.CTimestamp;
-import com.curlap.orb.type.DataTypeException;
-import com.curlap.orb.type.SerializableRecordData;
-import com.curlap.orb.type.SerializableRecordField;
-import com.curlap.orb.type.SerializableRecordSet;
+import com.curl.orb.security.RemoteService;
+import com.curl.orb.type.CTimestamp;
+import com.curl.orb.type.DataTypeException;
+import com.curl.orb.type.SerializableRecordData;
+import com.curl.orb.type.SerializableRecordField;
+import com.curl.orb.type.SerializableRecordSet;
 
 import curl.language.date_time.DateTime;
 
@@ -105,7 +105,7 @@ public class Foo extends SuperFoo {
 						new SerializableRecordField("money", double.class),
 						new SerializableRecordField("dt", DateTime.class),
 						new SerializableRecordField("ts", CTimestamp.class),
-						new SerializableRecordField("bigint", com.curlap.orb.type.BigInteger.class)
+						new SerializableRecordField("bigint", com.curl.orb.type.BigInteger.class)
 				}
 		);
 		records.addRecord(

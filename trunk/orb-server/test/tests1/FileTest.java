@@ -1,8 +1,8 @@
 package tests1;
 
-import com.curlap.orb.security.RemoteService;
-import com.curlap.orb.type.SerializableBinaryFile;
-import com.curlap.orb.type.SerializableTextFile;
+import com.curl.orb.security.RemoteService;
+import com.curl.orb.type.SerializableBinaryFile;
+import com.curl.orb.type.SerializableTextFile;
 
 @RemoteService
 public class FileTest 

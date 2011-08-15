@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.io;
+package com.curl.orb.io;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -102,7 +102,7 @@ public class AdvancedSerializer6_0 extends Serializer6_0 {
 	}
 
 	// First convert the java.sql.* type array or java.math.* type array to 
-	// com.curlap.orb.type.* type array.then write the com.curlap.orb.type.* type 
+	// com.curl.orb.type.* type array.then write the com.curl.orb.type.* type 
 	// array to outputstream
 	protected void writeArray(Object val) throws SerializeException, IOException {
 		super.writeArray(AdvancedSerializerUtil.writeArray(val));

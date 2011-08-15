@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.type;
+package com.curl.orb.type;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;

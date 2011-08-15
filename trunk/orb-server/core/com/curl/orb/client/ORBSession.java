@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.client;
+package com.curl.orb.client;
 
 import org.apache.commons.httpclient.HttpClient;
 

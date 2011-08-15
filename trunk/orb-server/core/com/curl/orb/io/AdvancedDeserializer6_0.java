@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.io;
+package com.curl.orb.io;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -106,7 +106,7 @@ public class AdvancedDeserializer6_0 extends Deserializer6_0 {
 	}
 
 	// Overwrite the method covertToArrayType of Deserializer6_0
-	// convert com.curlap.orb.type.* type to java.sql.* or java.math.* type.
+	// convert com.curl.orb.type.* type to java.sql.* or java.math.* type.
 	@Override
 	protected Object covertToArrayType(Object componentType) throws SerializeException {
 		//return super.covertToArrayType(AdvancedDeserializerUtil.covertToArrayType(componentType));

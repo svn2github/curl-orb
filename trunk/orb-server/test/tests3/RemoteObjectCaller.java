@@ -1,6 +1,6 @@
 package tests3;
 
-import com.curlap.orb.security.RemoteService;
+import com.curl.orb.security.RemoteService;
 
 @RemoteService
 public class RemoteObjectCaller

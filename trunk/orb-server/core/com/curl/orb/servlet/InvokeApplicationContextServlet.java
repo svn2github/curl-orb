@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.curlap.orb.servlet;
+package com.curl.orb.servlet;
 
 import java.lang.reflect.Method;
 
@@ -23,11 +23,11 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.curlap.orb.common.InstanceManagementException;
-import com.curlap.orb.common.InvokeApplicationContextRequest;
-import com.curlap.orb.context.AbstractApplicationContext;
-import com.curlap.orb.context.ApplicationContextFactory;
-import com.curlap.orb.security.RemoteServiceAnnotationChecker;
+import com.curl.orb.common.InstanceManagementException;
+import com.curl.orb.common.InvokeApplicationContextRequest;
+import com.curl.orb.context.AbstractApplicationContext;
+import com.curl.orb.context.ApplicationContextFactory;
+import com.curl.orb.security.RemoteServiceAnnotationChecker;
 
 /**
  * Servlet to invoke the object in application context
@@ -40,7 +40,7 @@ public class InvokeApplicationContextServlet extends InstanceManagementServlet
 	private static final long serialVersionUID = 1L;
 
 	/* (non-Javadoc)
-	 * @see com.curlap.orb.servlet.InstanceManagementServlet#init()
+	 * @see com.curl.orb.servlet.InstanceManagementServlet#init()
 	 */
 	@Override 
 	public void init() 
@@ -49,7 +49,7 @@ public class InvokeApplicationContextServlet extends InstanceManagementServlet
 	}
 	
     /* (non-Javadoc)
-     * @see com.curlap.orb.servlet.InstanceManagementServlet#doPost(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+     * @see com.curl.orb.servlet.InstanceManagementServlet#doPost(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
      */
     @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException
