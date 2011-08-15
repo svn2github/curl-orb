@@ -17,7 +17,7 @@
 |||
 
 {import * from TESTS1}
-{import * from COM.CURLAP.ORB}
+{import * from COM.CURL.ORB}
 
 {include "resources/support-interceptor.scurl"} || interceptor classes
 

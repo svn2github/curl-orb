@@ -19,7 +19,7 @@
 {import * from TESTS1}
 {import * from TESTS4}
 
-{import * from COM.CURLAP.ORB}
+{import * from COM.CURL.ORB}
 
 {include "resources/support-performance.scurl"}
 

@@ -17,9 +17,9 @@
 |||
 
 {curl 6.0, 7.0, 8.0 package}
-{package COM.CURLAP.ORB.CLIENT}
+{package COM.CURL.ORB.CLIENT}
 
-{import * from COM.CURLAP.ORB.COMMON}
+{import * from COM.CURL.ORB.COMMON}
 
 {include
     "AbstractClient.scurl",

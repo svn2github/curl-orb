@@ -6,7 +6,7 @@
 |||  generated date : 2009-07-02 15:26:48.794999
 |||
 
-{import * from COM.CURLAP.ORB} 
+{import * from COM.CURL.ORB} 
 
 {define-class public serializable LargeDto 
  

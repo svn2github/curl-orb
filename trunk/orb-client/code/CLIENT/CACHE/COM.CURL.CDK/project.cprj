@@ -1,0 +1,29 @@
+|| *******************************************************
+|| *** THIS FILE IS AUTOMATICALLY UPDATED BY SURGE LAB ***
+|| ***              DO NOT MODIFY IT BY HAND           ***
+|| *******************************************************
+
+{project
+    version = 3,
+    manifest-location = "manifest.mcurl",
+    api-version = "7.0",
+    compiler-directives = "careful? = true",
+    use-style-sheets? = true,
+    project-look-and-feel = "default-style-sheet",
+    style-package-name = "",
+    style-sheet-name = "",
+    {target
+        name = "deploy",
+        target-url-name = "deploy-default",
+        certificate = "",
+        delegate-to-location = "..",
+        {package-transform "COM.CURL.CDK.SQLITE\u0000package\u0000SQLITE/load.scurl", copy? = true},
+        {package-transform "COM.CURL.CDK.SQLITE-BASE\u0000package\u0000SQLITE/base-load.scurl", copy? = true},
+        {package-transform "COM.CURL.CDK.SQLITE-LIBRARY-SYNTAX\u0000package\u0000SQLITE/library-syntax.scurl", copy? = true},
+        {package-transform "COM.CURL.CDK.SQLITE-LIBRARY\u0000package\u0000SQLITE/library-load.scurl", copy? = true},
+        {package-transform "COM.CURL.CDK.SQLITE-SYNTAX\u0000package\u0000SQLITE/syntax.scurl", copy? = true},
+        {package-transform "COM.CURL.CDK.SQL-BASE\u0000package\u0000SQL/load.scurl", copy? = true},
+        {package-transform "COM.CURL.CDK.SQLITE-RECORDSET\u0000package\u0000SQLITE/recordset-load.scurl", copy? = true},
+        {resource-transform "resources\u0000directory\u0000resources", copy? = true}
+    }
+}

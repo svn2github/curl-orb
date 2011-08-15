@@ -6,7 +6,7 @@
 |||  generated date : 2010-08-16 10:18:04.195999
 |||
 
-{import * from COM.CURLAP.ORB} 
+{import * from COM.CURL.ORB} 
 
 {define-class public AopService {inherits ApplicationContextClient}
  

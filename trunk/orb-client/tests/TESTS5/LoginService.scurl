@@ -6,7 +6,7 @@
 |||  generated date : 2009-04-10 16:26:27.778999
 |||
 
-{import * from COM.CURLAP.ORB} 
+{import * from COM.CURL.ORB} 
 
 {define-class public LoginService {inherits ApplicationContextClient}
  

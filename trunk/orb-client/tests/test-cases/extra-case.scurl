@@ -20,7 +20,7 @@
 {import * from TESTS2}
 {import * from TESTS3}
 
-{import * from COM.CURLAP.ORB}
+{import * from COM.CURL.ORB}
 
 |||
 ||| This test case is for extra functionalities. 

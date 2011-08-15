@@ -6,7 +6,7 @@
 |||  generated date : 2010-01-29 18:50:32.348000
 |||
 
-{import * from COM.CURLAP.ORB} 
+{import * from COM.CURL.ORB} 
 
 {define-class public Foo {inherits ApplicationContextClient}
   
@@ -180,7 +180,7 @@
 }
 
 ||--
-||--{import * from COM.CURLAP.ORB}
+||--{import * from COM.CURL.ORB}
 ||--
 ||--{define-class public Foo {inherits ApplicationContextClient}
 ||--

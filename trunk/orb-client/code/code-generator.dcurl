@@ -21,6 +21,6 @@
     {compiler-directives careful? = true}
 }
 
-{import * from COM.CURLAP.ORB.GENERATOR.SCREEN}
+{import * from COM.CURL.ORB.GENERATOR.SCREEN}
 
 {start {ClassSelectionPanel}}

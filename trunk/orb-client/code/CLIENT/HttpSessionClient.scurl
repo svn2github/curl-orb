@@ -21,7 +21,7 @@
 ||
 
 || kill flag
-{def package KILL-SESSION = "com.curlap.orb.internal-kill-session"} 
+{def package KILL-SESSION = "com.curl.orb.internal-kill-session"} 
 
 
 ||

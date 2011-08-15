@@ -21,7 +21,7 @@
 {import * from TESTS3}
 {import * from TESTS5}
 
-{import * from COM.CURLAP.ORB}
+{import * from COM.CURL.ORB}
 
 |||
 ||| This test case is to comfirm the security.
@@ -33,7 +33,7 @@
     ||
     {test-case "illegal access (HttpSession)",
         || illegal access (HttpSession/ApplicationContext)
-        ||   "COM.CURLAP.ORB.SECURITY.AccessException"
+        ||   "COM.CURL.ORB.SECURITY.AccessException"
         {require-exception ORBServerException do
             let non-access-foo:NonAccessFoo = {NonAccessFoo}
             {non-access-foo.disable-access}

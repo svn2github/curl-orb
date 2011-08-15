@@ -16,12 +16,13 @@
 ||| @author Hitoshi Okada
 |||
 
-{curl 6.0, 7.0, 8.0 manifest}
+{curl 7.0, 8.0 manifest}
 {manifest TESTS}
 
 || ORB packages
-{delegate-to COM.CURLAP.ORB,
-    location = "../COM.CURLAP.ORB/manifest.mcurl"
+{delegate-to COM.CURL.ORB,
+||    location = "../COM.CURL.ORB/manifest.mcurl"
+    location = "../code/manifest.mcurl"
 }
 {component file cache-database,
     location = "resources/database/orb-cache.db"
@@ -66,3 +67,10 @@
     location = "TESTS6/load.scurl"
 }
 
+{component file classic-project.cprj,
+    location = "classic-project.cprj"
+}
+
+{component file project.cprj,
+    location = "project.cprj"
+}

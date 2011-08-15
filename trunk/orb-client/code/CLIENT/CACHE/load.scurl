@@ -17,10 +17,10 @@
 |||
 
 {curl 6.0, 7.0, 8.0 package}
-{package COM.CURLAP.ORB.CLIENT.CACHE}
+{package COM.CURL.ORB.CLIENT.CACHE}
 
 {import Method from CURL.LANGUAGE.REFLECTION}
-{import ClientInterceptor, AbstractClient from COM.CURLAP.ORB.CLIENT}
+{import ClientInterceptor, AbstractClient from COM.CURL.ORB.CLIENT}
 {import SerializeInputStream, SerializeOutputStream from CURL.IO.SERIALIZE}
 
 {include

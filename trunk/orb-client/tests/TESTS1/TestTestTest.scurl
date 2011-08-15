@@ -6,7 +6,7 @@
 |||  generated date : 2009-10-20 18:52:53.808999
 |||
 
-{import * from COM.CURLAP.ORB} 
+{import * from COM.CURL.ORB} 
 
 {define-class public TestTestTest {inherits HttpSessionClient}
  

@@ -17,13 +17,13 @@
 |||
 
 {curl 6.0, 7.0, 8.0 package}
-{package COM.CURLAP.ORB}
+{package COM.CURL.ORB}
 
 || ORB packages
-{import public * from COM.CURLAP.ORB.COMMON}
-{import public * from COM.CURLAP.ORB.TYPE}
-{import public * from COM.CURLAP.ORB.CLIENT}
-{import public * from COM.CURLAP.ORB.CLIENT.CACHE}
+{import public * from COM.CURL.ORB.COMMON}
+{import public * from COM.CURL.ORB.TYPE}
+{import public * from COM.CURL.ORB.CLIENT}
+{import public * from COM.CURL.ORB.CLIENT.CACHE}
 
 || default url
 {set-default-server-url {url "http://localhost:8080/curl-orb-server"}}

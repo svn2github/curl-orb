@@ -6,7 +6,7 @@
 |||  generated date : 2009-12-09 10:45:55.739000
 |||
 
-{import * from COM.CURLAP.ORB} 
+{import * from COM.CURL.ORB} 
 
 {define-class public ConcurrentService {inherits ApplicationContextClient}
  

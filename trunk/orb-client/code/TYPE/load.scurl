@@ -17,7 +17,7 @@
 |||
 
 {curl 6.0, 7.0, 8.0 package}
-{package COM.CURLAP.ORB.TYPE}
+{package COM.CURL.ORB.TYPE}
 
 {import * from CURL.IO.SERIALIZE}
 

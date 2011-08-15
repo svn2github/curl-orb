@@ -16,42 +16,42 @@
 ||| @author Hitoshi Okada, ucai zhang
 |||
 
-{curl 6.0, 7.0, 8.0 manifest}
-{manifest COM.CURLAP.ORB,
+{curl 7.0, 8.0 manifest}
+{manifest COM.CURL.ORB,
     version = "0.8"
 }
 
 || ORB packages
-{component package COM.CURLAP.ORB,
+{component package COM.CURL.ORB,
     location = "load.scurl"
 }
-{component package COM.CURLAP.ORB.COMMON,
+{component package COM.CURL.ORB.COMMON,
     location = "COMMON/load.scurl"
 }
-{component package COM.CURLAP.ORB.TYPE,
+{component package COM.CURL.ORB.TYPE,
     location = "TYPE/load.scurl"
 }
-{component package COM.CURLAP.ORB.CLIENT,
+{component package COM.CURL.ORB.CLIENT,
     location = "CLIENT/load.scurl"
 }
-{component package COM.CURLAP.ORB.CLIENT.CACHE,
+{component package COM.CURL.ORB.CLIENT.CACHE,
     location = "CLIENT/CACHE/load.scurl"
 }
 
 
 || Generator and Screen packages
-{component package COM.CURLAP.ORB.GENERATOR,
+{component package COM.CURL.ORB.GENERATOR,
     location = "GENERATOR/load.scurl"
 }
 
-{delegate-to COM.CURL.GUI.STYLED,
-    location = "GENERATOR/SCREEN/COM.CURL.GUI.STYLED/manifest.mcurl",
-    version = "6.0" || only 6.0 
-}
+||--{delegate-to COM.CURL.GUI.STYLED,
+||--    location = "GENERATOR/SCREEN/COM.CURL.GUI.STYLED/manifest.mcurl",
+||--    version = "6.0" || only 6.0 
+||--}
 {component file orb-style,
     location = "GENERATOR/SCREEN/stylesheet/orb-style.scurl"
 }
-{component package COM.CURLAP.ORB.GENERATOR.SCREEN,
+{component package COM.CURL.ORB.GENERATOR.SCREEN,
     location = "GENERATOR/SCREEN/load.scurl"
 }
 
@@ -63,4 +63,18 @@
 || Curl code generator
 {component file code-generator.dcurl,
     location = "code-generator.dcurl"
+}
+
+|| Images
+|| --------------------
+{component directory images,
+    location = "GENERATOR/SCREEN/images"
+}
+
+{component file classic-project.cprj,
+    location = "classic-project.cprj"
+}
+
+{component file project.cprj,
+    location = "project.cprj"
 }

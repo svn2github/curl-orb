@@ -16,7 +16,7 @@
 ||| @author Hitoshi Okada
 |||
 
-{import * from COM.CURLAP.ORB}
+{import * from COM.CURL.ORB}
 
 ||
 || ClassPropertyLoader
@@ -34,7 +34,7 @@
     {return
         {ClassPropertyLoader.initialize
             {invoke-static
-                "com.curlap.orb.generator.ClassPropertyLoader",
+                "com.CURL.orb.generator.ClassPropertyLoader",
                 "getClassPropertyFromClassName",
                 arguments = {FastArray name},
                 server-url = server-url
@@ -55,7 +55,7 @@
     {return
         {ClassPropertyLoader.initialize
             {invoke-static
-                "com.curlap.orb.generator.ClassPropertyLoader",
+                "com.CURL.orb.generator.ClassPropertyLoader",
                 "getClassPropertyInApplicationContext",
                 arguments = {FastArray name},
                 server-url = server-url
@@ -72,7 +72,7 @@
                              }:{FastArray-of #ClassProperty}
     {return
         {invoke-static
-            "com.curlap.orb.generator.ClassPropertyLoader",
+            "com.CURL.orb.generator.ClassPropertyLoader",
             "getAllClassProperties",
             server-url = server-url
         } asa {FastArray-of #ClassProperty}
@@ -85,7 +85,7 @@
                              }:{FastArray-of #ClassProperty}
     {return
         {invoke-static
-            "com.curlap.orb.generator.ClassPropertyLoader",
+            "com.CURL.orb.generator.ClassPropertyLoader",
             "getAllClassPropertiesInApplicationContext",
             server-url = server-url
         } asa {FastArray-of #ClassProperty}
@@ -333,21 +333,21 @@
                  case "java.lang.Float", "float", "F" do
                     ("float", null)
                  case "java.util.Date" do
-                    ({if allow-null? then "#" else ""} & "Date", "COM.CURLAP.ORB")
+                    ({if allow-null? then "#" else ""} & "Date", "COM.CURL.ORB")
                  case "java.sql.Date" do
-                    ({if allow-null? then "#" else ""} & "CDate", "COM.CURLAP.ORB")
+                    ({if allow-null? then "#" else ""} & "CDate", "COM.CURL.ORB")
                  case "java.sql.Time" do
-                    ({if allow-null? then "#" else ""} & "CTime", "COM.CURLAP.ORB")
+                    ({if allow-null? then "#" else ""} & "CTime", "COM.CURL.ORB")
                  case "java.sql.Timestamp" do
-                    ({if allow-null? then "#" else ""} & "CTimestamp", "COM.CURLAP.ORB")
+                    ({if allow-null? then "#" else ""} & "CTimestamp", "COM.CURL.ORB")
                  case "java.sql.BLOB" do
-                    ({if allow-null? then "#" else ""} & "BLOB", "COM.CURLAP.ORB")
+                    ({if allow-null? then "#" else ""} & "BLOB", "COM.CURL.ORB")
                  case "java.sql.CBOB" do
-                    ({if allow-null? then "#" else ""} & "CLOB", "COM.CURLAP.ORB")
+                    ({if allow-null? then "#" else ""} & "CLOB", "COM.CURL.ORB")
                  case "java.math.BigInteger" do
-                    ({if allow-null? then "#" else ""} & "BigInteger", "COM.CURLAP.ORB")
+                    ({if allow-null? then "#" else ""} & "BigInteger", "COM.CURL.ORB")
                  case "java.math.BigDecimal" do
-                    ({if allow-null? then "#" else ""} & "BigDecimal", "COM.CURLAP.ORB")
+                    ({if allow-null? then "#" else ""} & "BigDecimal", "COM.CURL.ORB")
                  case "java.util.List", "java.util.ArrayList" do
                     ({if allow-null? then "#" else ""} & "Array", null)
                  case "java.util.Map", "java.util.HashMap", "java.util.Hashtable" do
@@ -506,7 +506,7 @@
 {define-class abstract package AbstractClassBuilder
 
   || constant variables
-  field package constant THIS-PACKAGE-NAME = "COM.CURLAP.ORB"
+  field package constant THIS-PACKAGE-NAME = "COM.CURL.ORB"
   field package constant PACKAGE-TEMPLATE = "\{import * from %s\} \n"
   field package constant FIELD-TEMPLATE = "  %s %s %s:%s \n"
   field package constant CONSTRUCTOR-TEMPLATE = "\n  \{constructor %s \{%s\} \n    %s \n  \} \n"
@@ -594,11 +594,11 @@
 
     def buf = {StringBuf}
     {for ip in self.class-property.import-package-names do
-        {if ip != null and {ip.prefix? "COM.CURLAP.ORB."} then
-            {continue} || COM.CURLAP.ORB.XXX -> COM.CURLAP.ORB
+        {if ip != null and {ip.prefix? "COM.CURL.ORB."} then
+            {continue} || COM.CURL.ORB.XXX -> COM.CURL.ORB
         }
-        {if self.as-template? and {ip.prefix? "COM.CURLAP.ORB"} then
-            {continue} || Not add COM.CURLAP.ORB to template class.
+        {if self.as-template? and {ip.prefix? "COM.CURL.ORB"} then
+            {continue} || Not add COM.CURL.ORB to template class.
         }
         {if {skip-packages.find ip} == -1 then
             {buf.concat {format self.PACKAGE-TEMPLATE, ip}}
@@ -1484,7 +1484,7 @@
 
   {constructor public {default jarfile:String}
     {construct-super
-        "com.curlap.orb.generator.JarFileLoader",
+        "com.CURL.orb.generator.JarFileLoader",
         arguments = {FastArray-of jarfile}
     }
   }

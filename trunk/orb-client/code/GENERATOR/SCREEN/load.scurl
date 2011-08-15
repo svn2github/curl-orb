@@ -17,7 +17,7 @@
 |||
 
 {curl 6.0, 7.0, 8.0 package}
-{package COM.CURLAP.ORB.GENERATOR.SCREEN,
+{package COM.CURL.ORB.GENERATOR.SCREEN,
     {compiler-directives careful? = true}
 }
 {import * from CURL.GUI.BASE}
@@ -34,8 +34,8 @@
 
 {import * from CURL.IO.SERIALIZE}
 
-{import * from COM.CURLAP.ORB}
-{import * from COM.CURLAP.ORB.GENERATOR}
+{import * from COM.CURL.ORB}
+{import * from COM.CURL.ORB.GENERATOR}
 
 || For version 7.0
 {api-version-switch

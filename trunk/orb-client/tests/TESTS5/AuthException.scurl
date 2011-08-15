@@ -6,7 +6,7 @@
 |||  generated date : 2009-04-10 17:38:33.286000
 |||
 
-{import * from COM.CURLAP.ORB} 
+{import * from COM.CURL.ORB} 
 
 {define-class public AuthException {inherits Exception}
  

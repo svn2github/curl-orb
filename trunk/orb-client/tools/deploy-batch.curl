@@ -1,0 +1,53 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+{curl 6.0, 7.0, 8.0 applet}
+{applet manifest = "../tests/manifest.mcurl"}
+{import * from COM.CURL.CDU.DEPLOY-SUPPORT}
+
+{document-style PlainDocument}
+{set-document-properties
+    hstretch? = true,
+    vstretch? = true, 
+    font-size = 9pt
+}
+
+{value
+    || specs
+    let specs:DeploySpecs =  
+        {evaluate {url "deploy-specs.scurl"}}
+    let context:DeployContext =
+        {DeployContext
+            source-root = {url "../"},
+            target-root = {url "DEPLOYED/"}}
+    || progress messages
+    let display:VBox = 
+        {VBox 
+            font-size = 9pt}
+    {specs.add-event-handler
+        {on e:DeployProgress do
+            {display.add 
+                {if e.message == "--" 
+                 then {hrule}
+                 else e.message}}
+            {if-non-null v = {display.get-view} then
+                {v.update}}}}
+    || execution
+    {after 0s do
+        {with-busy-cursor
+            {specs.deploy context = context}}}
+    display
+}
