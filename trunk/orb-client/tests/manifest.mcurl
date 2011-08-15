@@ -17,7 +17,7 @@
 |||
 
 {curl 7.0, 8.0 manifest}
-{manifest TESTS}
+{manifest COM.CURL.ORB.TESTS}
 
 || ORB packages
 {delegate-to COM.CURL.ORB,

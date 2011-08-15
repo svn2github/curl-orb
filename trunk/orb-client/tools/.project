@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
 	<name>COM.CURL.ORB.TOOLS</name>
-	<comment>Curl Project</comment>
+	<comment>A Curl Project</comment>
 	<projects>
-		<project>COM.CURL.ORB</project>
 	</projects>
 	<buildSpec>
 	</buildSpec>

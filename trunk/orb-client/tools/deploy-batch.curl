@@ -32,7 +32,7 @@
     let context:DeployContext =
         {DeployContext
             source-root = {url "../"},
-            target-root = {url "DEPLOYED/"}}
+            target-root = {url "../build/DEPLOYED"}}
     || progress messages
     let display:VBox = 
         {VBox 
