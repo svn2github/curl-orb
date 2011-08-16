@@ -34,7 +34,7 @@
     {return
         {ClassPropertyLoader.initialize
             {invoke-static
-                "com.CURL.orb.generator.ClassPropertyLoader",
+                "com.curl.orb.generator.ClassPropertyLoader",
                 "getClassPropertyFromClassName",
                 arguments = {FastArray name},
                 server-url = server-url
@@ -55,7 +55,7 @@
     {return
         {ClassPropertyLoader.initialize
             {invoke-static
-                "com.CURL.orb.generator.ClassPropertyLoader",
+                "com.curl.orb.generator.ClassPropertyLoader",
                 "getClassPropertyInApplicationContext",
                 arguments = {FastArray name},
                 server-url = server-url
@@ -72,7 +72,7 @@
                              }:{FastArray-of #ClassProperty}
     {return
         {invoke-static
-            "com.CURL.orb.generator.ClassPropertyLoader",
+            "com.curl.orb.generator.ClassPropertyLoader",
             "getAllClassProperties",
             server-url = server-url
         } asa {FastArray-of #ClassProperty}
@@ -85,7 +85,7 @@
                              }:{FastArray-of #ClassProperty}
     {return
         {invoke-static
-            "com.CURL.orb.generator.ClassPropertyLoader",
+            "com.curl.orb.generator.ClassPropertyLoader",
             "getAllClassPropertiesInApplicationContext",
             server-url = server-url
         } asa {FastArray-of #ClassProperty}
@@ -332,6 +332,8 @@
                     ("double", null)
                  case "java.lang.Float", "float", "F" do
                     ("float", null)
+                 case "curl.language.date_time.DateTime" do
+                    ({if allow-null? then "#" else ""} & "DateTime", "CURL.LANGUAGE.DATE-TIME")
                  case "java.util.Date" do
                     ({if allow-null? then "#" else ""} & "Date", "COM.CURL.ORB")
                  case "java.sql.Date" do
@@ -1438,6 +1440,8 @@
                             "6.0"
                          elseif {curl-version.prefix? "7.0"} then
                             "7.0"
+                         elseif {curl-version.prefix? "8.0"} then
+                            "8.0"
                          else
                             {unreachable}
                         }
