@@ -1,9 +1,0 @@
-
-{define-class public serializable NonAccesibleDataClass 
-  || This class's accessor on server side is package.
-  
-  field public i:int 
-  field public s:#String 
-
-  {constructor public {default} } 
-}

@@ -1,8 +1,0 @@
-
-{define-class public serializable LongDto
-  
-  {constructor public {default data:int64}   
-    set self.data = data
-  }
-  field public data:int64 
-}

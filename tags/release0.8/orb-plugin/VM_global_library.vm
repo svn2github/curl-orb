@@ -1,6 +1,0 @@
-
-#macro( docstring $content, $toplevel )
-#set ( $javadoc = $content )
-#set ( $for_toplevel = $toplevel )
-#parse ("templates/docstring.vm")
-#end
