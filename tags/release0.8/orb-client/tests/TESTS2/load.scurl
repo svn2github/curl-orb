@@ -1,0 +1,15 @@
+{curl 6.0, 7.0, 8.0 package}
+{package TESTS2 ||,
+    ||{compiler-directives careful? = true}
+}
+
+{include
+    "HogeImpl.scurl",
+    "Foo.scurl",
+    "PersonHitoshi.scurl"
+}
+{include "ComplexTypeService.scurl"}
+{include "ComplexTypeDto.scurl"}
+{include "AccesibleService.scurl"}
+{include "NonAccesibleService.scurl"}
+{include "NonAccesibleDataClass.scurl"}

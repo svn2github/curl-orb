@@ -1,0 +1,25 @@
+ 
+{import * from COM.CURL.ORB}
+
+{define-class public HogeImpl {inherits ApplicationContextClient}
+
+  {constructor public {default} 
+    {construct-super.ApplicationContextClient "hoge1"} 
+  } 
+
+  {method public {new-person}:#Person 
+    {return {self.invoke "newPerson"}} 
+  } 
+
+  {define-proc public {get-bar-bar}:int 
+    {return {ApplicationContextClient.invoke-static "hoge1", "getBarBar"}} 
+  } 
+
+  {method public {set-phone p:Phone}:void
+    {self.invoke "setPhone", arguments = {{FastArray-of any} p}} 
+  }
+  
+  {method public {get-phone}:#Phone
+    {return {self.invoke "getPhone"}}
+  }
+} 

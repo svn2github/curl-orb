@@ -1,0 +1,587 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Ucai zhang
+|||
+{doc-next
+    {purpose
+        create a user defined data type.             
+    }
+}
+{let constant u16s:Type = {Array-of uint16}}
+
+{doc-next
+    {purpose
+        AbstractExtraSerializableType Class .                
+    }
+    {notes
+        It is the super class of Date,CDate,CTime,CTimestamp,
+        BigDecimal,BigInteger,Blob,Clob and so on.
+    }
+}
+{define-class public serializable AbstractExtraSerializableType
+  
+  {constructor {default}
+    ||Do nothing
+  }
+
+  {doc-next
+    {purpose
+        Deserializes from serialization stream.       
+    }
+    {parameter SerializeInputStream,
+        An input stream which deserializes from a byte stream
+    }
+  }
+  ||Deserializes from serialization stream
+  {constructor public {object-deserialize in:SerializeInputStream}
+    {in.read-class-version}
+  }
+
+  {doc-next
+    {purpose
+        Called by the serialization code when a class instance is to be written
+    }
+    {parameter out,
+        An output stream which serializes into a byte stream
+    }
+  }
+  ||serializes from serialization stream
+  {method public {object-serialize out:SerializeOutputStream}:void
+    {out.write-class-version 0}
+  }
+
+}
+
+{doc-next
+    {purpose
+        A enum.Defining a RoundingMode.
+    }
+    {notes
+        It is a empty class.It will do nothing
+    }
+}
+|| These rounding modes are all defined in the Java BigDecimal package,
+|| but some of them (such as away-from-zero) don't seem too useful.
+{define-enum public RoundingMode
+    || Round toward nearest neighbor; round toward even neighbor if
+    ||   neighbors are equidistant.
+    round-toward-even,
+
+    || Round toward nearest neighbor; round toward zero if
+    ||   neighbors are equidi4stant.
+    round-toward-zero,
+
+    || Round toward nearest neighbor; round away from zero if
+    ||   neighbors are equidistant.
+    round-away-from-zero,
+
+    || Always round toward negative infinity.
+    floor,
+
+    || Always round toward positive infinity.
+    ceiling,
+
+    || Always round toward zero.
+    truncate,
+
+    || Always round away from zero.
+    away-from-zero,
+
+    || Do not round; throw ArithmeticException if rounding would be required.
+    none
+}
+
+{doc-next
+    {purpose
+        This is a package proc.
+        Judge whether the chars in the string are digit.
+        reverse,it will return false
+    }
+    {parameter str,
+        String value 
+    }
+    {return-vals
+        bool value.Returning true if the chars in the sting are the digit char.
+        contrary,it return false.
+        
+    }
+}
+{define-proc package {string-digit? str:String}:bool
+
+    {if str.size != 0 then
+        {for c in str do
+            {if not {digit? c,10} then
+                {return false}
+            }
+        }
+     else
+        {return false}
+    }
+    {return true}
+    
+}
+
+
+{doc-next
+    {purpose
+        This is a package proc.
+        Add a {Array-of uint16} to anthor {Array-of uint16}
+        like c = a + b
+    }
+    {parameter a,
+        {Array-of uint16} value 
+    }
+    {parameter b,
+        {Array-of uint16} value 
+    }
+    {parameter c,
+        The object to contain the value of the a + b
+    }
+    {return-vals
+        void
+    }
+}
+|| c = a + b
+{define-proc package {add-u16s a:u16s, b:u16s, c:u16s}:void
+    {c.clear}
+    let asize:int = a.size
+    let bsize:int = b.size
+    let opsize:int = {max asize, bsize}
+    let accum:int32 = 0
+    {for i = 0 below opsize do
+        {if i < asize then set accum = accum + a[i]}
+        {if i < bsize then set accum = accum + b[i]}
+        {c.append accum asa uint16}
+        set accum = {bit-sra accum, 16}
+    }
+    {if accum != 0 then {c.append accum asa uint16}}
+}
+
+{doc-next
+    {purpose
+        This is a package proc.
+        clear the {Array-of uint16} from right to left.
+    }
+    {parameter a,
+        {Array-of uint16} value which maybe contains 0 in its end
+    }
+    {return-vals
+        void
+    } 
+}
+{define-proc package {trim-u16s a:u16s}:void
+    let i:int = a.size
+    {if i <= 0 then {return}}
+    {while i > 0 do
+        set i = i - 1
+        {if a[i] != 0 then {break}}
+        {if i == 0 then
+            {a.set-size 0, 0 asa uint16}
+            {return}
+        }
+    }
+    {a.set-size i + 1, 0 asa uint16}
+}
+
+{doc-next
+    {purpose
+        This is a package proc.
+        create the elements of the {Array-of uint16} to negate value
+    }
+    {parameter a,
+        {Array-of uint16} value whose elements are converted to negate value
+    }
+    {return-vals
+        void
+    } 
+}
+{define-proc package {negate-u16s a:u16s}:void
+    let asize:int = a.size
+    let bias:int = 0
+    {for i = 0 below asize do
+        let val:int32 = a[i]
+        {if not (val == 0 and bias == 0) then
+            set val = bias - val
+            set bias = -1
+        }
+        set a[i] = val asa uint16
+    }
+}
+
+{doc-next
+    {purpose
+        This is a package proc.
+        subtract a {Array-of uint16} to anthor {Array-of uint16}
+    }
+    {parameter a,
+        {Array-of uint16} value 
+    }
+    {parameter b,
+        {Array-of uint16} value 
+    }
+    {parameter c,
+        {Array-of uint16} value who save the value when a - b
+    }
+    {return-vals 
+        int.When the value of a - b is larger than -1,the turn value will be 1
+        else,the value will be  -1
+    } 
+}
+|| c = {abs a - b}
+|| The return value has the same sign as a - b
+{define-proc package {subtract-u16s a:u16s, b:u16s, c:u16s}:int
+    {c.clear}
+    let asize:int = a.size
+    let bsize:int = b.size
+    let opsize:int = {max asize, bsize}
+    let accum:int32 = 0
+    {for i = 0 below opsize do
+        {if i < asize then set accum = accum + a[i]}
+        {if i < bsize then set accum = accum - b[i]}
+        {c.append accum asa uint16}
+        set accum = {bit-sra accum, 16}
+    }
+    let sign:int = 1
+    {if accum < 0 then
+        set sign = -1
+        {negate-u16s c}
+    }
+    {trim-u16s c}
+    {return sign}
+}
+
+{doc-next
+    {purpose
+        This is a package proc.
+        compare the value of  a {Array-of uint16} with anthor {Array-of uint16}
+    }
+    {parameter a,
+        {Array-of uint16} value 
+    }
+    {parameter b,
+        {Array-of uint16} value 
+    }
+    {return-vals 
+        int.When the value of a  is larger than b,the turn value will be 1
+        if the value of a is equal to b ,the value will be 0
+        else,the value will be  -1
+    } 
+}
+|| Return sign of a - b.
+{define-proc package {compare-u16s a:u16s, b:u16s}:int
+    let asize:int = a.size
+    let bsize:int = b.size
+    let opsize:int = {max asize, bsize}
+    {for i = opsize - 1 downto 0 do
+        let aa:uint16 = {if i < asize then a[i] else 0 asa uint16}
+        let bb:uint16 = {if i < bsize then b[i] else 0 asa uint16}
+        {if aa > bb then
+            {return 1}
+         elseif bb > aa then
+            {return -1}
+        }
+    }
+    {return 0}
+}
+
+{doc-next
+    {purpose
+        This is a package proc.
+        convert the data of int64 to uint16
+    }
+    {parameter val,
+        int64 value 
+    }
+    {parameter c,
+        uint16 value 
+    }
+    {return-vals 
+        int.Returning value of val's sign
+    } 
+}
+|| The return value has the same sign as val.
+{define-proc package {int64-to-u16s val:int64, c:u16s}:int
+    {c.clear}
+    {while true do
+        {c.append val asa uint16}
+        set val = {bit-sra val, 16}
+        {if val == 0 then {return 1}}
+        {if val == -1 then {break}}
+    }
+    {negate-u16s c}
+    {return -1}
+}
+
+|| Debugging helper.
+||--{define-proc package {make-u16s val:int64}:u16s
+||--    let c:u16s = {new u16s}
+||--    let sign:int = {int64-to-u16s val, c}
+||--    {return c}
+||--}
+
+{doc-next
+    {purpose
+        This is a package proc.
+        convert the data of uint16 to int64
+    }
+    {parameter a,
+        uint16 value 
+    }
+
+    {return-vals 
+        int64.Returning value of int64
+    } 
+}
+|| Simple conversion back to int64, no overflow check.
+{define-proc package {u16s-to-int64 a:u16s}:int64
+    let result:int64 = 0
+    let i:int = a.size
+    {while i > 0 do
+        set result = {bit-sll result, 16}
+        set i = i - 1
+        set result = result + a[i]
+    }
+    {return result}
+}
+
+{doc-next
+    {purpose
+        This is a package proc.
+        The usage of  c = c + (a * b) * (2^16)^j
+    }
+    {parameter a,
+        {Array-of uint16} value 
+    }
+    {parameter b,
+        int value 
+    }
+    {parameter c,
+        {Array-of uint16} value 
+    }
+    {parameter j,
+        int value 
+    }
+    {return-vals 
+        void
+    } 
+}
+|| c = c + (a * b) * (2^16)^j
+{define-proc package {multiply-step-u16s a:u16s, b:int, c:u16s, j:int}:void
+    {while c.size < j do
+        {c.append 0 asa uint16}
+    }
+    let asize:int = a.size
+    let csize:int = c.size
+    let accum:int64 = 0
+    {for i = 0 below asize do
+        let prod:int64 = a[i]
+        set prod = prod * b
+        {if j < csize then set accum = accum + c[j]}
+        set accum = accum + prod
+        {if j < csize then
+            set c[j] = accum asa uint16
+         else
+            {c.append accum asa uint16}
+            set csize = csize + 1
+        }
+        set accum = {bit-sra accum, 16}
+        set j = j + 1
+    }
+    {while accum != 0 do
+        {if j < csize then
+            set c[j] = accum asa uint16
+         else
+            {c.append accum asa uint16}
+            set csize = csize + 1
+        }        
+        set accum = {bit-sra accum, 16}
+        set j = j + 1
+    }
+}
+
+{doc-next
+    {purpose
+        This is a package proc.
+        The usage of  c = a * b
+    }
+    {parameter a,
+        {Array-of uint16} value 
+    }
+    {parameter b,
+        {Array-of uint16} value 
+    }
+    {parameter c,
+        {Array-of uint16} value 
+    }
+    {return-vals 
+        void
+    } 
+}
+|| c = a * b
+{define-proc package {multiply-u16s a:u16s, b:u16s, c:u16s}:void
+    {c.clear}
+    {for bi key i in b do
+        {multiply-step-u16s a, bi, c, i}
+    }
+}
+
+{doc-next
+    {purpose
+        This is a package proc.
+        The usage of  a = a + b * (2^16)^offset
+    }
+    {parameter a,
+        {Array-of uint16} value 
+    }
+    {parameter b,
+        int value 
+    }
+    {parameter offset,
+        int value 
+    }
+    {return-vals 
+        void
+    } 
+}
+|| a = a + b * (2^16)^offset
+{define-proc package {add-offset-step-u16s a:u16s, bi:int, offset:int}:void
+    {while a.size <= offset do
+        {a.append 0 asa uint16}
+    }
+    let accum:int32 = bi
+    {while accum != 0 do
+        {if offset < a.size then
+            set accum = accum + a[offset]
+            set a[offset] = accum asa uint16
+         else
+            {a.append accum asa uint16}
+        }
+        set offset = offset + 1
+        set accum = {bit-sra accum, 16}
+    }
+}
+
+{define-proc package {head-double-u16s a:u16s, n:int}:(double, int)
+    let p16:double = {bit-sll 1, 16}
+    let i:int = a.size
+    let result:double = 0.0
+    {for count = 1 to n do
+        {if i <= 0 then {break}}
+        set result = result * p16
+        set i = i - 1
+        set result = result + a[i]
+    }
+    {return result, i}
+}
+
+
+|| s is a scratch array.
+{define-proc package {divide-step-u16s r:u16s, b:u16s, q:u16s, s:u16s, t:u16s}:void
+    let p16:double = {bit-sll 1, 16}
+    {trim-u16s r}
+    {assert {compare-u16s r, b} >= 0}
+    let (rhead:double, rindex:int) = {head-double-u16s r, 3}
+    let (bhead:double, bindex:int) = {head-double-u16s b, 3}
+    let qd:double = rhead / bhead
+    {while qd >= p16 do
+        set qd = qd / p16
+        set rindex = rindex + 1
+    }
+    {while qd < 1.0 do
+        set qd = qd * p16
+        set rindex = rindex - 1
+    }
+    let qi:int32 = {floor qd} asa int32
+    {assert qi > 0}
+    let qindex:int = rindex - bindex
+    {add-offset-step-u16s q, qi, qindex}
+    {s.clear}
+    || Hack to transfer r to t:
+    {add-u16s r, s, t}
+    {multiply-step-u16s b, qi, s, qindex}
+    let cmp:int = {compare-u16s r, s}
+    {while cmp < 0 do
+        || We get in here if s > r, which means the trial quotient is
+        || too big.  So we'll subtract one from it.
+        set qi = qi - 1
+        {assert qi > 0}
+        {add-offset-step-u16s q, -1, qindex}
+        {multiply-step-u16s b, -1, s, qindex}
+        set cmp = {compare-u16s r, s}
+    }
+    let ss:int = {subtract-u16s t, s, r}
+    {assert ss >= 0}
+}
+
+|| Do a div b, quotient into q and remainder into r.
+{define-proc package {divide-u16s a:u16s, b:u16s, q:u16s, r:u16s}:void
+    {q.clear}
+    {r.clear}
+    || Hack to transfer a to r:
+    {add-u16s a, q, r}
+    || And transfer b to bb so we can trim it:
+    let bb:u16s = {new u16s}
+    {add-u16s b, q, bb}
+    {trim-u16s bb}
+    || Allocate scratch arrays for use by divide-step:
+    let s:u16s = {new u16s}
+    let t:u16s = {new u16s}
+    {while {compare-u16s r, b} >= 0 do
+        {divide-step-u16s r, b, q, s, t}
+    }
+}
+
+
+{doc-next
+    {purpose
+        This is a package proc.
+        Index of most significant bit in a.
+        It is guaranteed that 2^(result+1) > a >= 2^result,
+        provided 2^16 > a > 0.
+    }
+    {parameter a,
+        int value 
+    }
+    {return-vals 
+        int.Returning  0 if a == 0.
+    } 
+}
+|| Index of most significant bit in a.
+|| It is guaranteed that 2^(result+1) > a >= 2^result,
+|| provided 2^16 > a > 0.
+|| Returns 0 if a == 0.
+{define-proc package {uint16-bit-length a:int}:int
+    {if a == 0 then {return 0}}
+    let result:int = 1
+    {if a >= 0x100 then
+        set result = result + 8
+        set a = {bit-srl a, 8}
+    }
+    {if a >= 0x10 then
+        set result = result + 4
+        set a = {bit-srl a, 4}
+    }
+    {if a >= 4 then
+        set result = result + 2
+        set a = {bit-srl a, 2}
+    }
+    {if a >= 2 then
+        set result = result + 1
+    }
+    {return result}
+}
+
+

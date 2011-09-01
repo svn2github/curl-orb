@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="gather_resources" default="build.full" basedir="." >
+	<!-- work dir -->
+	<property name="dir.temp" value="build/tmp" />
+	<property name="dir.temp.client" value="${dir.temp}/client" />
+	<property name="dir.temp.web" value="${dir.temp}/web" />
+
+	<!-- start making jar  -->
+	<target name="build.full" description="full build jar" depends="makeJar" />
+	
+	<!-- cleanup working directory -->
+	<target name="cleanup" description="">
+	<echo message="cleanup working directory" />
+	<delete dir="${dir.temp}/resources" />
+	<delete dir="${dir.temp.client}" />
+	<delete dir="${dir.temp.web}" />
+	<mkdir dir="${dir.temp.client}" />
+	<mkdir dir="${dir.temp.web}" />
+	</target>
+
+	<target name="filecopy" description="copy files" depends="cleanup">
+		<copy file="curl-orb-client.jar" todir="${dir.temp.client}"/>
+		<copy todir="${dir.temp.web}">
+		  	<fileset dir="WebContent">
+		  		<exclude name="*.properties"/>
+		  		<exclude name="META-INF"/>
+		  		<exclude name="META-INF/**"/>
+		  		<exclude name="WEB-INF/applicationContext.xml"/>
+		  		<exclude name="WEB-INF/lib/asm-3.1.jar"/>
+		  		<exclude name="WEB-INF/lib/aspectjweaver.jar"/>
+		  		<exclude name="WEB-INF/lib/cglib-2.2.jar"/>
+		  		<exclude name="WEB-INF/lib/commons-dbcp-1.2.2.jar"/>
+		  		<exclude name="WEB-INF/lib/commons-pool.jar"/>
+		  		<exclude name="WEB-INF/lib/junit-3.8.1.jar"/>
+		  		<exclude name="WEB-INF/lib/ojdbc14.jar"/>
+		  		<exclude name="WEB-INF/lib/spring.jar"/>
+		  	</fileset>
+		  </copy>
+	</target>
+	
+	<target name="makeJar" description="make JAR" depends="filecopy">
+	</target>
+</project>

@@ -1,0 +1,52 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+{curl 7.0, 8.0 package}
+{package COM.CURL.CDK.SQLITE-RECORDSET,
+    version = "1.1",
+    resource-directory = "../resources/",
+    translations-file = "messages.xml",
+    use-built-in? = true,
+    {compiler-directives careful? = true}
+}
+
+{doc
+    type = package,
+    COM.CURL.CDK.SQLITE-RECORDSET
+    {purpose
+        The package provides implementations of
+        {docref CURL.DATA-ACCESS.CONNECTED} functionality for local
+        SQL database using the popular
+        {link href = {url "http://www.sqlite.org"}, SQLite}
+        SQL engine.
+    }
+}
+{import * from CURL.DATA-ACCESS.BASE}
+{import * from CURL.DATA-ACCESS.CONNECTED}
+{import * from COM.CURL.CDK.SQLITE-SYNTAX}
+{import * from COM.CURL.CDK.SQLITE-BASE}
+{import * from COM.CURL.CDK.SQL-BASE}
+{if-use-built-in
+    {import SQLiteDatatype, SQLiteStatus, SQLiteException
+     from CURL.IO.SQLITE-LIBRARY}
+ else
+    {import SQLiteDatatype, SQLiteStatus, SQLiteException
+     from COM.CURL.CDK.SQLITE-LIBRARY}
+}
+
+{include "connection.scurl"}
+{include "domain.scurl"}
+{include "recordset.scurl"}

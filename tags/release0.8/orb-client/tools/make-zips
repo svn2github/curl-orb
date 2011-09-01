@@ -1,0 +1,97 @@
+#! /bin/bash
+TODAY=`date +%m%d`
+SRCROOT="../build/DEPLOYED"
+pushd $SRCROOT/deploy
+DDIRS=( `ls` )
+popd
+DDIR=${DDIRS[${#DDIRS[@]} - 1]}
+DVER=`expr $DDIR : '.*\(V[0-9.]*\)'`
+# echo $DVER "(" $DDIR ")"
+DIST="curl-orb-$DVER"
+DISTDIR="$SRCROOT/$DIST/curl"
+DISTDIR2="$SRCROOT/$DIST/java"
+echo "Packing $DDIR from $SRCROOT into $DIST"
+DISTSRC="$DISTDIR/$DDIR-src"
+DISTDOC="$DISTDIR/$DDIR-doc"
+
+PCURLDIR=$SRCROOT/deploy/$DDIR/
+BGTDIR=$SRCROOT/deploy/$DDIR/BackgroundTask
+if ! test -f "$BGTDIR/BackgroundTaskRemoteInterface.scurl" ; then
+    echo "?? $BGTDIR/BackgroundTaskRemoteInterface.scurl missing - check the project file."
+fi
+if ! test -f "$BGTDIR/BackgroundTaskRemoteInterfacePackage.scurl" ; then
+    echo "?? $BGTDIR/BackgroundTaskRemoteInterfacePackage.scurl missing - check the project file."
+fi
+
+FLAGS="-av"
+if test -d "$DISTDIR" ; then
+    echo "-- $DISTDIR already exists: Updating only"
+    FLAGS="-uav"
+else
+    mkdir -p "$DISTDIR"
+    mkdir -p "$DISTDIR2"
+    mkdir -p "$DISTSRC"
+    mkdir -p "$DISTDOC"
+fi
+rsync "$FLAGS" "$SRCROOT/src/" "$DISTSRC/"
+rsync "$FLAGS" "$SRCROOT/deploy/$DDIR" "$DISTDIR/"
+rsync "$FLAGS" "$SRCROOT/docs-install/$DDIR/" "$DISTDOC/"
+rsync "$FLAGS" "../../orb-server/build/tmp/client" "$DISTDIR2/"
+rsync "$FLAGS" "../../orb-server/build/tmp/web" "$DISTDIR2/"
+rsync "$FLAGS" "$SRCROOT/LICENSE" "$SRCROOT/$DIST"
+rsync "$FLAGS" "$SRCROOT/NOTICE" "$SRCROOT/$DIST"
+
+SVER01=7.0
+SVER02=8.0
+
+HOST_LOCALE=ja
+SOURCE_LOCALE=en
+DEST_LOCALE=ja
+
+if [ "$HOST_LOCALE" ]; then
+    if  [ ! -d "$DISTDOC"/"$SVER01"/docs/$SOURCE_LOCALE ] ; then \
+      mkdir -p "$DISTDOC"/"$SVER01"/docs/$SOURCE_LOCALE
+    fi
+    if  [ -d "$DISTDOC"/"$SVER01"/docs/$HOST_LOCALE/api-ref ] ; then \
+      # cd "$DISTDOC"/"$SVER01"/docs/$SOURCE_LOCALE && mv api-ref not-api-ref
+      (cd "$DISTDOC"/"$SVER01"/docs/$HOST_LOCALE; tar cpf - api-ref) | \
+      (cd "$DISTDOC"/"$SVER01"/docs/$SOURCE_LOCALE; tar xvpf -)
+      # cd "$DISTDOC"/"$SVER01"/docs/$SOURCE_LOCALE && ln -s ../$HOST_LOCALE/api-ref .
+    fi
+fi
+
+if test -d "$DISTDOC"/"$SVER01"/docs/$DEST_LOCALE ; then
+    rm -rf "$DISTDOC"/"$SVER01"/docs/$DEST_LOCALE
+fi
+if test -d "$DISTSRC"/"$SVER01"/code/docs/$DEST_LOCALE ; then
+    rm -rf "$DISTSRC"/"$SVER01"/code/docs/$DEST_LOCALE
+fi
+
+if [ "$HOST_LOCALE" ]; then
+    if  [ ! -d "$DISTDOC"/"$SVER02"/docs/$SOURCE_LOCALE ] ; then \
+      mkdir -p "$DISTDOC"/"$SVER02"/docs/$SOURCE_LOCALE
+    fi
+    if  [ -d "$DISTDOC"/"$SVER02"/docs/$HOST_LOCALE/api-ref ] ; then \
+      # cd "$DISTDOC"/"$SVER02"/docs/$SOURCE_LOCALE && mv api-ref not-api-ref
+      (cd "$DISTDOC"/"$SVER02"/docs/$HOST_LOCALE; tar cpf - api-ref) | \
+      (cd "$DISTDOC"/"$SVER02"/docs/$SOURCE_LOCALE; tar xvpf -)
+      # cd "$DISTDOC"/"$SVER02"/docs/$SOURCE_LOCALE && ln -s ../$HOST_LOCALE/api-ref .
+    fi
+fi
+
+if test -d "$DISTDOC"/"$SVER02"/docs/$DEST_LOCALE ; then
+    rm -rf "$DISTDOC"/"$SVER02"/docs/$DEST_LOCALE
+fi
+if test -d "$DISTSRC"/"$SVER02"/code/docs/$DEST_LOCALE ; then
+    rm -rf "$DISTSRC"/"$SVER02"/code/docs/$DEST_LOCALE
+fi
+
+ls -l "$DISTDIR"
+cd "$SRCROOT"
+DSTZIP="$DIST.zip"
+if test -f "$DSTZIP" ; then
+    mv "$DSTZIP" "old-$DSTZIP"
+fi
+zip -r "$DSTZIP" "$DIST"
+ls -l "$DIST"
+ls -lrt *.zip

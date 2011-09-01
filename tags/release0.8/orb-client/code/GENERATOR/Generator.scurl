@@ -1,0 +1,1501 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+{import * from COM.CURL.ORB}
+
+||
+|| ClassPropertyLoader
+||
+{define-class public open ClassPropertyLoader
+
+  || getClassPropertyFromClassName proc
+  {define-proc public inline {get-ClassProperty-from-ClassName
+                                 name:String,
+                                 curl-coding-style?:bool = true,
+                                 interfaces-as-superclass?:bool = false,
+                                 server-url:#Url = null
+                             }:ClassProperty
+    
+    {return
+        {ClassPropertyLoader.initialize
+            {invoke-static
+                "com.curl.orb.generator.ClassPropertyLoader",
+                "getClassPropertyFromClassName",
+                arguments = {FastArray name},
+                server-url = server-url
+            } asa ClassProperty,
+            curl-coding-style? = curl-coding-style?,
+            interfaces-as-superclass? = interfaces-as-superclass?
+        }
+    }
+  }
+
+  || getClassPropertyInApplicationContext proc
+  {define-proc public inline {get-ClassProperty-in-ApplicationContext
+                                 name:String,
+                                 curl-coding-style?:bool = true,
+                                 interfaces-as-superclass?:bool = false,
+                                 server-url:#Url = null
+                             }:ClassProperty
+    {return
+        {ClassPropertyLoader.initialize
+            {invoke-static
+                "com.curl.orb.generator.ClassPropertyLoader",
+                "getClassPropertyInApplicationContext",
+                arguments = {FastArray name},
+                server-url = server-url
+            } asa ClassProperty,
+            curl-coding-style? = curl-coding-style?,
+            interfaces-as-superclass? = interfaces-as-superclass?
+        }
+    }
+  }
+
+  || getAllClassProperty proc
+  {define-proc public inline {get-all-ClassProperties
+                                 server-url:#Url = null
+                             }:{FastArray-of #ClassProperty}
+    {return
+        {invoke-static
+            "com.curl.orb.generator.ClassPropertyLoader",
+            "getAllClassProperties",
+            server-url = server-url
+        } asa {FastArray-of #ClassProperty}
+    }
+  }
+  
+  || getAllClassPropertyInApplicationContext proc
+  {define-proc public inline {get-all-ClassProperties-in-ApplicationContext
+                                 server-url:#Url = null
+                             }:{FastArray-of #ClassProperty}
+    {return
+        {invoke-static
+            "com.curl.orb.generator.ClassPropertyLoader",
+            "getAllClassPropertiesInApplicationContext",
+            server-url = server-url
+        } asa {FastArray-of #ClassProperty}
+    }
+  }
+
+
+  || initialize
+  {define-proc package inline {initialize
+                                  class-property:ClassProperty,
+                                  curl-coding-style?:bool = true,
+                                  interfaces-as-superclass?:bool = false
+                              }:ClassProperty
+
+    || find @NotNull, @Nullable, @DefaultNotNull annotation (since 0.7)
+    def non-null?-proc =
+         {proc {annotations:#{FastArray-of #AnnotationProperty}}:bool
+             {if {ClassBuilderUtil.exist-annotation?
+                     "com.curl.io.serialize.types.annotation.NotNull",
+                     annotations
+                 } then
+                 {return true}
+              elseif {ClassBuilderUtil.exist-annotation?
+                         "com.curl.io.serialize.types.annotation.Nullable",
+                         annotations
+                     } then
+                 {return false}
+              elseif {ClassBuilderUtil.exist-annotation?
+                         "com.curl.io.serialize.types.annotation.DefaultNotNull",
+                         class-property.annotations || class annotation
+                     } then
+                 {return true}
+             }
+             {return false}
+         }
+    
+    || import proc
+    def append-import =
+        {proc {str:String, allow-null?:bool = true}:String
+            def (class, package) =
+                {ClassBuilderUtil.marshal-curl-type
+                    str,
+                    allow-null? = allow-null?,
+                    curl-coding-style? = curl-coding-style?
+                }
+            {if-non-null p = package then
+                {class-property.import-package-names.insert p}
+            }
+            {return class}
+        }
+    || superclass
+    {if-non-null superclass = class-property.superclass then
+        set class-property.superclass.server-class-name =
+            {append-import {unchecked-non-null superclass.server-class-name}, allow-null? = false}
+        set class-property.superclass =
+            {ClassPropertyLoader.initialize superclass, curl-coding-style? = curl-coding-style?}
+    }
+    || interface
+    {if-non-null interfaces = class-property.interface-properties then
+        {for interface key i in interfaces do
+            {if-non-null intf = interface then
+                {if interfaces-as-superclass? then
+                    set interfaces[i].server-class-name =
+                        {append-import {unchecked-non-null interfaces[i].server-class-name}, allow-null? = false}
+                }
+                set interfaces[i] =
+                    {ClassPropertyLoader.initialize intf, curl-coding-style? = curl-coding-style?}
+            }
+        }
+    }
+    || fields
+    {if-non-null fields = class-property.field-properties then
+        {for f key i in fields do
+            def non-null? = {non-null?-proc f.annotations}
+            set f.type =
+                {append-import
+                    {unchecked-non-null f.type},
+                    allow-null? = (not non-null?)
+                }
+            set f.uninitialized-value-for-type? = non-null?
+        }
+    }
+    || constructor
+    {if-non-null constructors = class-property.constructor-properties then
+        {for c key i in constructors do
+            {if-non-null arg-types = c.argument-types then
+                {for t key j in arg-types do
+                    set constructors[i].argument-types[j] =
+                        {append-import {unchecked-non-null t}, allow-null? = false}
+                }
+            }
+        }
+    }
+    || methods
+    {if-non-null methods = class-property.method-properties then
+        {for m key i in methods do
+            set m.return-type =
+                {append-import
+                    {unchecked-non-null m.return-type},
+                    allow-null? = (not {non-null?-proc m.annotations})
+                }
+            {if-non-null arg-types = m.argument-types then
+                {for t key j in arg-types do
+                    set methods[i].argument-types[j] =
+                        {append-import {unchecked-non-null t}, allow-null? = false}
+                }
+            }
+        }
+    }
+    || remove own package
+    def (class, package) =
+        {ClassBuilderUtil.split-class-name {unchecked-non-null class-property.name}}
+    {if-non-null p:String = package then
+        {class-property.import-package-names.remove p, error-if-missing? = false}
+    }
+    {return class-property}
+  }
+}
+
+
+||
+|| ObjectManagementType enum
+||
+{define-enum public ObjectManagementType
+    || data class (DTO) 
+    data-class,
+
+    || This class is managed by the ApplicationContext in server side.
+    ||  (ServletContext, Spring2, Seasar2 ...etc)
+    service-class-application-context,
+
+    || This class is managed by the HttpSession in the java servlet.
+    service-class-session,
+
+    || excetpion class
+    exception-class
+}
+
+||
+|| - - Code Generator - - 
+||
+
+||
+|| ClassBuilderUtil
+||
+{define-class public open ClassBuilderUtil
+
+  || marshal property as curl coding style
+  {define-proc public inline {marshal-property
+                                 str:String,
+                                 curl-coding-style?:bool = true
+                             }:String
+    {return
+        {if curl-coding-style? then
+            def buf = {StringBuf}
+            let pc:char = ' ' || previous char
+            {for i = 0 below str.size do
+                def c = {str.get i}
+                {if (c >= 'A' and c <= 'Z' and i != 0) then
+                    {if not ((pc >= 'A' and pc <= 'Z') or (pc == '_' and i == 1)) then
+                        {buf.concat {("-" & c).to-lower-clone}}
+                     else
+                        {buf.append {char-downcase c}}
+                    }
+                 else
+                    {buf.append {char-downcase c}}
+                }
+                set pc = c
+            }
+            {buf.to-String}
+         else
+            str
+        }
+    }
+
+  }
+
+  || split class name and package name
+  {define-proc public inline {split-class-name
+                                 str:String,
+                                 curl-coding-style?:bool = true
+                             }:(String, String) || (class, package)
+    def index = {str.find '.', search-direction = SearchDirection.backward}
+    {return 
+        {if index != -1 then
+            def p = {str.substr 0, index}
+            ({str.substr index + 1, str.size - index - 1},          || class 
+             {if curl-coding-style? then {p.to-upper-clone} else p} || package 
+            )
+         else
+            || {throw {GeneratorException "Wrong class name or package name [" & str & "]"}}
+            (str, "")
+        }
+    }
+  }
+
+  || marshal curl type. (return class and package)
+  {define-proc public inline {marshal-curl-type
+                                 val:#String,
+                                 allow-null?:bool = true,
+                                 curl-coding-style?:bool = true
+                             }:(String, #String)
+    {return 
+        {if-non-null v = val then
+            {if {v.prefix? "[L"} then
+                ({if allow-null? then "#" else ""} &
+                 "\{FastArray-of " &
+                 {ClassBuilderUtil.marshal-curl-type
+                     {v.substr 2, v.size - 3},
+                     ||allow-null? = false,
+                     allow-null? = true,
+                     curl-coding-style? = curl-coding-style?
+                 } & "\}", null)
+             elseif {v.prefix? "["} then
+                ({if allow-null? then "#" else ""} &
+                 "\{FastArray-of " &
+                 {ClassBuilderUtil.marshal-curl-type
+                     {v.substr 1, v.size - 1},
+                     ||allow-null? = false,
+                     allow-null? = true,
+                     curl-coding-style? = curl-coding-style?
+                 } & "\}", null)
+             else
+                {switch v
+                 case null, "void" do
+                    ("void", null)
+                 case null, "java.lang.Object" do
+                    ("any", null)
+                 case "java.lang.String" do
+                    ({if allow-null? then "#" else ""} & "String", null)
+                 case "java.lang.Character", "char", "C" do
+                    ("char", null)
+                 case "java.lang.Boolean", "boolean", "Z" do
+                    ("bool", null)
+                 case "java.lang.Integer", "int", "I" do
+                    ("int", null)
+                 case "java.lang.Byte", "byte", "B" do
+                    ("int8", null)
+                 case "java.lang.Short", "short", "S" do
+                    ("int16", null)
+                 case "java.lang.Long", "long", "J" do
+                    ("int64", null)
+                 case "java.lang.Double", "double", "D" do
+                    ("double", null)
+                 case "java.lang.Float", "float", "F" do
+                    ("float", null)
+                 case "curl.language.date_time.DateTime" do
+                    ({if allow-null? then "#" else ""} & "DateTime", "CURL.LANGUAGE.DATE-TIME")
+                 case "java.util.Date" do
+                    ({if allow-null? then "#" else ""} & "Date", "COM.CURL.ORB")
+                 case "java.sql.Date" do
+                    ({if allow-null? then "#" else ""} & "CDate", "COM.CURL.ORB")
+                 case "java.sql.Time" do
+                    ({if allow-null? then "#" else ""} & "CTime", "COM.CURL.ORB")
+                 case "java.sql.Timestamp" do
+                    ({if allow-null? then "#" else ""} & "CTimestamp", "COM.CURL.ORB")
+                 case "java.sql.BLOB" do
+                    ({if allow-null? then "#" else ""} & "BLOB", "COM.CURL.ORB")
+                 case "java.sql.CBOB" do
+                    ({if allow-null? then "#" else ""} & "CLOB", "COM.CURL.ORB")
+                 case "java.math.BigInteger" do
+                    ({if allow-null? then "#" else ""} & "BigInteger", "COM.CURL.ORB")
+                 case "java.math.BigDecimal" do
+                    ({if allow-null? then "#" else ""} & "BigDecimal", "COM.CURL.ORB")
+                 case "java.util.List", "java.util.ArrayList" do
+                    ({if allow-null? then "#" else ""} & "Array", null)
+                 case "java.util.Map", "java.util.HashMap", "java.util.Hashtable" do
+                    ({if allow-null? then "#" else ""} & "HashTable", null)
+                 case "java.util.Set", "java.util.HashSet" do
+                    ({if allow-null? then "#" else ""} & "Set", null)
+                 else
+                    def (c, p) = {ClassBuilderUtil.split-class-name
+                                     v, curl-coding-style? = curl-coding-style?}
+                    ({if allow-null? then "#" else ""} & c, p)
+                }
+            }
+         else
+            ("void", null)
+        }
+    }
+  }
+
+  || marshal accessor name for getter/setter
+  {define-proc public inline {marshal-setters-getters-name str:String}:String
+    def index = {if {str.prefix? "is"} then 2 else 3} || is or get/set
+    {return {{str.substr index, 1}.to-lower-clone} & {str.substr index + 1, str.size - (index + 1)}}
+  }
+
+  || exist field
+  {define-proc public inline {exist-field?
+                                 str:String,
+                                 field-properties:#{FastArray-of #FieldProperty}
+                             }:bool
+    {if-non-null fields = field-properties then
+        {for f in fields do
+            {if f.name == str then
+                {return true}
+            }
+        }
+    }
+    {return false}
+  }
+
+  {define-proc public inline {exist-annotation?
+                                 target-annotaion:String,
+                                 annotations:#{FastArray-of #AnnotationProperty}
+                             }:bool
+    {if-non-null as = annotations then
+        {for a in as do
+            {if a.annotationType.name == target-annotaion then
+                {return true}
+            }
+        }
+    }
+    {return false}
+  }
+  || modifier
+  {define-proc public inline {is-public? modifier:String}:bool
+    {return ({modifier.find-string "public"} != -1)}
+  }
+  
+  {define-proc public inline {is-protected? modifier:String}:bool
+    {return ({modifier.find-string "protected"} != -1)}
+  }
+
+  {define-proc public inline {is-package? modifier:String}:bool
+    {return ({modifier.find-string "package"} != -1)}
+  }
+
+  {define-proc public inline {is-static? modifier:String}:bool
+    {return ({modifier.find-string "static"} != -1)}
+  }
+
+  {define-proc public inline {is-transient? modifier:String}:bool
+    {return ({modifier.find-string " transient"} != -1)}
+  }
+
+  {define-proc public inline {get-modifier-string modifier:String}:String
+    {return 
+        {if {ClassBuilderUtil.is-protected? modifier} then
+            "protected"
+         elseif {ClassBuilderUtil.is-package? modifier} then
+            "package"
+         elseif {ClassBuilderUtil.is-public? modifier} then
+            "public"
+         else
+            "private"
+        }
+    }
+  }
+  
+  {define-proc package inline {dump-ClassProperty class-property:ClassProperty}:void
+    {output "### class dump ###"}
+    {output class-property.name & " (" & class-property.server-class-name & ")"}
+    {if-non-null superclass = class-property.superclass then
+        {output "  superclass:" & superclass.name}
+    }
+    {if-non-null interfaces = class-property.interface-properties then
+        def buf = {StringBuf "  interfaces:"}
+        {for i in interfaces do
+            {buf.concat " " & i.name}
+        }
+        {output {buf.to-String}}
+    }
+    {output "  implements:" & class-property.implement-class}
+    {output "  ## imports ##"}
+    {if-non-null imports = class-property.import-package-names then
+        {for i in imports do
+            {output "  import * from " & i}
+        }
+    }
+    {output "  ## fields ##"}
+    {if-non-null fields = class-property.field-properties then
+        {for f in fields do
+            {output "  " & f.modifier & " " & f.name & ":" & f.type}
+        }
+    }
+    {output "  ## getters ##"}
+    {if-non-null getters = class-property.getters then
+        {for g in getters do
+            {output "  " & g.modifier & " " & g.name & ":" & g.type}
+        }
+    }
+    {output "  ## setters ##"}
+    {if-non-null setters = class-property.setters then
+        {for s in setters do
+            {output "  " & s.modifier & " " & s.name & ":" & s.type}
+        }
+    }
+    {output "  ## constructors ##"}
+    {if-non-null constructors = class-property.constructor-properties then
+        {for c in constructors do
+            def buf = {StringBuf "  " & c.modifier}
+            {if-non-null args = c.argument-types then
+                {for arg in args do
+                    {buf.concat " " & arg}
+                }
+            }
+            {output {buf.to-String}}
+        }
+    }
+    {if-non-null methods = class-property.method-properties then
+        {for m in methods do
+            def buf = {StringBuf "  " & m.modifier & " \{" & m.name}
+            {if-non-null args = m.argument-types then
+                {for arg in args do
+                    {buf.concat " " & arg}
+                }
+            }
+            {output {buf.to-String} & "\}:" & m.return-type & " \|\| " & m.server-method-name}
+        }
+    }
+  }
+}
+
+
+||
+|| AbstractClassBuilder
+||
+{define-class abstract package AbstractClassBuilder
+
+  || constant variables
+  field package constant THIS-PACKAGE-NAME = "COM.CURL.ORB"
+  field package constant PACKAGE-TEMPLATE = "\{import * from %s\} \n"
+  field package constant FIELD-TEMPLATE = "  %s %s %s:%s \n"
+  field package constant CONSTRUCTOR-TEMPLATE = "\n  \{constructor %s \{%s\} \n    %s \n  \} \n"
+  field package constant METHOD-TEMPLATE = "\n  \{method %s \{%s\}:%s \n    %s \n  \} \n"
+  field package constant PROC-TEMPLATE = "\n  \{define-proc %s \{%s\}:%s \n    %s \n  \} \n"
+  field package constant GETTER-TEMPLATE = "\n  \{getter %s \{%s\}:%s \n    \{return self.%s asa %s\} \n  \} \n"
+  field package constant SETTER-TEMPLATE = "\n  \{setter %s \{%s v:%s\}:void \n    set self.%s = v \n  \} \n"
+  field package constant STUB-COMMENT-TEMPLATE = "\|\| NOTE!! Write test codes here."
+
+  field package class-property:ClassProperty
+  field package curl-coding-style?:bool
+  field package as-template?:bool
+
+  || Whether this can make superclass file or not
+  {getter abstract package {enable-make-superclass-file?}:bool }
+
+  || serializable class or not
+  {getter abstract package {is-serializable-class?}:bool }
+
+  || constructor
+  {constructor package {default
+                           class-property:ClassProperty,
+                           curl-coding-style?:bool = true,
+                           as-template?:bool = false
+                       }
+    set self.class-property = class-property
+    set self.curl-coding-style? = curl-coding-style?
+    set self.as-template? = as-template?
+  }
+
+  || factory
+  {factory package {default
+                       omt:ObjectManagementType,
+                       class-property:ClassProperty,
+                       curl-coding-style?:bool = true,
+                       as-template?:bool = false
+                   }:AbstractClassBuilder
+    {return 
+        {switch omt
+         case ObjectManagementType.data-class do
+            {DataClassBuilder
+                class-property,
+                curl-coding-style? = curl-coding-style?,
+                as-template? = as-template?
+            }
+         case ObjectManagementType.service-class-application-context do
+            {ServiceClassApplicationContextBuilder
+                class-property,
+                curl-coding-style? = curl-coding-style?,
+                as-template? = as-template?
+            }
+         case ObjectManagementType.service-class-session do
+            {ServiceClassHttpSessionBuilder
+                class-property,
+                curl-coding-style? = curl-coding-style?,
+                as-template? = as-template?
+            }
+         case ObjectManagementType.exception-class do
+            {ExceptionClassBuilder
+                class-property,
+                curl-coding-style? = curl-coding-style?,
+                as-template? = as-template?
+            }
+         else
+            {unreachable}
+        }
+    }
+  }
+  
+
+  || generate {import xx} sentences
+  {method package {generate-import-packages}:String
+    || skiping packages
+    def (tmp, my-package) =
+        {ClassBuilderUtil.split-class-name {unchecked-non-null self.class-property.name}}
+    def skip-packages:StringArray =
+        {StringArray
+            "COM.CURL.IO.SERIALIZE.TYPES",
+            "JAVA.LANG",
+            "JAVA.UTIL",
+            "JAVA.SQL",
+            "JAVA.MATH",
+            {my-package.to-upper-clone}
+        }
+
+    def buf = {StringBuf}
+    {for ip in self.class-property.import-package-names do
+        {if ip != null and {ip.prefix? "COM.CURL.ORB."} then
+            {continue} || COM.CURL.ORB.XXX -> COM.CURL.ORB
+        }
+        {if self.as-template? and {ip.prefix? "COM.CURL.ORB"} then
+            {continue} || Not add COM.CURL.ORB to template class.
+        }
+        {if {skip-packages.find ip} == -1 then
+            {buf.concat {format self.PACKAGE-TEMPLATE, ip}}
+        }
+    }
+    {return {buf.to-String}}
+  }
+
+  || generate constructors
+  {method abstract package {generate-constructors
+                               buf:StringBuf
+                           }:void }
+
+  || generate fields
+  {method package {generate-fields
+                      buf:StringBuf
+                  }:void
+    
+    {if-non-null fields = self.class-property.field-properties then
+        {for f in fields do
+            def modifier = {unchecked-non-null f.modifier}
+            {buf.concat
+                {format
+                    self.FIELD-TEMPLATE,
+                    {if {ClassBuilderUtil.is-static? modifier} then
+                        "let"
+                     else
+                        "field"
+                    },
+                    {if {ClassBuilderUtil.is-public? modifier} then
+                        "public"
+                     elseif {ClassBuilderUtil.is-package? modifier} then
+                        "package"
+                     elseif {ClassBuilderUtil.is-protected? modifier} then
+                        "protected"
+                     else
+                        "private"
+                    } &
+                    {if {ClassBuilderUtil.is-transient? modifier} then
+                        " transient"
+                     else
+                        ""
+                    },
+                    {if {ClassBuilderUtil.is-public? modifier} then
+                        "" 
+                     else
+                        "_"
+                    } & f.name,
+                    f.type &
+                    {if f.uninitialized-value-for-type? then
+                        " = \{uninitialized-value-for-type " & f.type & "\}"
+                     else
+                        ""
+                    }
+                }
+            }
+        }
+    }
+  }
+
+  || generate one method
+  {method package {generate-method
+                      buf:StringBuf,
+                      method-property:MethodProperty
+                  }:void
+
+    def modifier = {unchecked-non-null method-property.modifier}
+    || suppport only public
+    ||    {if not {ClassBuilderUtil.is-public? modifier} then
+    ||        {return} 
+    ||    }
+    def static? = {ClassBuilderUtil.is-static? modifier}
+    def async? = method-property.async?
+    def method-name = {non-null method-property.name}
+    def argument-types = method-property.argument-types
+
+    def buf-args = {StringBuf}
+    {if async? == true then
+        {buf-args.concat "async-"}
+    }
+    {buf-args.concat method-name}
+    
+    def buf-args-to-invoke = {StringBuf}
+    {if-non-null args = argument-types then
+        {for arg key i in args do
+            {if i != 0 then
+                {buf-args.concat ", "}
+                {buf-args-to-invoke.concat ", "}
+             else
+                {buf-args.append ' '}
+                {buf-args-to-invoke.append ' '}
+            }
+            {buf-args.concat "v" & i}
+            {buf-args-to-invoke.concat "v" & i}
+            {buf-args.append ':'}
+            {buf-args.concat {unchecked-non-null arg}}
+        }
+        {if async? then
+            {buf-args.concat {if args.size > 0 then "," else ""} & " ...:EventHandler"}
+        }
+    }
+    {buf.concat 
+        {format 
+            {if static? then
+                self.PROC-TEMPLATE
+             else
+                self.METHOD-TEMPLATE
+            },
+            {ClassBuilderUtil.get-modifier-string modifier}, ||modifier,
+            {buf-args.to-String},
+            {if async? then "AsyncWorker" else method-property.return-type},
+            {if self.as-template? then
+                self.STUB-COMMENT-TEMPLATE
+             else
+                {self.generate-method-content
+                    method-name,
+                    static?,
+                    {buf-args-to-invoke.to-String},
+                    {unchecked-non-null method-property.return-type},
+                    {unchecked-non-null method-property.server-method-name},
+                    async?
+                }
+            }
+        }
+    }
+  }
+
+  || generate the content of method
+  {method abstract package {generate-method-content
+                               method-name:String,
+                               static?:bool,
+                               args:String,
+                               return-type:String,
+                               server-method-name:String,
+                               async?:bool
+                           }:String }
+
+  || generate setters and getters
+  {method package {generate-setters-getters
+                      buf:StringBuf
+                  }:void
+    {for g in self.class-property.getters do
+        {buf.concat
+            {format
+                self.GETTER-TEMPLATE,
+                "public", ||g.modifier,
+                g.name,
+                g.type,
+                {ClassBuilderUtil.marshal-property
+                    "_" & g.name,
+                    curl-coding-style? = self.curl-coding-style?
+                },
+                g.type
+            }
+        }
+    }
+    {for s in self.class-property.setters do
+        {buf.concat
+            {format
+                self.SETTER-TEMPLATE,
+                "public", ||s.modifier,
+                s.name,
+                s.type,
+                "_" & s.name
+            }
+        }
+    }
+  }
+  
+  || generate superclass
+  {method abstract package {generate-superclass
+                               interfaces-as-superclass?:bool = false
+                           }:String }
+}
+
+
+||
+|| ServiceClassApplicationContextBuilder
+||
+{define-class package ServiceClassApplicationContextBuilder
+  {inherits AbstractClassBuilder}
+
+  || @Override
+  {getter package {enable-make-superclass-file?}:bool
+    {return false}
+  }
+
+  || @Override
+  {getter package {is-serializable-class?}:bool
+    {return false}
+  }
+  
+  {constructor package {default
+                           class-property:ClassProperty,
+                           curl-coding-style?:bool = true,
+                           as-template?:bool = false
+                       }
+    {construct-super
+        class-property,
+        curl-coding-style? = curl-coding-style?,
+        as-template? = as-template?
+    }
+    {class-property.import-package-names.insert self.THIS-PACKAGE-NAME}
+  }
+
+  || @Override
+  {method package {generate-constructors
+                      buf:StringBuf
+                  }:void
+    {buf.concat
+        {format
+            self.CONSTRUCTOR-TEMPLATE,
+            "public",
+            |"default server-url:#Url = null"|,
+            {if self.as-template? then
+                self.STUB-COMMENT-TEMPLATE
+             else
+                {format
+                    |"{construct-super.ApplicationContextClient "%s", server-url = server-url}"|,
+                    self.class-property.server-class-name
+                }
+            }
+        }
+    }
+  }
+
+  || @Override
+  {method package {generate-method-content
+                      method-name:String,
+                      static?:bool,
+                      args:String,
+                      return-type:String,
+                      server-method-name:String,
+                      async?:bool
+                  }:String
+    {return
+        {if async? then
+            {format
+                |"{return %s"| & " asa " & "AsyncWorker" & "\}" ,
+                {if static? then
+                    {format
+                        {if args.size > 0 then
+                            |"{ApplicationContextClient.async-invoke-static "%s", "%s", arguments = {FastArray%s}, server-url:#Url = null, {splice ...}}"|
+                         else
+                            |"{ApplicationContextClient.async-invoke-static "%s", "%s", server-url:#Url = null, {splice ...}}%s"|
+                        },
+                        self.class-property.server-class-name,
+                        server-method-name, || method-name,
+                        args
+                    }
+                 else
+                    {format
+                        {if args.size > 0 then
+                            |"{self.async-invoke "%s", client-method-name = "%s", arguments = {FastArray%s}, {splice ...}}"|
+                         else
+                            |"{self.async-invoke "%s", client-method-name = "%s", {splice ...}}%s"|
+                        },
+                        server-method-name, || method-name,
+                        method-name,
+                        args
+                    }
+                }
+            }
+         else
+            {format
+                {if return-type == "void" then
+                    |"%s"|
+                 elseif return-type == "any" then
+                    |"{return %s}"|
+                 else
+                    |"{return %s"| & " asa " & return-type & "\}" 
+                },
+
+                {if static? then
+                    {format
+                        {if args.size > 0 then
+                            |"{ApplicationContextClient.invoke-static "%s", "%s", server-url:#Url = null, arguments = {FastArray%s}}"|
+                         else
+                            |"{ApplicationContextClient.invoke-static "%s", "%s", server-url:#Url = null}%s"|
+                        },
+                        self.class-property.server-class-name,
+                        server-method-name, || method-name,
+                        args
+                    }
+                 else
+                    {format
+                        {if args.size > 0 then
+                            |"{self.invoke "%s", client-method-name = "%s", arguments = {FastArray%s}}"|
+                         else
+                            |"{self.invoke "%s", client-method-name = "%s"}%s"|
+                        },
+                        server-method-name, || method-name,
+                        method-name,
+                        args
+                    }
+                }
+            }
+        }
+    }
+  }
+
+  || @Override
+  {method package {generate-superclass
+                      interfaces-as-superclass?:bool = false
+                  }:String
+    {return
+        {if self.as-template? then
+            ""
+         else
+            "\{inherits ApplicationContextClient\}\n"
+        }
+    }
+  }
+}
+
+
+||
+|| ServiceClassHttpSessionBuilder
+||
+{define-class package ServiceClassHttpSessionBuilder
+  {inherits AbstractClassBuilder}
+
+  || @Override
+  {getter package {enable-make-superclass-file?}:bool
+    {return false}
+  }
+
+  || @Override
+  {getter package {is-serializable-class?}:bool
+    {return false}
+  }
+  
+  {constructor package {default
+                           class-property:ClassProperty,
+                           curl-coding-style?:bool = true,
+                           as-template?:bool = false
+                       }
+    {construct-super
+        class-property,
+        curl-coding-style? = curl-coding-style?,
+        as-template? = as-template?
+    }
+    {class-property.import-package-names.insert self.THIS-PACKAGE-NAME}
+  }
+
+  || @Override
+  {method package {generate-constructors
+                      buf:StringBuf
+                  }:void
+    def full-class-name =
+        {if-non-null c = self.class-property.implement-class then
+            c.server-class-name || interface
+         else
+            {non-null self.class-property.server-class-name} || class
+        }
+    {if-non-null constructors = self.class-property.constructor-properties then
+        {for c key i in constructors do
+            def buf-args = {StringBuf "default"}
+            def buf-args-to-invoke = {StringBuf}
+            {if-non-null args = c.argument-types then
+                {for arg key j in args do
+                    {if j != 0 then
+                        {buf-args.concat ", "}
+                        {buf-args-to-invoke.concat ", "}
+                     else
+                        {buf-args.append ' '}
+                        {buf-args-to-invoke.append ' '}
+                    }
+                    {buf-args.concat "v" & j}
+                    {buf-args-to-invoke.concat "v" & j}
+                    {buf-args.append ':'}
+                    {buf-args.concat {unchecked-non-null arg}}
+                }
+                {if args.size > 0 then
+                    {buf-args.concat ","}
+                }
+                {buf-args.concat " server-url:#Url = null"}
+            }
+            || more than 2 constructors are commented out.
+            {if i > 0 then
+                {buf.concat "  \|\| !! NOTE !! \n  \|\|   Fix the following constructor.\n"}
+                {buf.concat "  \|# "}
+            }
+            {buf.concat 
+                {format
+                    self.CONSTRUCTOR-TEMPLATE,
+                    c.modifier,
+                    {buf-args.to-String},
+                    {if self.as-template? then
+                        self.STUB-COMMENT-TEMPLATE
+                     else
+                        {format
+                            {if buf-args-to-invoke.size > 0 then
+                                |"{construct-super.HttpSessionClient "%s", arguments = {FastArray%s}, server-url = server-url}"|
+                             else
+                                |"{construct-super.HttpSessionClient "%s", server-url = server-url}%s"|
+                            },
+                            full-class-name,
+                            {buf-args-to-invoke.to-String}
+                        }
+                    }
+                }
+            }
+            {if i > 0 then
+                {buf.concat "  #\| \n"}
+            }
+        }
+
+        || if constructor is nothing in java, add constructor to class.
+        {if constructors.size == 0 then
+            {buf.concat
+                {format
+                    self.CONSTRUCTOR-TEMPLATE,
+                    "public",
+                    |"default server-url:#Url = null"|,
+                    {format
+                        |"{construct-super.HttpSessionClient "%s", server-url = server-url}"|,
+                        full-class-name
+                    }
+                }
+            }
+        }
+    }
+  }
+
+  || @Override
+  {method package {generate-method-content
+                      method-name:String,
+                      static?:bool,
+                      args:String,
+                      return-type:String,
+                      server-method-name:String,
+                      async?:bool
+                  }:String
+    {return
+        {if async? then
+            {format
+                |"{return %s"| & " asa " & "AsyncWorker" & "\}", 
+                {if static? then
+                    {format
+                        {if args.size > 0 then
+                            |"{async-invoke-static "%s", "%s", arguments = {FastArray%s}, server-url:#Url = null, {splice ...}}"|
+                         else
+                            |"{async-invoke-static "%s", "%s", server-url:#Url = null, {splice ...}}%s"|
+                        },
+                        {if-non-null c = self.class-property.implement-class then
+                            c.server-class-name || interface
+                         else
+                            self.class-property.server-class-name || class
+                        },
+                        server-method-name, || method-name,
+                        args
+                    }
+                 else
+                    {format
+                        {if args.size > 0 then
+                            |"{self.async-invoke "%s", client-method-name = "%s", arguments = {FastArray%s}, {splice ...}}"|
+                         else
+                            |"{self.async-invoke "%s", client-method-name = "%s", {splice ...}}%s"|
+                        },
+                        server-method-name, || method-name,
+                        method-name, || v0.8 for interceptor
+                        args
+                    }
+                }
+            }
+         else
+            {format
+                {if return-type == "void" then
+                    |"%s"|
+                 elseif return-type == "any" then
+                    |"{return %s}"|
+                 else
+                    |"{return %s"| & " asa " & return-type & "\}" 
+                },
+
+                ||UPDATE BY  2009/02/25 END No.2
+                {if static? then
+                    {format
+                        {if args.size > 0 then
+                            |"{invoke-static "%s", "%s", arguments = {FastArray%s}, server-url:#Url = null}"|
+                         else
+                            |"{invoke-static "%s", "%s", server-url:#Url = null}%s"|
+                        },
+                        {if-non-null c = self.class-property.implement-class then
+                            c.server-class-name || interface
+                         else
+                            self.class-property.server-class-name || class
+                        },
+                        server-method-name, || method-name,
+                        args
+                    }
+                 else
+                    {format
+                        {if args.size > 0 then
+                            |"{self.invoke "%s", client-method-name = "%s", arguments = {FastArray%s}}"|
+                         else
+                            |"{self.invoke "%s", client-method-name = "%s"}%s"|
+                        },
+                        server-method-name, || method-name,
+                        method-name, || v0.8 for interceptor
+                        args
+                    }
+                }
+            }
+        }
+    }
+  }
+
+  || @Override
+  {method package {generate-superclass
+                      interfaces-as-superclass?:bool = false
+                  }:String
+    {return
+        {if self.as-template? then
+            ""
+         else
+            "\{inherits HttpSessionClient\}\n"
+        }
+    }
+  }
+}
+
+
+||
+|| DataClassBuilder
+||
+{define-class package DataClassBuilder
+  {inherits AbstractClassBuilder}
+
+  || @Override
+  {getter package {enable-make-superclass-file?}:bool
+    {return true}
+  }
+
+  || @Override
+  {getter package {is-serializable-class?}:bool
+    {return true}
+  }
+  
+  {constructor package {default
+                           class-property:ClassProperty,
+                           curl-coding-style?:bool = true,
+                           as-template?:bool = false
+                       }
+    {construct-super
+        class-property,
+        curl-coding-style? = curl-coding-style?,
+        as-template? = false
+    }
+    ||{class-property.import-package-names.insert self.THIS-PACKAGE-NAME}
+  }
+
+  || @Override
+  {method package {generate-constructors
+                      buf:StringBuf
+                  }:void
+    {buf.concat
+        {format
+            self.CONSTRUCTOR-TEMPLATE,
+            "public",
+            "default",
+            {if-non-null c = self.class-property.superclass then
+                "\{construct-super\}"
+             else
+                ""
+            }
+        }
+    }
+  }
+  
+  || @Override
+  {method package {generate-method-content
+                      method-name:String,
+                      static?:bool,
+                      args:String,
+                      return-type:String,
+                      server-method-name:String,
+                      async?:bool
+                  }:String
+    {return ""}
+  }
+
+  || @Override
+  {method package {generate-superclass
+                      interfaces-as-superclass?:bool = false
+                  }:String
+    def superclasses = {StringArray}
+    {if-non-null s = self.class-property.superclass then
+        {superclasses.append {non-null s.server-class-name}}
+    }
+    {if interfaces-as-superclass? then
+        {if-non-null is = self.class-property.interface-properties then
+            {for i in is do
+                {superclasses.append {non-null i.server-class-name}}
+            }
+        }
+    }
+    def buf = {StringBuf}
+    {for s key i in superclasses do
+        {if i != 0 then
+            {buf.concat " ,"}
+        }
+        {buf.concat s}
+    }
+    {return
+        {if superclasses.size > 0 then
+            {format "\{inherits %s\}\n", {buf.to-String}}
+         else
+            "\n"
+        }
+    }
+  }
+}
+
+
+||
+|| ExceptionClassBuilder
+||
+{define-class package ExceptionClassBuilder
+  {inherits AbstractClassBuilder}
+
+  || @Override
+  {getter package {enable-make-superclass-file?}:bool
+    {return false}
+  }
+
+  || @Override
+  {getter package {is-serializable-class?}:bool
+    {return false}
+  }
+  
+  {constructor package {default
+                           class-property:ClassProperty,
+                           curl-coding-style?:bool = true,
+                           as-template?:bool = false
+                       }
+    {construct-super
+        class-property,
+        curl-coding-style? = curl-coding-style?,
+        as-template? = false || false
+    }
+    {class-property.import-package-names.insert self.THIS-PACKAGE-NAME}
+  }
+
+  || @Override
+  {method package {generate-constructors
+                      buf:StringBuf
+                  }:void
+    {buf.concat
+        {format
+            self.CONSTRUCTOR-TEMPLATE,
+            "public",
+            "default message:String",
+            "\{construct-super message\}"
+        }
+    }
+  }
+
+  || @Override
+  {method package {generate-method-content
+                      method-name:String,
+                      static?:bool,
+                      args:String,
+                      return-type:String,
+                      server-method-name:String,
+                      async?:bool
+                  }:String
+    {return ""}
+  }
+
+  || @Override
+  {method package {generate-superclass
+                      interfaces-as-superclass?:bool = false
+                  }:String
+    {return {format "\{inherits %s\}\n", "Exception"}}
+  }
+}
+
+
+||
+|| generate code
+||
+{define-proc public inline {generate-code
+                               out-url:Url,
+                               class-property:ClassProperty,
+                               omt:ObjectManagementType = ObjectManagementType.data-class,
+                               interfaces-as-superclass?:bool = false,
+                               create-super-class-methods?:bool = false,
+                               create-super-classes?:bool = false, || create superclass's file
+                               create-package-file?:bool = false,  || load.scurl
+                               curl-coding-style?:bool = true,     || curl coding style
+                               as-template?:bool = false,          || generate as mock
+                               rte-version:#StringArray = null     || RTE version
+                           }:void
+    
+    ||{ClassBuilderUtil.dump-ClassProperty class-property}
+    
+    || factory
+    def class-builder =
+        {AbstractClassBuilder
+            omt,
+            class-property,
+            curl-coding-style? = curl-coding-style?,
+            as-template? = as-template?
+        }
+    
+    || package/class name
+    def (my-class-name, my-package-name) =
+        {ClassBuilderUtil.split-class-name
+            {non-null class-property.name},
+            curl-coding-style? = curl-coding-style?
+        }
+
+    || main buffer
+    def buf = {StringBuf}
+    || - - fields - -
+    {class-builder.generate-fields buf}
+    || - - constructors - -
+    {class-builder.generate-constructors buf}
+    || - - methods - -
+    {if-non-null methods = class-property.method-properties then
+        || concat methods in super class
+        def all-methods = {{Array-of #MethodProperty}.from-FastArray methods}
+        def p-concat-methods-of-super-class =
+            {proc {super-class:#ClassProperty}:void
+                {if-non-null s = super-class then
+                    {if-non-null m = s.method-properties then
+                        {all-methods.concat {{Array-of #MethodProperty}.from-FastArray m}}
+                    }
+                    {p-concat-methods-of-super-class s.superclass}
+                }
+                {return}
+            }
+        {if create-super-class-methods? then
+            {p-concat-methods-of-super-class class-property.superclass}
+        }
+        
+        {for m key idx in all-methods do
+            || comment for super class's method
+            {if idx == methods.size - 1 and all-methods.size != methods.size then
+                {buf.concat "\n  \|\| NOTE: The follows are methods of the super class"}
+            }
+            {if m.async? then
+                {class-builder.generate-method buf, {unchecked-non-null m}}
+                set m.async? = false
+            }
+            {class-builder.generate-method buf, {unchecked-non-null m}}
+            
+        }
+    }
+    || - - getters/setters - -
+    {class-builder.generate-setters-getters buf}
+    || - - super class - -
+    def superclass =
+        {class-builder.generate-superclass
+            interfaces-as-superclass? = interfaces-as-superclass?
+        }
+
+    || write stream
+    def filename =
+        {if as-template? then
+            {out-url.concat "_template_" & my-class-name & ".scurl"}
+         else
+            {out-url.concat my-class-name & ".scurl"}
+        }
+    {with-open-streams out = {write-open filename} do
+        || constant variables
+        def HEADER-TEMPLATE = |"|||
+||| Curl ORB for java (version 0.8)
+|||  This code was generated by the Curl code generator automatically.
+
+|||  package name   : %s
+|||  generated date : %s
+|||
+
+"|
+        def CLASS-TEMPLATE = "\n\{define-class %s %s %s \n%s \n\}\n"
+
+        || write comments
+        {out.write-one-string {format HEADER-TEMPLATE, my-package-name, {DateTime}}}
+        || write import packages
+        {out.write-one-string {class-builder.generate-import-packages}}
+        || write class
+        {out.write-one-string
+            {format
+                CLASS-TEMPLATE,
+                {if class-builder.is-serializable-class? then
+                    "public serializable"
+                 else
+                    "public"
+                },
+                my-class-name,
+                superclass,
+                {buf.to-String}
+            }
+        }
+    }
+
+    || create super classes
+    {if create-super-classes? and
+        class-property.superclass != null and
+        class-builder.enable-make-superclass-file?
+     then
+        {generate-code
+            out-url,
+            {non-null class-property.superclass},
+            omt = omt,
+            interfaces-as-superclass? = interfaces-as-superclass?,
+            create-super-class-methods? = create-super-class-methods?,
+            create-super-classes? = create-super-classes?,
+            create-package-file? = create-package-file?,
+            curl-coding-style? = curl-coding-style?,
+            as-template? = as-template?
+        }
+    }
+    
+    || create load.scurl
+    ||  (if exists, add .scurl. if not exists, create new file.)
+    {if create-package-file? then
+        def localfile:LocalFile =
+            {{out-url.concat "load.scurl"}.instantiate-File} asa LocalFile
+        {if not localfile.exists? then
+            {with-open-streams out = {write-open localfile.url} do
+                def buf = {StringBuf}
+                {if-non-null rv = rte-version then
+                    {for v key i in rv do
+                        {if i != 0 then
+                            {buf.concat ", "}
+                        }
+                        {buf.concat {format "%s", v}}
+                    }
+                }
+                {if buf.size == 0 then
+                    {buf.concat 
+                        {if {curl-version.prefix? "6.0"} then
+                            "6.0"
+                         elseif {curl-version.prefix? "7.0"} then
+                            "7.0"
+                         elseif {curl-version.prefix? "8.0"} then
+                            "8.0"
+                         else
+                            {unreachable}
+                        }
+                    }
+                }
+                {out.write-one-string
+                    {format
+                        "\{curl %s package\} \n\{package %s,\n   \{compiler-directives careful? = true\}\n\} \n\{include \"%s\"\}",
+                        {buf.to-String},
+                        my-package-name,
+                        filename.filename
+                    }
+                }
+            }
+         else
+            {with-open-streams in = {read-open localfile.url} do
+                def buf = {StringBuf}
+                def buf-line = {StringBuf}
+                let exist? = false
+                {while {in.read-line buf = buf-line} != null do
+                    {if {buf-line.prefix? "\{include \"" & filename.filename & "\"\}"} then
+                        set exist? = true
+                    }
+                    {buf.concat {buf-line.to-String} & '\n'}
+                }
+                {if not exist? then
+                    {with-open-streams out = {write-open localfile.url, truncate-if-exists? = false} do
+                        {out.write-one-string {buf.to-String}}
+                        {out.write-one-string "\{include \"" & filename.filename & "\"\}\n"}
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+||
+|| JarFileLoader
+||
+|#
+{define-class public open JarFileLoader 
+  {inherits HttpSessionClient}
+
+  {constructor public {default jarfile:String}
+    {construct-super
+        "com.CURL.orb.generator.JarFileLoader",
+        arguments = {FastArray-of jarfile}
+    }
+  }
+
+  {method public open {getJarFileProperty}:JarFileProperty
+    {return {super.invoke "getJarFileProperty"} asa JarFileProperty}
+  }
+}
+#|
+

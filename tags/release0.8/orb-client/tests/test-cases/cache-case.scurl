@@ -1,0 +1,457 @@
+||| Copyright (C) 1998-2010, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+{import * from TESTS1}
+
+{import * from COM.CURL.ORB}
+
+{import Method from CURL.LANGUAGE.REFLECTION}
+{import * from CURL.DATA-ACCESS.BASE}
+
+|||
+||| This test case is to check the behavior of cache functionalities. 
+|||
+{api-version-switch
+ case "7+" do
+    {TestSuite "cache cases",
+        {test-case "cache interceptor/mem cache",
+            def cache-name = "mem_cache01"
+            def CACHE-STRING = "**CACHED STRING**"
+            def request-interceptor = 
+                {proc {cache:Cache, method:Method, arguments:#FastArray}:(use-cache?:bool, return-val:any)
+                    {if-non-null c = cache[method.name] then || key is method.name
+                        {return true, c}
+                    }
+                    {return false, null}
+                }
+            def response-handler = 
+                {proc {cache:Cache, method:Method, arguments:#FastArray, return-val:any}:void
+                    {if method.name == "echo" then
+                        {TestCondition.assert method.defining-class == Foo}
+                        {TestCondition.assert arguments[0] == return-val}
+                        set cache[method.name] = CACHE-STRING
+                     elseif method.name == "create-record-set" then
+                        ||set cache[method.name] = return-val
+                        set cache["echo-record-set"] = return-val
+                     elseif method.name == "echo-record-set" then
+                        {TestCondition.fail}
+                     elseif method.name == "method1" then
+                        {TestCondition.assert method.defining-class == Fuga}
+                     else
+                        {TestCondition.fail}
+                    }
+                }
+            {for t in {{Array-of ClassType} SimpleCache, LRUCache} do
+                || before caching
+                let foo:Foo = {Foo}
+                {TestCondition.assert {foo.echo "k1"} == "k1"}
+                {TestCondition.assert {foo.echo "k2"} == "k2"}
+                {TestCondition.assert {foo.echo "k3"} == "k3"}
+                let done?:bool
+                {foo.async-echo || async 
+                    "k4",
+                    {on e:AsyncCallbackEvent do
+                        {TestCondition.assert e.obj == "k4"}
+                        set done? = true
+                    }
+                }
+                {while not done? do
+                    {dispatch-events true}
+                }
+                set done? = false
+                let rs1 = {non-null {foo.create-record-set}}
+                let rs2 = {non-null {foo.create-record-set}}
+                {TestCondition.assert {foo.echo-record-set rs1} != rs1}
+                {TestCondition.assert {foo.echo-record-set rs2} != rs2}
+                
+                || register cache
+                {register-orb-interceptors
+                    {get-test-cache-interceptor t,
+                        cache-name, request-interceptor, response-handler, 
+                        Foo, Fuga
+                    }
+                }
+                set foo = {Foo}
+                {TestCondition.assert {foo.echo "k1"} == "k1"}
+                {TestCondition.assert {foo.echo "k2"} == CACHE-STRING}
+                {TestCondition.assert {foo.echo "k3"} == CACHE-STRING}
+                {TestCondition.assert {foo.echo "k1"} == CACHE-STRING}
+                {foo.async-echo || async 
+                    "k4",
+                    {on e:AsyncCallbackEvent do
+                        {TestCondition.assert e.obj == CACHE-STRING}
+                        set done? = true
+                    }
+                }
+                {while not done? do
+                    {dispatch-events true}
+                }
+                set done? = false
+                set rs1 = {non-null {foo.create-record-set}}
+                set rs2 = {non-null {foo.create-record-set}}
+                {TestCondition.assert rs1 != rs2}
+                {TestCondition.assert {foo.echo-record-set rs1} == rs2}
+                {TestCondition.assert {foo.echo-record-set rs2} == rs2}
+                
+                def fuga = {Fuga}
+                {fuga.method1}
+                def fuga2 = {Fuga2}
+                {fuga2.method1}
+                
+                {clear-orb-interceptors}
+                
+                || after caching
+                set foo = {Foo}
+                {TestCondition.assert {foo.echo "k1"} == "k1"}
+                {TestCondition.assert {foo.echo "k2"} == "k2"}
+                {TestCondition.assert {foo.echo "k3"} == "k3"}
+                {foo.async-echo || async 
+                    "k4",
+                    {on e:AsyncCallbackEvent do
+                        {TestCondition.assert e.obj == "k4"}
+                        set done? = true
+                    }
+                }
+                {while not done? do
+                    {dispatch-events true}
+                }
+                set done? = false
+                set rs1 = {non-null {foo.create-record-set}}
+                set rs2 = {non-null {foo.create-record-set}}
+                {TestCondition.assert {foo.echo-record-set rs1} != rs1}
+                {TestCondition.assert {foo.echo-record-set rs2} != rs2}
+                {clear-orb-interceptors}
+                
+                || register again
+                {register-orb-interceptors 
+                    {get-test-cache-interceptor t,
+                        cache-name, request-interceptor, response-handler, 
+                        Foo, Fuga
+                    }
+                }
+                set foo = {Foo}
+                {TestCondition.assert {foo.echo "k1"} == CACHE-STRING}
+                {clear-orb-interceptors}
+                
+                || remove and register
+                {remove-caches cache-name}
+                {register-orb-interceptors 
+                    {get-test-cache-interceptor t,
+                        cache-name, request-interceptor, response-handler, 
+                        Foo, Fuga
+                    }
+                }
+                set foo = {Foo}
+                {TestCondition.assert {foo.echo "k1"} == "k1"}
+                {TestCondition.assert {foo.echo "k2"} == CACHE-STRING}
+                {remove-caches cache-name} || clear
+                set foo = {Foo}
+                {TestCondition.assert {foo.echo "k1"} == "k1"}
+                {TestCondition.assert {foo.echo "k2"} == CACHE-STRING}
+                {remove-caches cache-name}
+                {clear-orb-interceptors}
+                
+                || register two interceptors
+                {register-orb-interceptors
+                    {get-test-cache-interceptor t,
+                        cache-name, 
+                        request-interceptor, || run 1st
+                        response-handler, 
+                        Foo, Fuga
+                    },
+                    {get-test-cache-interceptor t,
+                        cache-name, 
+                        request-interceptor, || run 2nd
+                        {proc {cache:Cache, method:Method, arguments:#FastArray, return-val:any}:void
+                            {if method.name == "echo" then
+                                set cache[method.name] = "Fooooooo!"
+                            }
+                        },
+                        Foo, Fuga
+                    }
+                }
+                set foo = {Foo}
+                {TestCondition.assert {foo.echo "k1"} == "k1"}
+                {TestCondition.assert {foo.echo "k1"} == "Fooooooo!"}
+                {TestCondition.assert {foo.echo "k2"} == "Fooooooo!"}
+                {remove-caches cache-name}
+                {clear-orb-interceptors}
+            }
+        },
+        
+        {test-case "disk cache",
+            let error?:bool = false
+            || LRUCache
+            def cache-name1 = "persistent_lru_cache01"
+            || NOTE: if disk-persistent? = true, loaded from database. 
+            def c1 = 
+                {create-lru-cache cache-name1, 
+                    spec = {CacheSpec disk-persistent? = true}
+                }
+            {if (not {c1.exists? "d1"}) and (not {c1.exists? "d2"}) and (not {c1.exists? "d3"}) then
+                set (c1["d1"], c1["d2"], c1["d3"]) = (10, 20, 30)
+                set error? = true
+            }
+            
+            || SimpleCache
+            def cache-name2 = "persistent_simple_cache01"
+            || NOTE: if disk-persistent? = true, loaded from database. 
+            def c2 = 
+                {create-simple-cache cache-name2, 
+                    spec = {CacheSpec disk-persistent? = true}
+                }
+            {if (not {c2.exists? "d1"}) and (not {c2.exists? "d2"}) and (not {c2.exists? "d3"}) then
+                set (c2["d1"], c2["d2"], c2["d3"]) = (100, 200, 300)
+                set error? = true
+            }
+            || First, it would fail due to none database file at first.
+            {if error? then
+                {TestCondition.fail}
+            }
+            
+            {TestCondition.assert {exists-cache? cache-name1}}
+            {TestCondition.assert c1["d1"] == 10 and c1["d2"] == 20 and c1["d3"] == 30}
+            
+            {TestCondition.assert {exists-cache? cache-name2}}
+            {TestCondition.assert c2["d1"] == 100 and c2["d2"] == 200 and c2["d3"] == 300}
+        },
+        
+        {test-case "lru cache",
+            def c1 = 
+                {create-lru-cache "lru_cache01", 
+                    spec = {CacheSpec expire-live-time = 1s, expire-idle-time = 1s}
+                }
+            def c2 = 
+                {create-lru-cache "lru_cache02", 
+                    spec = {CacheSpec expire-live-time = 10s, expire-idle-time = 1s}
+                }
+            def c3 = 
+                {create-lru-cache "lru_cache03",
+                    spec = {CacheSpec max-elements-in-cache = 2}
+                }
+            set (c1["k1"], c1["k2"]) = ("val01", "val02")
+            {TestCondition.assert {c1.exists? "k1"} and {c1.exists? "k2"}}
+            {TestCondition.assert {c1.exists? "k1"} and {c1.exists? "k2"}}
+            set (c2["k1"], c2["k2"]) = ("val01", "val02")
+            {TestCondition.assert {c2.exists? "k1"} and {c2.exists? "k2"}}
+            {TestCondition.assert {c2.exists? "k1"} and {c2.exists? "k2"}}
+            set (c3["k1"], c3["k2"]) = ("val01", "val02")
+            {TestCondition.assert {c3.exists? "k1"} and {c3.exists? "k2"}}
+            
+            {sleep 1.5s}
+            
+            {TestCondition.assert (not {c1.exists? "k1"}) and (not {c1.exists? "k2"})}
+            {TestCondition.assert (not {c2.exists? "k1"}) and (not {c2.exists? "k2"})}
+            {TestCondition.assert {c3.exists? "k1"} and {c3.exists? "k2"}}
+            
+            set (c1["k1"], c1["k2"]) = ("val01", "val02")
+            {TestCondition.assert {c1.exists? "k1"} and {c1.exists? "k2"}}
+            set (c2["k1"], c2["k2"]) = ("val01", "val02")
+            {TestCondition.assert {c2.exists? "k1"} and {c2.exists? "k2"}}
+            
+            set c3["k3"] = "val03"
+            set c3["k4"] = "val04"
+            {TestCondition.assert (not {c3.exists? "k1"} and (not {c3.exists? "k2"}))}
+            {TestCondition.assert {c3.exists? "k3"} and {c3.exists? "k4"}}
+            c3["k3"] || touch! (update last access date)
+            set c3["k5"] = "val05"
+            {TestCondition.assert not {c3.exists? "k4"}}
+            {TestCondition.assert {c3.exists? "k3"} and {c3.exists? "k5"}}
+            
+            {remove-caches "lru_cache01", "lru_cache02", "lru_cache03"}
+        },
+        
+        {test-case "some caches",
+            def request-interceptor1 = 
+                {proc {cache:Cache, method:Method, arguments:#FastArray}:(use-cache?:bool, return-val:any)
+                    {switch method.name 
+                     case "echo" do
+                        {if {cache.exists? "prev-date"} and cache["prev-date"] > {DateTime} - 1s then
+                            {if-non-null c = cache[method.name] then 
+                                {return true, c}
+                            }
+                        }
+                    }
+                    {return false, null}
+                }
+            def response-handler1 = 
+                {proc {cache:Cache, method:Method, arguments:#FastArray, return-val:any}:void
+                    {switch method.name 
+                     case "echo" do
+                        set cache["prev-date"] = {DateTime}
+                        set cache[method.name] = return-val
+                     else
+                        {TestCondition.fail}
+                    }
+                }
+            def request-interceptor2 = 
+                {proc {cache:Cache, method:Method, arguments:#FastArray}:(use-cache?:bool, return-val:any)
+                    {switch method.name 
+                     case "method1" do
+                        {if-non-null c = cache[method.name] then 
+                            {return true, c}
+                        }
+                     else
+                        {TestCondition.fail}
+                    }
+                    {return false, null}
+                }
+            def response-handler2 = 
+                {proc {cache:Cache, method:Method, arguments:#FastArray, return-val:any}:void
+                    {switch method.name 
+                     case "method1" do
+                        set cache[method.name] = return-val
+                     else
+                        {TestCondition.fail}
+                    }
+                }
+            
+            {register-orb-interceptors
+                {{CacheClientInterceptor-of LRUCache}
+                    "cache01",
+                    request-interceptor1, response-handler1,
+                    Foo ||
+                },
+                {{CacheClientInterceptor-of SimpleCache}
+                    "cache02",
+                    request-interceptor2, response-handler2,
+                    Fuga || different cache
+                }
+            }
+            
+            def foo = {Foo}
+            {TestCondition.assert {foo.echo "t1"} == "t1"}
+            {TestCondition.assert {foo.echo "t2"} == "t1"}
+            {sleep 1s}
+            {TestCondition.assert {foo.echo "t2"} == "t2"}
+            {TestCondition.assert {foo.echo "t3"} == "t2"}
+            
+            def fuga = {Fuga}
+            {fuga.method1}
+            {fuga.method1}
+            
+            {remove-caches "cache01", "cache02"}
+            {clear-orb-interceptors}
+        },
+        
+        {test-case "lru performance",
+            def request-interceptor = 
+                {proc {cache:Cache, method:Method, arguments:#FastArray}:(use-cache?:bool, return-val:any)
+                    {switch method.name 
+                     case "create-record-set-to-test-large-data" do
+                        {if-non-null c = cache[method.name] then 
+                            {return true, c}
+                        }
+                     case "echo" do
+                        {if-non-null c = cache[arguments[0] & ""] then 
+                            {return true, c}
+                        }
+                    }
+                    {return false, null}
+                }
+            def response-handler = 
+                {proc {cache:Cache, method:Method, arguments:#FastArray, return-val:any}:void
+                    {switch method.name
+                     case "create-record-set-to-test-large-data" do
+                        set cache[method.name] = return-val
+                     case "echo" do
+                        def key = arguments[0]
+                        set cache[key] = return-val
+                     else
+                        {TestCondition.fail}
+                    }
+                }
+            
+            def cache-name = "lru-performance-cache01"
+            {register-orb-interceptors
+                {{CacheClientInterceptor-of LRUCache}
+                    cache-name,
+                    request-interceptor, response-handler,
+                    cache-spec = {CacheSpec disk-persistent? = true},
+                    Foo
+                }
+            }
+            def foo = {Foo}
+            
+            || big cache
+            def sw = {StopWatch}
+            {sw.start}
+            def rs = {foo.create-record-set-to-test-large-data 10000}
+            {sw.stop}
+            def elapsed-time = {sw.elapsed}
+            {sw.reset}
+            
+            {sw.start}
+            {foo.create-record-set-to-test-large-data 10000}
+            {TestCondition.assert {foo.create-record-set-to-test-large-data 10000} == rs}
+            {sw.stop}
+            {TestCondition.assert
+                elapsed-time > {sw.elapsed}, 
+                message = {format "very slow ... (%s < %s)", elapsed-time, {sw.elapsed}}
+            }
+            
+            || a lot of caches
+            def cache = {get-cache cache-name}
+            {for i = 0 below 300 do
+                set cache[i & ""] = i & ""
+            }
+            {for i = 0 below 300 do
+                {foo.echo i & ""}
+            }
+            
+            {remove-caches cache-name}
+            {clear-orb-interceptors}
+            
+            || TODO: SimpleCache, too. (But absolutely faster than LRUCache.)
+        }
+    }
+    
+    || --
+    {define-proc public {get-test-cache-interceptor 
+                            type:ClassType,
+                            name:String,
+                            request-interceptor,
+                            response-handler,
+                            spec:#CacheSpec = null,
+                            ...:ClassType
+                        }:any
+        {return
+            {if type == SimpleCache then
+                {{CacheClientInterceptor-of SimpleCache}
+                    name, 
+                    request-interceptor, 
+                    response-handler, 
+                    ...
+                }
+             else
+                {{CacheClientInterceptor-of LRUCache}
+                    name, 
+                    request-interceptor, 
+                    response-handler, 
+                    ...
+                }
+            } 
+        }
+    }
+ else
+    {TestSuite "cache cases",
+        {test-case "empty",
+            || do nothing 
+        }
+    }
+}

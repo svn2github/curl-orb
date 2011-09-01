@@ -1,0 +1,59 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|| display support
+|| ====================
+{define-class public ConcreteTreeNode {inherits DefaultTreeNode}
+  field _node-label:any = null
+  {getter public {node-label}:any
+    {return
+        {if-non-null node-label = self._node-label then
+            node-label
+         else
+            super.node-label}}
+  }
+  {constructor public {default node-label:any = null, ...}
+    set self._node-label = node-label
+    {construct-super {splice ...}}
+  }
+}
+|| grid
+|| ====================
+|| TODO: generalize
+|| - accessor
+|| - styling
+{define-class public IndicatorStringCell {inherits StandardStringCell}
+  {method public {refresh-data}:void 
+    {super.refresh-data}   
+    let result:String =
+        {if-non-null r = self.record then
+            r["result"] asa String
+         else "unknown"}
+    set self.background =
+        {self.color-scheme.color-for result}
+  }
+}
+{define-class public NameStringCell {inherits StandardStringCell}
+  {method public {refresh-data}:void 
+    {super.refresh-data}
+    let suite?:bool = 
+        {type-switch {self.get-data}
+         case val:String do {val.suffix? TestCommon.delimiter}
+         else false}
+    set self.font-weight =
+        {if suite? then "bold" else "normal"}
+  }
+}

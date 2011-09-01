@@ -1,0 +1,312 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Ucai Zhang
+|||
+
+{import * from TESTS1}
+
+{import * from COM.CURL.ORB}
+
+{include "resources/support-compress.scurl"}
+
+|||
+||| This test case is for compression. 
+|||
+{TestSuite "compression cases",
+
+    || sync
+    {test-case "String",
+        {clear-orb-interceptors}
+        {register-orb-interceptors {InterceptorGZip}}
+        let cmp:TestCastCompression = {TestCastCompression}
+        {cmp.set-field-name "cmp"}
+        let name:#String = {cmp.get-field-name}
+        {TestCondition.assert name == "cmp"}
+        {clear-orb-interceptors}
+    },
+    {test-case "class",
+        {register-orb-interceptors {InterceptorGZip}}
+        let cmp:TestCastCompression = {TestCastCompression}
+        let person:#Person = {cmp.get-person}
+        {TestCondition.assert person.name == "Mr.CMP"}
+        {TestCondition.assert person.birthday == 20.5}
+        {clear-orb-interceptors}
+    },
+    {test-case "Array-of",
+        {register-orb-interceptors {InterceptorGZip}}
+        let cmp:TestCastCompression = {TestCastCompression}
+        let list:#Array = {cmp.test-list}
+        {TestCondition.assert list[0] == "LUCK"}
+        {TestCondition.assert list[1] == 1}
+        set list[2].name = "listName"
+        {TestCondition.assert list[2].name == "listName"}
+        {TestCondition.assert list[4] == true}
+        {clear-orb-interceptors}
+    },
+    {test-case "HashTable-of",
+        {register-orb-interceptors {InterceptorGZip}}
+        let cmp:TestCastCompression = {TestCastCompression}
+        let hashMap:#HashTable = {cmp.test-hash-map}
+        {TestCondition.assert hashMap["Test"][0] == "O.K."}
+        {TestCondition.assert hashMap["Test"][1] == 1}
+        {TestCondition.assert hashMap["Test1"] == "end"}
+        set hashMap["Person"].nickname = "school"
+        {TestCondition.assert hashMap["Person"].nickname == "school"}
+        {TestCondition.assert hashMap["bool"] == false}
+        {clear-orb-interceptors}
+    },
+    {test-case "Set-of",
+        {register-orb-interceptors {InterceptorGZip}}
+        let cmp:TestCastCompression = {TestCastCompression}
+        let tempset:#Set = {cmp.test-set}
+        {TestCondition.assert {tempset.get-member 1} == 1}
+        {TestCondition.assert {tempset.get-member null} == null}
+        {TestCondition.assert {tempset.get-member "sfsgfl121!!@"} == "sfsgfl121!!@"}
+        {TestCondition.assert {tempset.get-member true} == true}
+        {clear-orb-interceptors}
+    },
+    {test-case "double[]",
+        {register-orb-interceptors {InterceptorGZip}}
+        let Compression:TestCastCompression = {TestCastCompression}
+        let tempDouble:#{FastArray-of double} = {Compression.testdouble-array}
+        {TestCondition.assert tempDouble[0] == 0.0}
+        {TestCondition.assert tempDouble[1] == -0.06667}
+        {TestCondition.assert tempDouble[2] == 3.22255666}
+        {clear-orb-interceptors}
+    },
+    {test-case "String[][]",
+        {register-orb-interceptors {InterceptorGZip}}
+        let cmp:TestCastCompression = {TestCastCompression}
+        let tempTwoString:#{FastArray-of #{FastArray-of #String}} = {cmp.test-two-string}
+        {TestCondition.assert tempTwoString[0][0] == "1"}
+        {TestCondition.assert tempTwoString[0][1] == "123"}
+        {TestCondition.assert tempTwoString[1][0] == "hah"}
+        {TestCondition.assert tempTwoString[1][1] == "xixi"}
+        {clear-orb-interceptors}
+    },
+    {test-case "non compression",
+        {clear-orb-interceptors}
+        {register-orb-interceptors {NonInterceptorGZip}}
+        let cmp:TestCastCompression = {TestCastCompression}
+        {cmp.set-field-name "cmp"}
+        let name:#String = {cmp.get-field-name}
+        {TestCondition.assert name == "cmp"}
+        {clear-orb-interceptors}
+    },
+    {test-case "throw exception",
+        {register-orb-interceptors {InterceptorGZip}}
+        {bind-exception "tests1.TestException1", TestException1}
+        let cmp:TestCastCompression = {TestCastCompression}
+        {require-exception TestException1 do
+            {cmp.throw-test-exception1}
+        }
+        {clear-exceptions}
+        {clear-orb-interceptors}
+    },
+
+    
+    ||
+    || async
+    ||
+    {test-case "async String",
+        {register-orb-interceptors {InterceptorGZip}}
+        let done?:bool
+        let cmp:TestCastCompression = {TestCastCompression}
+        {cmp.async-set-field-name "async-cmp",
+            {on e:AsyncCallbackEvent do
+                set done? = true
+            }
+        }
+        {while not done? do
+            {dispatch-events true}
+        }
+        set done? = false
+        
+        {cmp.async-get-field-name
+            {on e:AsyncCallbackEvent do
+                let name:#String = e.obj
+                {TestCondition.assert name == "async-cmp"}
+                set done? = true
+            }
+        }
+        {while not done? do
+            {dispatch-events true}
+        }
+        {clear-orb-interceptors}
+    },
+    {test-case "async class",
+        {register-orb-interceptors {InterceptorGZip}}
+        let cmp:TestCastCompression = {TestCastCompression}
+        let done?:bool
+        {cmp.async-get-person
+            {on e:AsyncCallbackEvent do
+                let person:#Person = e.obj
+                {TestCondition.assert person.name == "Mr.CMP"} 
+                {TestCondition.assert person.birthday == 20.5} 
+                set done? = true
+            }
+        }
+        {while not done? do
+            {dispatch-events true}
+        }
+        {clear-orb-interceptors}
+    },
+    {test-case "async Array-of",
+        {register-orb-interceptors {InterceptorGZip}}
+        let cmp:TestCastCompression = {TestCastCompression}
+        let done?:bool
+        {cmp.async-test-list
+            {on e:AsyncCallbackEvent do
+                let list = e.obj
+                {TestCondition.assert list[0] == "LUCK"}
+                {TestCondition.assert list[1] == 1}
+                set list[2].name = "listName"
+                {TestCondition.assert list[2].name == "listName"}
+                {TestCondition.assert list[4] == true}
+                set done? = true
+            }
+        }
+        {while not done? do
+            {dispatch-events true}
+        }
+        {clear-orb-interceptors}
+    },
+    {test-case "async HashTable-of",
+        {register-orb-interceptors {InterceptorGZip}}
+        let cmp:TestCastCompression = {TestCastCompression}
+        let done?:bool
+        {cmp.async-test-hash-map
+            {on e:AsyncCallbackEvent do
+                let hashMap = e.obj
+                {TestCondition.assert hashMap["Test"][0] == "O.K."}
+                {TestCondition.assert hashMap["Test"][1] == 1}
+                {TestCondition.assert hashMap["Test1"] == "end"}
+                set hashMap["Person"].nickname = "school"
+                {TestCondition.assert hashMap["Person"].nickname == "school"}
+                {TestCondition.assert hashMap["bool"] == false}
+                set done? = true
+            }
+        }
+        {while not done? do
+            {dispatch-events true}
+        }
+        {clear-orb-interceptors}
+    },
+    {test-case "async Set-of",
+        {register-orb-interceptors {InterceptorGZip}}
+        let cmp:TestCastCompression = {TestCastCompression}
+        let done?:bool
+        {cmp.async-test-set
+            {on e:AsyncCallbackEvent do
+                let tempset = e.obj
+                {TestCondition.assert {tempset.get-member 1} == 1}
+                {TestCondition.assert {tempset.get-member null} == null}
+                {TestCondition.assert {tempset.get-member "sfsgfl121!!@"} == "sfsgfl121!!@"}
+                {TestCondition.assert {tempset.get-member true} == true}
+                set done? = true
+            }
+        }
+        {while not done? do
+            {dispatch-events true}
+        }
+        {clear-orb-interceptors}
+    },
+    {test-case "async double[]",
+        {register-orb-interceptors {InterceptorGZip}}
+        let cmp:TestCastCompression = {TestCastCompression}
+        let done?:bool
+        {cmp.async-testdouble-array
+            {on e:AsyncCallbackEvent do
+                let tempDouble = e.obj
+                {TestCondition.assert tempDouble[0] == 0.0}
+                {TestCondition.assert tempDouble[1] == -0.06667}
+                {TestCondition.assert tempDouble[2] == 3.22255666}
+                set done? = true
+            }
+        }
+        {while not done? do
+            {dispatch-events true}
+        }
+        {clear-orb-interceptors}
+    },
+    {test-case "async String[][]",
+        {register-orb-interceptors {InterceptorGZip}}
+        let cmp:TestCastCompression = {TestCastCompression}
+        let done?:bool
+        {cmp.async-test-two-string
+            {on e:AsyncCallbackEvent do
+                let tempTwoString = e.obj
+                {TestCondition.assert tempTwoString[0][0] == "1"}
+                {TestCondition.assert tempTwoString[0][1] == "123"}
+                {TestCondition.assert tempTwoString[1][0] == "hah"}
+                {TestCondition.assert tempTwoString[1][1] == "xixi"}
+                set done? = true
+            }
+        }
+        {while not done? do
+            {dispatch-events true}
+        }
+        {clear-orb-interceptors}
+    },
+    {test-case "asyn non compression",
+        {clear-orb-interceptors}
+        {register-orb-interceptors {NonInterceptorGZip}}
+        let done?:bool
+        let cmp:TestCastCompression = {TestCastCompression}
+        {cmp.async-set-field-name "async-cmp",
+            {on e:AsyncCallbackEvent do
+                set done? = true
+            }
+        }
+        {while not done? do
+            {dispatch-events true}
+        }
+        set done? = false
+        
+        {cmp.async-get-field-name
+            {on e:AsyncCallbackEvent do
+                let name:#String = e.obj
+                {TestCondition.assert name == "async-cmp"}
+                set done? = true
+            }
+        }
+        {while not done? do
+            {dispatch-events true}
+        }
+        {clear-orb-interceptors}
+    },
+    {test-case "async throw exception",
+        {register-orb-interceptors {InterceptorGZip}}
+        {bind-exception "tests1.TestException1", TestException1}
+        let done?:bool
+        let cmp:TestCastCompression = {TestCastCompression}
+        {cmp.async-throw-test-exception1
+            {on e:AsyncCallbackEvent do
+                {if-non-null ex = e.exception then
+                    {TestCondition.assert-isa TestException1, ex}
+                 else
+                    {TestCondition.fail}
+                }
+                set done? = true
+            }
+        }
+        {while not done? do
+            {dispatch-events true}
+        }
+        {clear-exceptions}
+        {clear-orb-interceptors}
+    }
+}

@@ -1,0 +1,17 @@
+
+{define-class public serializable PersonAkira {inherits Person}
+ 
+  field private _hobby:#String 
+  
+  {getter public {hobby}:#String 
+    {return self._hobby} 
+  } 
+
+  {setter public {hobby v:#String}:void 
+    set self._hobby = v 
+  } 
+
+  {constructor public {default} 
+    {construct-super} 
+  } 
+} 

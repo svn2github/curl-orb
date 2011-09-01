@@ -1,0 +1,88 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+{import Method from CURL.LANGUAGE.REFLECTION}
+
+||
+|| AbstractClient (abstract ORB Client)
+||
+{define-class abstract public AbstractClient
+
+  field package server-url:Url
+  field constant protected class-name:String
+
+  || interceptors
+  field package interceptor:ClientInterceptorChain
+  
+  || constructors
+  {constructor public {default
+                          server-url:#Url = null,
+                          class-name:String
+                      }
+    || register interceptor
+    set self.interceptor = {ClientInterceptorChain}
+    {ClientInterceptor.register-inteceptors self}
+    
+    set self.server-url =
+        {self.interceptor.build-server-url
+            {get-server-url server-url}
+        }
+    set self.class-name = class-name
+  }
+
+  || abstract methods
+  {method abstract public {invoke
+                              server-method-name:String,
+                              client-method-name:#String = null, || since 0.8 (for interceptor)
+                              arguments:#FastArray = null,
+                              request-header:#HashTable = null
+                          }:any }
+  
+  {method abstract public {async-invoke
+                              server-method-name:String,
+                              client-method-name:#String = null, || since 0.8 (for interceptor)
+                              arguments:#FastArray = null,
+                              request-header:#HashTable = null,
+                              ...:EventHandler
+                          }:AsyncWorker }
+}
+
+|| - - package procs - -
+
+|| switch HttpSessionClient to RemoteObject
+{define-proc {switch-remote-object args:#FastArray}:#FastArray
+    {if-non-null args then
+        {for arg key i:int in args do
+            {if arg isa HttpSessionClient then
+                def remote-object = {RemoteObject}
+                set remote-object.object-id = (arg asa HttpSessionClient).object-id
+                set args[i] = remote-object
+            }
+        }
+    }
+    {return args}
+}
+
+|| get Method from string
+|| NOTE previous version (v0.7) returns null
+{define-proc {get-method-type class:ClassType, client-method-name:#String}:#Method
+    {if-non-null name = client-method-name then
+        {return {class.get-method name}}
+    }
+    {return null}
+}

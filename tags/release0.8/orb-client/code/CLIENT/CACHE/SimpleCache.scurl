@@ -1,0 +1,117 @@
+||| Copyright (C) 1998-2010, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+|| since 0.8
+
+{define-class public serializable SimpleCache
+  {inherits Cache}
+  
+  || properties
+  field public-get private-set disk-persistent?:bool = false
+  field package-get private-set cache-table:{HashTable-of String, any} || cache data
+  
+  || getters
+  {getter public {size}:int 
+    {return self.cache-table.size}  
+  }
+  
+  || methods
+  {method public {exists? key:String}:bool 
+    {return {self.cache-table.key-exists? key}}
+  }
+  
+  {method public {set key:String, value:any}:void
+    {if self.disk-persistent? then
+        {if {self.exists? key} then
+            {self.remove key}
+        }
+        {SimpleCacheStorageUtil.write-cache-value self.name, key, value}
+    }
+    set self.cache-table[key] = value
+  }
+  
+  {method public {get key:String}:any
+    {return {self.cache-table.get-if-exists key}}
+  }
+  
+  {method public {remove key:String}:void 
+    {self.cache-table.remove key}
+    {if self.disk-persistent? then
+        {SimpleCacheStorageUtil.remove-cache-value self.name, key}
+    }
+  }
+  
+  {method public {clear}:void 
+    {self.cache-table.clear}
+    {if self.disk-persistent? then
+        {SimpleCacheStorageUtil.remove-cache self.name}
+    }
+  }
+  
+  {method public {keys-to-Iterator}:{Iterator-of String}
+    {return {self.cache-table.keys-to-Iterator}}
+  }
+  
+  {method public {to-Iterator}:{Iterator-of any}
+    {return {self.cache-table.to-Iterator}}
+  }
+  
+  {method public {object-serialize out:SerializeOutputStream}:void
+    {super.object-serialize out}
+    {serialize-vars out, compact? = true, self.cache-table}
+  }
+  
+  
+  || override
+  {method public {object-describe
+                         out:TextOutputStream,
+                         locale:Locale
+                 }:void
+    {format 
+        out = out,
+        locale = locale,
+        "[SimpleCache name=%s] ",
+        self.name
+    }
+    {for v key k in self.cache-table do
+        {out.write-one-string {format "%s=%s ", k, v}}
+    }
+  }
+  
+  || constructor
+  {constructor package {default name:String, spec:#CacheSpec}
+    {construct-super name}
+    set self.cache-table = {{HashTable-of String, any}}
+    let encryption-key:#ByteArray 
+    {if-non-null s = spec then
+        {if-non-null v = {s.parameter "disk-persistent?"} then
+            set self.disk-persistent? = v
+        }
+        set encryption-key = {s.parameter "encryption-key"}
+    }
+    {if self.disk-persistent? then
+        {SimpleCacheStorageUtil.create-cache-database encryption-key = encryption-key}
+        {SimpleCacheStorageUtil.load-into-cache self}
+    }
+  }
+  
+  {constructor public {object-deserialize in:SerializeInputStream}
+    {construct-super.object-deserialize in}
+    {deserialize-vars in, compact? = true, self.cache-table}
+  }
+}

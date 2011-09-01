@@ -1,0 +1,54 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author ucai zhang, helped by Lei Zhao
+|||
+
+|||
+||| ErrorMessages
+||| The class create the class put out error message
+{define-class ErrorMessages
+
+  let constant DROPDOWNLIST-ERROR-MESSAGE : String = "Please select the class name."
+  let constant TEXTFIELD-ERROR-MESSAGE : String = "Please input the class name."
+  let constant SERVER-EXCEPTION: String = "Unexpected server exception happened."
+  let constant CLASS-REQUEST-EXCEPTION:String = "Cannot find the class in server."
+  let constant NON-NULL-MESSAGE: String = "The %s's content can not be blank."
+  let constant CONSTRUCTOR-MESSAGE: String = "Please select a constructor."
+  let constant UNEXPECTED-EXCEPTION:String = "Unexpected  exception happened."
+  let constant GENERATE-CODE-EXCEPTION:String = "Exception happend on generating code."
+  let constant FILE-SELECTION:String = "Please choose the Class File."
+  let constant SERIALIZE-EXCEPTION:String = "Serialize exception happened."
+  let constant GENERATE-PUTOUT-SUCCEEDED:String = "Succeeded to generate the code."
+  let constant SAVED-SUCCESSFULLY:String = "Saved successfully"
+  let constant INVALID-VALUE:String = "Invalid value,please input again.The format should be %s 127.0.0.1"
+  let constant SELECT-SINGLE-CLASS:String = "Please choose a single class name"
+  let constant CANNOT-CHOOSE:String = "Cannot check when type is %s."
+  
+  {define-proc {get-error-messages
+                   message:String,
+                   width:any = {add-stretch},
+                   height:any = {add-stretch},
+                   title:String = "Error Message",
+                   ...
+               }:void    
+    {popup-message    
+        font-size = 10pt,
+        {HBox width = width , height = height , {Fill} , {format message , {splice ...}} , {Fill}},
+        title = title             
+    }   
+  }
+}
+

@@ -1,0 +1,345 @@
+||| Copyright (C) 1998-2010, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+|| since 0.8
+
+|| LRUCache (Least Recently Used)
+{define-class public serializable LRUCache
+  {inherits Cache}
+  
+  || cache properties
+  field public-get private-set expire-live-time:Time = -1s
+  field public-get private-set expire-idle-time:Time = -1s
+  field public-get private-set max-elements-in-cache:int = -1
+  field public-get private-set disk-persistent?:bool = false
+  field package-get private-set cache-table:{OrderedHashTable-of String, LRUCacheElement} || cache data
+  
+  {getter public {size}:int
+    {return self.cache-table.size}
+  }
+  
+  {getter private {cache-keys}:{Array-of String}
+    {return self.cache-table.ordered-keys}
+  }
+  
+  {method public {exists? key:String}:bool
+    {return {self.exists-with-expired-cache? key, remove-if-expired? = true}}
+  }
+  
+  {method public {set key:String, value:any}:void
+    def max-elements = self.max-elements-in-cache
+    def cache-table = self.cache-table
+    {if max-elements != -1 and cache-table.size > 0 and
+        max-elements <= cache-table.size and not {self.exists-with-expired-cache? key}
+     then
+        || delete oldest one, if overflows.(LRU)
+        {self.remove self.cache-keys[0]}
+    }
+    def exists? = {cache-table.key-exists? key}
+    set cache-table[key] = {LRUCacheElement value, {DateTime}, {DateTime}}
+    {if self.disk-persistent? then
+        {if exists? then
+            {LRUCacheStorageUtil.remove-cache-value self.name, key}
+        }
+        {LRUCacheStorageUtil.write-cache-value self.name, key, cache-table[key]}
+    }
+  }
+  
+  {method public {get key:String}:any
+    {if not {self.exists-with-expired-cache? key, remove-if-expired? = true} then
+        {return null}
+    }
+    || switch the key order to LRUing
+    def ordered-keys = self.cache-table.ordered-keys
+    {ordered-keys.remove {ordered-keys.find key}}
+    {ordered-keys.append key}
+    
+    || update only last access date of cache
+    def element = self.cache-table[key]
+    set element.last-access-date = {DateTime}
+    {if self.disk-persistent? then
+        {LRUCacheStorageUtil.update-last-access-date self.name, key, element.last-access-date}
+    }
+    {return element.value}
+  }
+  
+  {method public {remove key:String}:void
+    {if not {self.exists-with-expired-cache? key, remove-if-expired? = false} then
+        {return}
+    }
+    {self.cache-table.remove key}
+    {if self.disk-persistent? then
+        {LRUCacheStorageUtil.remove-cache-value self.name, key}
+    }
+  }
+  
+  {method public {clear}:void
+    {self.cache-table.clear}
+    {if self.disk-persistent? then
+        {LRUCacheStorageUtil.remove-cache self.name}
+    }
+  }
+  
+  {method public {shrink}:void
+    || shrink expired elements
+    def cache-names = self.cache-keys
+    || should use 'downto' to remove element from array
+    {for i = cache-names.size - 1 downto 0 do
+        def name = cache-names[i]
+        def value = self.cache-table[name]
+        {if {self.expired? value} then
+            {self.remove name}
+        }
+    }
+  }
+  
+  || override
+  {method public {object-serialize out:SerializeOutputStream}:void
+    {super.object-serialize out}
+    {serialize-vars out, compact? = true, 
+        self.expire-idle-time,
+        self.max-elements-in-cache,
+        self.expire-live-time,
+        self.disk-persistent?
+    }
+    {for v key k in self.cache-table do
+        {serialize-vars out, compact? = true, k, v.value, v.create-date, v.last-access-date}
+    }
+  }
+
+  || - - - private - - - 
+  {method private {exists-with-expired-cache? key:String, remove-if-expired?:bool = true}:bool
+    def cache-table = self.cache-table
+    {if not {cache-table.key-exists? key} then
+        {return false}
+    }
+    {if remove-if-expired? and {self.expired? cache-table[key]} then
+        {cache-table.remove key}
+        {if self.disk-persistent? then
+            {LRUCacheStorageUtil.remove-cache-value self.name, key}
+        }
+        {return false}
+    }
+    {return true}
+  }
+  
+  {method private {expired? element:LRUCacheElement}:bool
+    {if self.expire-idle-time == -1s then
+        {return false}
+    }
+    def now = {DateTime}
+    {if self.expire-live-time == -1s then
+        {return {element.last-access-date.elapsed ending = now} > self.expire-idle-time}
+    }
+    {return
+        {element.create-date.elapsed ending = now} > self.expire-live-time or
+        {element.last-access-date.elapsed ending = now} > self.expire-idle-time
+    }
+  }
+  
+  || constructors
+  {constructor public {object-deserialize in:SerializeInputStream}
+    {construct-super.object-deserialize in}
+    {deserialize-vars in, compact? = true,
+        self.expire-idle-time,
+        self.max-elements-in-cache,
+        self.expire-live-time,
+        self.disk-persistent?
+    }
+    set self.cache-table = {{OrderedHashTable-of String, LRUCacheElement}}
+    {while not in.end-of-stream? do
+        def cache-element = {LRUCacheElement.empty}
+        let key:String = {uninitialized-value-for-type String}
+        {deserialize-vars in, compact? = true, 
+            key, cache-element.value, cache-element.create-date, cache-element.last-access-date
+        }
+        set self.cache-table[key] = cache-element
+    }
+  }
+  
+  {constructor package {default name:String, spec:#CacheSpec}
+    {construct-super name}
+    set self.cache-table = {{OrderedHashTable-of String, LRUCacheElement}}
+    let encryption-key:#ByteArray
+    {if-non-null s = spec then
+        {if-non-null v = {s.parameter "expire-live-time"} then
+            set self.expire-live-time = v
+        }
+        {if-non-null v = {s.parameter "expire-idle-time"} then
+            set self.expire-idle-time = v
+        }
+        {if-non-null v = {s.parameter "max-elements-in-cache"} then
+            set self.max-elements-in-cache = v
+        }
+        {if-non-null v = {s.parameter "disk-persistent?"} then
+            set self.disk-persistent? = v
+        }
+        set encryption-key = {s.parameter "encryption-key"}
+        {if self.expire-live-time != -1s then
+            {if self.expire-live-time < self.expire-idle-time or self.expire-idle-time == -1s then
+                {error "The expire-idle-time should be more than expire-live-time"}
+            }
+        }
+    }
+    {if self.disk-persistent? then
+        || NOTE: if there are caches in database, it would be loaded from database.
+        {LRUCacheStorageUtil.create-cache-database encryption-key = encryption-key}        
+        {LRUCacheStorageUtil.load-into-cache self}
+        {self.shrink}
+    }
+  }
+}
+  
+
+|| LRUCacheElement
+{define-class package final LRUCacheElement
+  
+  field package value:any
+  field package create-date:DateTime = {uninitialized-value-for-type DateTime}
+  field package last-access-date:DateTime = {uninitialized-value-for-type DateTime} || for LRU
+  
+  {constructor package {default
+                           value:any,
+                           create-date:DateTime,
+                           last-access-date:DateTime
+                       }
+    set self.value = value
+    set self.create-date = create-date
+    set self.last-access-date = last-access-date
+  }
+  
+  {constructor package {empty}
+    || constructor to deserialize
+  }
+}
+
+
+|| OrderedHashTable-of for LRU
+{define-class package final {OrderedHashTable-of tk:Type, te:Type}
+  {inherits {HashTable-of tk, te}}
+  
+  field package-get private-set ordered-keys:{Array-of tk}
+  field private rehashing?:bool = false
+  
+  {constructor package {default efficient-size:int = 4, ...:any}
+    set self.ordered-keys = {{Array-of tk} efficient-size = efficient-size}
+    {construct-super efficient-size = efficient-size, ...}
+  }
+  
+  {method public {clear}:void
+    {super.clear}
+    {self.ordered-keys.clear}
+  }
+  
+  {method public {remove key:tk, length:int = 1, error-if-missing?:bool = true}:void
+    def old-size = self.size
+    {super.remove key, length = length, error-if-missing? = error-if-missing?}
+    {if old-size != self.size then
+        def index = {self.ordered-keys.find key}
+        {if index >= 0 then
+            {self.ordered-keys.remove index}
+        }
+    }
+  }
+  
+  {setter public {efficient-size requested-size:int}:void
+    set self.ordered-keys.efficient-size = requested-size
+    {with self.rehashing? = true do
+        set super.efficient-size = requested-size
+    }
+  }
+  
+  {method public {rehash}:void
+    {with self.rehashing? = true do
+        {super.rehash}
+    }
+  }
+  
+  {method public {set key:tk, element:te}:void
+    def old-size = self.size
+    {super.set key, element}
+    {if old-size == self.size then
+        def index = {self.ordered-keys.find key}
+        {if index >= 0 then
+            {self.ordered-keys.remove index}
+        }
+     elseif self.rehashing? then
+        {return}
+    }    
+    {self.ordered-keys.append key}
+  }
+  
+  {method public {to-Iterator}:{Iterator-of te}
+    {return {{Ordered-HashTable-element-Iterator-of te, {compile-time-type-of self}} self}}
+  }
+  
+  {method public {keys-to-Iterator}:{Iterator-of tk}
+    {return {self.ordered-keys.to-Iterator}}
+  }
+  
+  {method public {get-by-index index:int}:(key:tk, value:te)
+    def key = self.ordered-keys[index]
+    {return key, self[key]}
+  }
+  
+  {method public {get-by-index-if-exists index:int}:(key:tk, value:te, found?:bool)
+    {return 
+        {if index < 0 or index >= self.size then
+            ({uninitialized-value-for-type tk}, {uninitialized-value-for-type te}, false)
+         else
+            def key = self.ordered-keys[index]
+            (key, self[key], true)
+        }
+    }
+  }
+}
+
+{define-class package final {Ordered-HashTable-element-Iterator-of te:Type, htt:Type}
+  {inherits {Iterator-of te}}
+  
+  field private ht:htt
+  field private init-size:int
+  field private index:int
+  
+  {constructor package {default ht:htt}
+    set self.ht = ht
+    {self.reset}
+  }
+  
+  {method public {reset}:void
+    set self.init-size = self.ht.size
+    set self.index = 0
+  }
+  
+  {method public {read-one}:(element:te, eof?:bool)
+    || assertion
+    {if self.ht.size != self.init-size then
+        {error "%s.size changed while iterating over the container."}
+    }
+    {return 
+        {if self.index >= self.ht.size then
+            ({uninitialized-value-for-type te}, true)
+         else
+            def index = self.index
+            set self.index = index + 1
+            (self.ht[self.ht.ordered-keys[index]], false)
+        }
+    }
+  }
+}
+

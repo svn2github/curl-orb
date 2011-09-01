@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <extension
+         point="org.eclipse.ui.popupMenus">
+      <objectContribution
+            objectClass="org.eclipse.jdt.core.ICompilationUnit"
+            id="com.curlap.orb.plugin.contribution1">
+         <menu
+               label="Generate for ORB"
+               path="additions"
+               id="com.curlap.orb.plugin.menu1">
+            <separator
+                  name="group1">
+            </separator>
+         </menu>
+         <action
+               label="Generate"
+               class="com.curlap.orb.plugin.popup.actions.CurlClassGenerateAction"
+               menubarPath="com.curlap.orb.plugin.menu1/group1"
+               enablesFor="1"
+               id="com.curlap.orb.plugin.CurlClassGenerateAction">
+         </action>
+      </objectContribution>
+   </extension>
+   
+   <!-- Curl ORB Nature -->
+   <extension 
+	   point="org.eclipse.core.resources.natures" 
+	   id="orbnature"
+	   name="Curl ORB Nature">
+	   <runtime>
+		   <run class="com.curlap.orb.plugin.CurlOrbNature">
+		   </run>
+	   </runtime>
+   </extension>
+
+   <!-- Curl ORB Builder --> 
+   <extension 
+	   point="org.eclipse.core.resources.builders" 
+	   id="orbbuilder"
+	   name="Curl ORB Builder">
+	   <builder>
+		   <run class="com.curlap.orb.plugin.builder.CurlOrbBuilder">
+		   </run>
+	   </builder>
+   </extension>
+   
+   <!-- Curl ORB Preferences -->
+   <extension point="org.eclipse.core.runtime.preferences">
+      <initializer class="com.curlap.orb.plugin.ui.CurlOrbUIPreferenceInitializer"/>
+   </extension>
+   
+   <extension point="org.eclipse.ui.preferencePages">
+      <page
+         name="Curl ORB"
+         class="com.curlap.orb.plugin.preferences.CurOrbGeneralPreferencesPage"
+         id="com.curlap.orb.plugin.preferences.CurlGeneralPreferencesPage">
+      </page>
+   </extension>
+   
+</plugin>

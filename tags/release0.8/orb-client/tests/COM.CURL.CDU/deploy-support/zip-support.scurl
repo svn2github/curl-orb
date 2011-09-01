@@ -1,0 +1,79 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+{import * from CURL.RUNTIME.HOST-PROCESS}
+
+{def zip-exec-locs =
+    {UrlArray
+        {url "7z.exe"},
+        {abs-url "file:///C:/Program Files/7-Zip/7z.exe"}}
+}
+
+{define-proc public {create-zip-archive
+                        directory:Url
+                    }:Url
+
+    || find zip command
+    def zip-exec-loc =
+        {platform-switch
+         case "win32" do
+            def locs =
+                {zip-exec-locs.filter-clone
+                    {fn loc => {local-file-exists? loc}}}
+            {if locs.empty? then
+                {error {lmessage create-zip-archive: no executable found}}
+             else
+                locs[0]}
+          else
+            {error {lmessage create-zip-archive: only defined for windows platform}}}
+    def zip-exec-path = {non-null zip-exec-loc.local-filename}
+
+    || verify subject directory
+    {if not {local-directory-exists? directory} then
+        {error {lmessage create-zip-archive:
+                   directory '{value directory}' does not exist.}}}
+
+    || path and file names
+    def zip-directory-name = directory.filename
+    def zip-archive-loc = {directory.set-extension ".zip"}
+    def zip-archive-name = zip-archive-loc.filename
+    def zip-archive-path = {non-null zip-archive-loc.parent.local-filename}
+
+    || zip command
+    || - NOTE: avoid 'set-host-working-directory-url'
+    || - may cause run-host-shell to fail
+    def zip-command-pattern =
+        |"cd "%s" && "%s" a -r -tzip %s %s"|
+    def zip-command =
+        {format zip-command-pattern,
+            zip-archive-path,
+            zip-exec-path,
+            zip-archive-name,
+            zip-directory-name}
+
+    || delete existing archive, if any
+    {if {local-file-exists? zip-archive-loc} then
+        {delete zip-archive-loc}}
+
+    || execute zip command
+    {run-host-shell
+        suppress-console-window? = true,
+        zip-command}
+
+    || verify successful operation
+    {assert {local-file-exists? zip-archive-loc}}
+    {return zip-archive-loc}
+}
