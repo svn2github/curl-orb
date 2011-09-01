@@ -1,0 +1,644 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|| TODO
+|| - TestController
+|| -- robustness -- catch everything
+|| -- abrupt termination
+|| -- 'visitor' for test hierarchy
+|| --- consider TreeIterator
+|| -- generative suites
+|| --- encapsulate only if NOT debuggable
+|| -- how address TestSuite.run
+|| --- precondition or postcondition or ignore
+|| - unique ID
+|| -- full-name derived from path
+|| -- enforce local name uniqueness within suite
+|| -- consider generated sequence
+|| -- better UI
+|| - assertion helpers
+|| -- signal condition
+|| - framework
+|| -- is global target sufficient ?
+|| -- weak-on
+|| -- multiplexing
+|| - reporting aspects
+|| -- level
+|| -- auxiliary data
+|| -- TestReport.display protocol
+|| - async processing
+|| -- dispatch-events
+|| -- enqueue-event
+|| -- timeouts for async test cases
+|| - termination conditions
+|| -- unavailable -- inaccessible precondition
+|| -- aborted -- failed precondition
+|| - packaging
+|| -- base + extensions
+|| -- reflective 
+
+|| Protocol
+|| ====================
+{doc-next ||=== Test
+    {purpose Defines the protocol for a test case.}
+}
+{define-class public abstract Test
+  {getter public abstract {name}:String}
+  {getter public abstract {identifier}:String}
+  {getter public abstract {ancestors}:TestArray}
+  {getter public abstract {caption}:String}
+  {getter public abstract {parent}:#TestSuite}
+  {method protected abstract {attach parent:TestSuite}:void}
+  {method protected abstract {detach}:void}
+  {method public abstract {set-up}:void}
+  {method public abstract {run}:void}
+  {method public abstract {tear-down}:void}
+}
+{let public constant TestArray:ClassType =
+    {Array-of Test}
+}
+{doc-next ||=== TestTarget
+    {purpose An {docref EventTarget} for {docref TestMessage}s.}
+}
+{define-class public abstract TestTarget {inherits EventTarget}
+  let public current:TestTarget = {ConsoleTestTarget}
+  {constructor public {default ...}
+    {construct-super 
+        {on e:TestMessage do
+            {self.on-test-message e}},
+        {splice ...}}
+  }
+  {method public {log ...}:void
+    {self.handle-event
+        {TestMessage {splice ...}}}
+  }
+  {method protected abstract {on-test-message e:TestMessage}:void}
+}
+{doc-next ||=== TestReport
+    {purpose Contains information about execution of a {docref Test}.}
+}
+{define-class public abstract TestReport
+  {getter public abstract {test}:Test}
+  {getter public abstract {timestamp}:DateTimeData}
+  {getter public abstract {state}:TestState}
+  {setter protected abstract {state val:TestState}:void}
+  {getter public abstract {result}:TestResult}
+  {setter protected abstract {result val:TestResult}:void}
+  {getter public abstract {duration}:Time}
+  {setter protected abstract {duration val:Time}:void}
+  {getter public abstract {message}:String}
+  {setter protected abstract {message val:String}:void}
+  {getter public abstract {exception}:#Exception}
+  {setter protected abstract {exception val:#Exception}:void}
+  {method protected abstract {note-state-changed}:void}
+  {factory public implicit {default test:Test}:TestReport
+    {return {StandardTestReport test}}
+  }
+}
+{doc-next ||=== TestController
+    {purpose Controls operation of a {docref Test}}
+}
+{define-class public abstract TestController
+  {getter public abstract {test}:Test}
+  {method public abstract {execute tests:#{Array-of Test} = null}:void}
+  {method public abstract {cancel}:void}
+  {factory public implicit {default test:Test}:TestController
+    {return {StandardTestController test}}
+  }
+}
+|| Test Specs
+|| ====================
+{doc-next ||=== TestCommon
+    {purpose Defines common behavior for {docref TestCase} and {docref TestSuite}.}
+}
+{define-class public abstract TestCommon {inherits Test}
+  field _name:String
+  field _caption:String
+  field _parent:#TestSuite
+  {constructor public {default
+                          name:String,
+                          caption:String = name}
+    set self._name = name
+    set self._caption = caption
+  }
+  {getter public {name}:String
+    {return self._name}
+  }
+  {getter public {caption}:String
+    {return self._caption}
+  }
+  {getter public {parent}:#TestSuite
+    {return self._parent}
+  }
+  {method public {set-up}:void
+  }
+  {method public {tear-down}:void
+  }
+  {method protected {attach parent:TestSuite}:void
+    || TODO: flush-memos
+    set self._parent = parent
+    {parent.add self}
+  }
+  {method protected {detach}:void
+    {if-non-null parent = self.parent then
+        || TODO: flush-memos
+        {parent.remove self}}
+  }
+  {getter public {ancestors}:TestArray
+    {return TestCommon.ancestors-for[self]}
+  }
+  {getter public {identifier}:String
+    {return TestCommon.identifier-for[self]}
+  }
+  || ----------
+  let public constant identifier-for:{Memoizer-of Test, String} =
+      {{Memoizer-of Test, String}
+        TestCommon.get-identifier}  
+  let public constant ancestors-for:{Memoizer-of Test, TestArray} =
+      {{Memoizer-of Test, TestArray}
+        TestCommon.get-ancestors}
+  let public constant delimiter:String = "`"
+  {define-proc {get-identifier test:Test}:String
+    let buf:StringBuf = {StringBuf}
+    let xs:TestArray = TestCommon.ancestors-for[test]
+    {for i = 0 below xs.size do
+        {if not buf.empty? then
+            {buf.concat TestCommon.delimiter}}
+        {buf.concat xs[i].name}}
+    || HACK: flag suite with trailing delimiter
+    {if test isa TestSuite then
+        {buf.concat TestCommon.delimiter}}
+    {return {buf.to-String}}
+  }
+  {define-proc {get-ancestors test:Test}:TestArray
+    let xs:TestArray= {TestArray}
+    let f:{proc-type {Test}:void} =
+        {proc {x:Test}:void
+            {if-non-null p = x.parent then
+                {f p}}
+            {xs.append x}}
+    {f test}
+    {return xs}
+  }
+}
+{doc-next ||=== TestCase
+    {purpose Defines a test case.}
+}
+{define-class public TestCase {inherits TestCommon}
+  {constructor public {default
+                          name:String,
+                          caption:String = name}
+    {construct-super name, caption = caption}
+  }
+  {method public {run}:void
+  }
+}
+{doc-next ||=== TestSuite
+    {purpose Defines a test suite.}
+}
+{define-class public TestSuite {inherits TestCommon}
+  field tests:TestArray
+  {constructor public {default
+                          name:String,
+                          caption:String = name,
+                          ...:Test}
+    set self.tests = {TestArray}
+    {construct-super name, caption = caption}
+    {for test in ... do
+        {self.add test}}
+  }
+  {factory public {import 
+                      loc:Url,
+                      manifest:ComponentManifest = 
+                          {get-current-manifest},
+                      catch-exceptions?:bool = not {process-debuggable?}
+                  }:TestSuite
+    || evaluate in anonymous package, aware of test framework
+    let package:OpenPackage = 
+        {OpenPackage
+            manifest = manifest, 
+            {this-package}}
+    || should return test suite
+    let suite:TestSuite =
+        {if catch-exceptions? then
+            {try
+                {evaluate package = package, loc} asa TestSuite
+             catch e:Exception do
+                || otherwise, assure suite construction failure is noted
+                {TestSuite loc.name,
+                    {SimpleTestCase {lmessage WARNING},
+                        {proc {}:void
+                            {error
+                                {lmessage
+                                    Unable to import suite: {value e}}}
+                        }}}}
+         else
+            {evaluate package = package, loc} asa TestSuite
+        }
+    {return suite}
+  }
+  {method public {run}:void
+    || NOTE: could use as precondition
+  }
+  {getter public {size}:int
+    {return self.tests.size}
+  }
+  {getter public {for-loop-count}:int
+    {return self.tests.size}
+  }
+  {method public {get i:int}:Test
+    {return self.tests[i]}
+  }
+  {method public {get-if-exists i:int}:(Test, bool)
+    {return {self.tests.get-if-exists i}}
+  }
+  {method public {add test:Test}:void
+    {if test.parent != self then
+        {self.tests.append test}
+        {test.attach self}}
+  }
+  {method public {remove test:Test}:void
+    {if test.parent == self then
+        let i:int = {self.tests.find test}
+        {if i >= 0 then
+            {self.tests.remove i}}
+        {test.detach}}
+  }
+}
+|| Reporting
+|| ====================
+{doc-next ||=== TestResult
+    {purpose Describe result of a {docref Test}.}
+}
+{define-enum public TestResult
+    unknown,
+    success,
+    incomplete,
+    failure,
+    error,
+    cancelled
+}
+{doc-next ||=== TestState
+    {purpose Describe execution state of a {docref Test}.}
+}
+{define-enum public TestState
+    inactive,
+    preparing,
+    running,
+    complete,
+    concluding
+}
+{doc-next ||=== TestCondition
+    {purpose Indicates condition concluding a {docref Test}.}
+}
+{define-class public TestCondition {inherits Exception}
+  field public constant result:TestResult
+  {constructor public {default result:TestResult, message:String}
+    set self.result = result
+    {construct-super message}
+  }
+  {define-proc public {signal result:TestResult, message:String = ""}:void
+    {throw 
+        {TestCondition result, message}}
+  }
+  {define-proc public {succeed message:String = ""}:void
+    {TestCondition.signal TestResult.success, message = message}
+  }
+  {define-proc public {terminate message:String = ""}:void
+    {TestCondition.signal TestResult.incomplete, message = message}
+  }
+  {define-proc public {fail message:String = ""}:void
+    {TestCondition.signal TestResult.failure, message = message}
+  }
+  {define-proc public {assert valid?:bool, message:String = ""}:void
+    {if not valid? then
+        {TestCondition.fail message = message}}
+  }
+  {define-proc public {assert-isa type:Type, val:any, message:String = ""}:void
+    {TestCondition.assert val isa type, message = message}
+  }
+}
+{doc-next ||=== TestMessage
+    {purpose Indicates progress of a {docref Test}.}
+}
+{define-class public TestMessage {inherits Event}
+  field public constant report:TestReport
+  field public constant timestamp:DateTimeData
+  {constructor public {default report:TestReport}
+    set self.timestamp = {DateTimeData}
+    set self.report = report
+  }
+}
+{doc-next ||=== StandardTestReport
+    {purpose Contains information about execution of a {docref Test}.}
+}
+{define-class public StandardTestReport {inherits TestReport}
+  field constant _test:Test
+  field constant _timestamp:DateTimeData
+  field _state:TestState
+  field _result:TestResult
+  field _duration:Time
+  field _message:String
+  field _exception:#Exception
+  {constructor public implicit {default test:Test}
+    set self._test = test
+    set self._timestamp = {DateTimeData}
+    set self._state = TestState.inactive
+    set self._result = TestResult.unknown
+    set self._duration = -1s
+    set self._message = ""
+  }
+  {getter public {test}:Test
+    {return self._test}
+  }
+  {getter public {timestamp}:DateTimeData
+    {return self._timestamp}
+  }
+  {getter public {result}:TestResult
+    {return self._result}
+  }
+  {setter protected {result val:TestResult}:void
+    set self._result = val
+  }
+  {getter public {duration}:Time
+    {return self._duration}
+  }
+  {setter protected {duration val:Time}:void
+    set self._duration = val
+  }
+  {getter public {message}:String
+    {return self._message}
+  }
+  {setter protected {message val:String}:void
+    set self._message = val
+  }
+  {getter public {exception}:#Exception
+    {return self._exception}
+  }
+  {setter protected {exception val:#Exception}:void
+    set self._exception = val
+  }
+  {getter public {state}:TestState
+    {return self._state}
+  }
+  {setter protected {state val:TestState}:void
+    let changed?:bool = val != self._state
+    set self._state = val
+    {if changed? then
+        {self.note-state-changed}}
+  }
+  {method protected {note-state-changed}:void
+    let target:TestTarget = TestTarget.current
+    {target.log self}
+  }
+}
+|| Notification
+|| ====================
+{doc-next ||=== ConsoleTestTarget
+    {purpose A {docref TestTarget} that logs {docref TestMessage}s to the console.}
+}
+{define-class public ConsoleTestTarget {inherits TestTarget}
+  {constructor public {default ...}
+    {construct-super {splice ...}}
+  }
+  {method protected {on-test-message e:TestMessage}:void
+    {output
+        {ConsoleTestTarget.format e}}
+  }
+  {define-proc public {format e:TestMessage}:String
+    let report:TestReport = e.report
+    let when:String = {DateTimeInfo data = e.timestamp, zone = DateTimeZone.utc}.iso-time
+    let which:String = report.test.identifier
+    let duration:String =
+        {if report.duration >= 0s then
+            {format "(%.3f)", report.duration}
+         else ""}
+    {return
+        {message
+            [{value when}]
+            {value which}
+            is '{value report.state.name}'
+            with '{value report.result.name}'
+            {value duration}
+            : {value report.message}
+        }}
+  }
+}
+{doc-next ||=== RecordSetTestTarget
+    {purpose A {docref TestTarget} that logs {docref TestMessage}s to a {docref RecordSet}.}
+}
+{define-class public RecordSetTestTarget {inherits TestTarget}
+  field public-get constant subject:RecordSet 
+  field public-get id-counter:int
+  {constructor public {default ...}
+    set self.id-counter = 0
+    set self.subject = 
+        {RecordSet
+            {RecordFields
+                {RecordField "id", domain = int},
+                {RecordField "timestamp", domain = String},
+                {RecordField "test", domain = String},
+                {RecordField "state", domain = String},
+                {RecordField "result", domain = String},
+                {RecordField "message", domain = String},
+                {RecordField "duration", domain = String, nullable? = true}
+            }}
+    {construct-super {splice ...}}
+  }
+  {method protected {on-test-message e:TestMessage}:void
+    let report:TestReport = e.report
+    {inc self.id-counter}
+    let id:int = self.id-counter
+    let when:String = {format-timestamp e.timestamp}
+    let which:String = report.test.identifier
+    let duration:any =
+        {if report.duration >= 0s then
+            report.duration / 1s
+            {format "%.3f", report.duration / 1s}
+         else null}
+    {self.subject.append
+        {RecordData 
+            id = id,
+            timestamp = when,
+            test = which,
+            state = report.state.name,
+            result = report.result.name,
+            message = report.message,
+            duration = duration}}
+  }
+}
+|| Controller
+|| ====================
+{doc-next ||=== StandardTestController
+    {purpose Controls operation of a {docref Test}}
+}
+{define-class public StandardTestController {inherits TestController}
+  field constant _test:Test
+  field cancel?:bool
+  {constructor public implicit {default test:Test}
+    set self._test = test
+  }
+  {getter public {test}:Test
+    {return self._test}
+  }
+  {method public {execute tests:#{Array-of Test} = null}:void
+    set self.cancel? = false
+    {if-non-null tests then
+        {for test in tests do
+            {self.exec test}}
+     else
+        {self.exec self.test}}
+  }
+  {method public {cancel}:void
+    set self.cancel? = true
+  }
+  {method {exec test:Test}:TestReport
+    {return
+        {type-switch test
+         case suite:TestSuite do
+            {self.run-suite suite}
+         else
+            {self.run-test test}}}
+  }
+  {method {run-suite suite:TestSuite}:TestReport
+    let report:TestReport = {TestReport suite}
+    let result:TestResult = report.result
+    {self.run report,
+        {proc {}:void
+            || precondition
+            {self.run-internal report,
+                {proc {}:void
+                    {suite.run}}}
+            || constituents
+            let incomplete?:bool = false
+            {for test in suite.tests do
+                {if incomplete? then
+                    || precondition unsatisfied:
+                    || -- mark remainder of suite cancelled
+                    let report:TestReport = {TestReport test}
+                    set report.result = TestResult.cancelled
+                    || NOTE: triggers logging
+                    set report.state = TestState.complete
+                 else
+                    let report:TestReport = {self.exec test}
+                    {if report.result.index > result.index then
+                        || NOTE: so outer loops continue
+                        {if report.result == TestResult.incomplete then
+                            set incomplete? = true
+                         else
+                            set result = report.result}
+                    }
+                    {if result == TestResult.cancelled then
+                        {break}}
+                }}
+        }}
+    set report.result = result
+    set report.state = TestState.complete
+    {return report}
+  }
+  {method {run-test test:Test}:TestReport
+    let report:TestReport = {TestReport test}
+    {self.run report,
+        {proc {}:void
+            {test.run}}}
+    {dispatch-events false}
+    {if self.cancel? then
+        set report.result = TestResult.cancelled
+        set self.cancel? = false}
+    {return report}
+  }
+  {method {run 
+              report:TestReport,
+              action:{proc-type {}:void}
+          }:void
+    let test:Test = report.test
+    {try
+        || preparation
+        set report.result = TestResult.unknown
+        set report.state = TestState.preparing
+        {test.set-up}        
+        || execution
+        set report.state = TestState.running
+        {self.run-internal report, action}
+        || assure report
+        {if not test isa TestSuite then
+            || TODO: why guard needed?
+            set report.state = TestState.complete}
+        || conclusion
+        set report.state = TestState.concluding
+        {test.tear-down}
+        set report.state = TestState.inactive
+     catch e:Exception do
+        || exception during set-up or tear-down
+        set report.result = TestResult.error
+        set report.exception = e
+        set report.message = e.message
+        || assure report
+        set report.state = TestState.complete
+        || reset
+        set report.state = TestState.inactive
+    }
+  }
+  {method {run-internal 
+              report:TestReport,
+              action:{proc-type {}:void}
+          }:void
+    let start:Time = {report.timestamp.elapsed}
+    let finish:Time = 0s
+    {try
+        {action}
+        set finish = {report.timestamp.elapsed}
+     catch e:TestCondition do
+        set finish = {report.timestamp.elapsed}
+        set report.result = e.result
+        set report.message = e.message
+     catch e:Exception do
+        set finish = {report.timestamp.elapsed}
+        set report.result = TestResult.error
+        set report.exception = e
+        set report.message = e.message
+        || reset
+        set report.state = TestState.inactive
+     finally
+        set report.duration = finish - start
+        || no news is good news
+        {switch report.result
+         case TestResult.unknown do
+            set report.result = TestResult.success}
+    }
+  }
+}
+|| Support
+|| ====================
+{doc-next ||=== format-timestamp
+    {purpose Displays timestamp.}
+}
+{define-proc public {format-timestamp t:DateTimeData}:String
+    let info:DateTimeInfo = 
+        {DateTimeInfo data = t, zone = DateTimeZone.utc}
+    {return
+        {format "%02d:%02d:%02d.%03d", 
+            info.hour, info.minute, info.second, 
+            info.millisecond}}
+}
+{doc-next ||=== get-current-manifest
+    {purpose Returns manifest of current applet.}
+}
+{define-proc public {get-current-manifest}:ComponentManifest
+    {return
+        {evaluate |"{get-default-manifest}"|} asa ComponentManifest
+    }
+}

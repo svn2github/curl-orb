@@ -1,0 +1,18 @@
+
+{import * from COM.CURL.ORB} 
+
+{define-class public HogeImpl2 {inherits HttpSessionClient}
+
+  {constructor public {default} 
+    {construct-super.HttpSessionClient "tests2.HogeImpl"} 
+  } 
+
+  {method public {get-hoge-name}:#String 
+    {return {self.invoke "getHogeName"}} 
+  }
+
+  {method public {async-get-hoge-name ...:EventHandler}:AsyncWorker
+    {return {self.async-invoke "getHogeName", {splice ...}}}
+  }
+} 
+

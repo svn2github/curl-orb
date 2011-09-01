@@ -1,0 +1,23 @@
+|| *******************************************************
+|| *** THIS FILE IS AUTOMATICALLY UPDATED BY SURGE LAB ***
+|| ***              DO NOT MODIFY IT BY HAND           ***
+|| *******************************************************
+
+{project
+    version = 3,
+    manifest-location = "manifest.mcurl",
+    api-version = "6.0",
+    compiler-directives = "careful? = true",
+    use-style-sheets? = true,
+    project-look-and-feel = "default-style-sheet",
+    style-package-name = "",
+    style-sheet-name = "",
+    {target
+        name = "deploy",
+        target-url-name = "deploy-default",
+        certificate = "",
+        delegate-to-location = "..",
+        {package-transform "COM.CURL.GUI.STYLED-CONTROLS\u0000package\u0000skinned-controls/load.pcurl", copy? = true},
+        {resource-transform "resources\u0000directory\u0000resources", copy? = true}
+    }
+}

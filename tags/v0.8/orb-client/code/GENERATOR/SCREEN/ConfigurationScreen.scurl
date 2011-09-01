@@ -1,0 +1,291 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author ucai zhang
+|||
+
+|||
+||| ConfigurationScreen
+|||
+{persistent-data
+    "File location for local file system",
+    duration = 180days
+}
+
+{define-class ConfigurationScreen {inherits AbstractDialog}
+
+  field private _server-url-tf:#CustomTextField
+  field private _base-dir-td:#CustomTextDisplay
+  field private _file-bt:#CustomCommandButton
+  field private _v60-cb:#CheckButton
+  field private _v70-cb:#CheckButton
+  field private _body:#Graphic
+  field private _save-bt:#CustomCommandButton
+  field private _cancel-bt:#CustomCommandButton
+  
+  {constructor {default ...}
+    {construct-super
+        {on AttachEvent do
+            {self.server-url.request-key-focus}
+        },
+        background = BACK-GROUND1,
+        margin = 10pt,
+        width = 400,
+        height = 250,
+        {splice ...}
+    }
+  }
+
+  {method public {layout-graphic}:void
+    let r:RolledRandom = {RolledRandom.default 0 , 2}
+    let ri:int = {r.next-roll}
+    {self.add-internal
+        {VBox
+            {HBox
+                valign = "center",
+                {text font-family = "Arial Rounded MT Bold" ,
+                    color = FONT-COLOR,
+                    font-size = 18pt,
+                    font-weight = "bold",
+                    Configuration
+                },
+                {Fill width = {make-elastic minimum-size = 2mm}},
+                {image
+                    source =
+                        {if ri == 0 then
+                            {url "./images/orb.png"}
+                         elseif ri == 1 then
+                            {url "./images/orb_white.png"}
+                         else
+                            {url "./images/orb_red.png"}
+                        },
+                    width = 40mm,
+                    height = 18mm
+                }     
+            },
+            self.body
+        },
+        replace? = true
+    }
+  }
+
+  {method public {handle-data data:any = null}:bool
+    {try
+        || Be prepared to catch an exception if repository                                        
+        || set the value from the repository
+        set self.server-url.value = {String {get-persistent-data "default server url"}}
+        set self.base-dir.value = {String {get-persistent-data "base dir url"}}
+        || RTE version
+        def rv = {get-persistent-data "RTE version"} asa {HashTable-of String, bool}
+        set self.v60-check-button.value = rv["6.0"]
+        set self.v70-check-button.value = rv["7.0"]
+        set self.base-dir.tooltip = {Tooltip self.base-dir.value}
+        {return true}
+     catch not-found:KeyNotFoundException do
+        set self.server-url.value =  DEFAULT-SERVER-URL
+        set self.base-dir.value = ""
+        set self.v60-check-button.value = false
+        set self.v70-check-button.value = false
+    }
+    {return false}
+  }
+
+  {method private {validate?}:(#Graphic, bool)
+    def str-url = {(self.server-url.value asa String).trim-clone}
+    def str-dir = self.base-dir.value asa String
+    {if not {str-url.prefix? "http://"} or str-url == "http://" then
+        {ErrorMessages.get-error-messages ErrorMessages.INVALID-VALUE, "http://"}        
+        set self.server-url.value = "http://"
+        {self.server-url.request-key-focus}
+        {return (self.server-url, false)}     
+    }
+    {return (null, true)}
+  }
+  
+  {getter public {server-url}:CustomTextField
+    {if {equal? self._server-url-tf , null} then
+        set self._server-url-tf =
+            {CustomTextField
+                width = 200pt,
+                value = "http://"
+            }        
+    }
+    {return {non-null self._server-url-tf}}
+  }
+
+  {getter public {base-dir}:CustomTextDisplay
+    {if {equal? self._base-dir-td , null} then
+        set self._base-dir-td = {CustomTextDisplay width = 200pt}        
+    }
+    {return {non-null self._base-dir-td}}
+  }
+
+  {getter public {file-button}:CustomCommandButton
+    {if {equal? self._file-bt , null} then
+        set self._file-bt =
+            {CustomCommandButton
+                label = "File",
+                width = 40pt,
+                {on Action do
+                    {if-non-null url =
+                        {choose-directory
+                            default-location = {url self.base-dir.value asa String}
+                        }
+                     then
+                        set self.base-dir.value = url.full-filename
+                        set self.base-dir.tooltip =
+                            {Tooltip url.full-filename}
+                    }
+                }
+            }        
+    }
+    {return {non-null self._file-bt}}
+  }
+
+  {getter public {v60-check-button}:CheckButton
+    {if {equal? self._v60-cb, null} then
+        set self._v60-cb =
+            {CheckButton
+                label = {text color = FONT-COLOR|#"white"#|, 6.0},
+                font-size = 12pt
+            }
+    }
+    {return {non-null self._v60-cb}}
+  }
+  
+  {getter public {v70-check-button}:CheckButton
+    {if {equal? self._v70-cb, null} then
+        set self._v70-cb =
+            {CheckButton
+                label = {text color = FONT-COLOR|#"white"#|, 7.0},
+                font-size = 12pt
+            }
+    }
+    {return {non-null self._v70-cb}}
+  }
+
+  {getter public {save-button}:CustomCommandButton
+    {if {equal? self._save-bt, null} then
+        set self._save-bt =
+            {CustomCommandButton
+                label = "Save",
+                {on Action do
+                    def str-url = self.server-url.value asa String
+                    def str-dir = self.base-dir.value asa String
+                    def (control , validate?) = {self.validate?}
+                    {if not validate? then                                                                              
+                        {return}
+                    }
+                    {try
+                        || Be prepared to catch an exception if repository
+                        set server-url = {parse-url str-url}
+                        || set the value from the repository
+                        {set-persistent-data "default server url", str-url}
+                        {set-persistent-data "base dir url", str-dir}
+                        || RTE version
+                        set rte-version =
+                            {{HashTable-of String, bool}
+                                "6.0", self.v60-check-button.value,
+                                "7.0", self.v70-check-button.value
+                            }
+                        {set-persistent-data "RTE version", rte-version}
+                        {commit-persistent-data}
+                        
+                        set base-dir = str-dir
+                        set self.return-value = str-url
+                        set self.return-state = RETURN-STATES.save
+                        {ErrorMessages.get-error-messages
+                            ErrorMessages.SAVED-SUCCESSFULLY,
+                            width = 100pt
+                        }
+                        {self.close "close"}
+                     catch he:HttpException do
+                        set self.server-url.value = "http://"
+                        {self.server-url.request-key-focus}
+                        {ErrorMessages.get-error-messages he.message}
+                    }
+                }
+            }        
+    }
+    {return {non-null self._save-bt}}
+  }
+
+  {getter public {cancel-button}:CustomCommandButton
+    {if {equal? self._cancel-bt , null} then
+        set self._cancel-bt =
+            {CustomCommandButton
+                label = "Cancel",
+                {on Action do
+                    {self.close "close"}
+                    set self.return-state = RETURN-STATES.cancel
+                }
+            }        
+    }
+    {return {non-null self._cancel-bt}}
+  }
+
+  {getter public {body}:Graphic
+    {if {equal? self._body, null} then
+        set self._body =
+            {VBox
+                width = {add-stretch},
+                {Frame
+                    width = 14cm,
+                    height = 6cm,
+                    valign = "center",
+                    halign = "center",
+                    {VBox
+                        {Fill},
+                        {Table
+                            {row-prototype
+                                halign = "right",
+                                {create-sepc-label "Default server url"},
+                                self.server-url
+                            },
+                            {row-prototype
+                                halign = "right",
+                                {create-sepc-label "Base save directory"},
+                                self.base-dir,
+                                self.file-button
+                            },
+                            {row-prototype
+                                halign = "left",
+                                {create-sepc-label "RTE version"},
+                                {spaced-hbox
+                                    self.v60-check-button,
+                                    self.v70-check-button
+                                }
+                            }
+                        },
+                        {Fill}
+                    }
+                },                             
+                {Fill height = 10pt},
+                {hrule height = 1pt, color = "#ACA899"},
+                {Fill height = .2cm},
+                {Frame                              
+                    width = 14cm,
+                    halign = "right",
+                    {HBox
+                        spacing = 3pt,
+                        self.save-button,
+                        self.cancel-button
+                    }
+                }
+            }        
+    }
+    {return {non-null self._body}}
+  }
+}

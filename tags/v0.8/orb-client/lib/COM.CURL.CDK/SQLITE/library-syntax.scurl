@@ -1,0 +1,157 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+{curl 7.0, 8.0 package}
+{package
+    COM.CURL.CDK.SQLITE-LIBRARY-SYNTAX,
+||    CURL.IO.SQLITE-LIBRARY-SYNTAX,
+    version = "1.1",
+    resource-directory = "../resources/",
+    translations-file = "messages.xml",
+    {compiler-directives careful? = true}
+}
+
+{doc
+    type = package,
+    COM.CURL.CDK.SQLITE-LIBRARY-SYNTAX
+||    CURL.IO.SQLITE-LIBRARY-SYNTAX
+    {purpose
+        The package defines syntax extensions used with
+        {docref CURL.IO.SQLITE-LIBRARY} package.
+    }
+    {details
+        This is a separate package so that it can be used by
+        {ctext CURL.IO.SQLITE-LIBRARY}, but you should never import this directly.
+    }
+}
+
+{import * from CURL.LANGUAGE.SOURCE}
+
+||  {import-hidden ThreadExit
+||   from CURL.RUNTIME.PROCESS
+||  }
+||  {import-hidden critical-try
+||   from CURL.LANGUAGE.COMPILER
+||  }
+  {define-proc package {define-dll-class-impl r:CurlSource}:CurlSource
+      {return r}
+  }
+  {import CURL.LANGUAGE.DLL-INTERFACE}
+||  {import-hidden define-dll-class-impl, dll-method-impl
+||   from CURL.LANGUAGE.DLL-INTERFACE-LOW
+||  }
+||  {import DLLInterface from CURL.LANGUAGE.DLL-INTERFACE-LOW}
+
+||{define-macro public {dll-method ?rest:tokens}
+||    {return {dll-method-impl rest}}
+||}
+
+|| Used for all callback/hooks/handlers to defer exceptions until later.
+{define-class package final SQLiteDelayedExceptionEvent
+  {inherits Event, BasicEventTarget}
+
+  field private constant exception:Object
+  
+  {constructor package {default ex:Object}
+    set self.exception = ex
+  }                           
+  
+  || See BasicEventTarget.
+  {method public final {verify-event event:Event}:void
+    {assert event == self}
+  }
+
+  || See BasicEventTarget.
+  {method public final {handle-event event:Event}:void
+    {self.verify-event event}
+    || Do this to let us not say what type of data self.execption
+    || is.  If it is an Object then throw doesn't like it.  And
+    || BasicThrowable isn't visable when not built-in.
+    || Yes that is throw-up that you taste in your mouth.
+    {with-compiler-directives allow-implicit-any-casts? = true do
+        {throw (self.exception asa any)}
+    }
+  }
+}
+
+{define-proc package {enqueue-delayed-exception ex:Object}:void
+    def event = {SQLiteDelayedExceptionEvent ex}
+    {event.enqueue-event event, position = EventQueuePosition.head}
+}
+
+{define-macro
+    public
+||    hidden
+    {with-defered-exceptions
+        ?body:statements
+    }
+
+    {return
+        {if macro-env.meta-data.jit-compiled? then
+            {expand-template
+                {try
+                    ?body
+                 catch t:Exception do
+                    {enqueue-delayed-exception t}
+                }
+            }
+         else
+            {expand-template
+                {critical-try
+                    ?body
+                 catch t:ThreadExit do
+                    {enqueue-delayed-exception t}
+                 catch t:Exception do
+                    {enqueue-delayed-exception t}
+                }
+            }
+        }
+    }
+}
+{define-macro public {if-built-in
+                         ?body:statements
+                         ?else-and-body:{optional else ?:statements}
+                     }
+
+    {return
+        {if not macro-env.meta-data.jit-compiled? then
+            {expand-template
+                ?body
+            }
+         else
+            {syntax-switch else-and-body
+             case {pattern else ?else-body:statements} do
+                {expand-template
+                    ?else-body
+                }
+             else
+                {EmptySource}
+            }
+        }
+    }
+}
+{define-macro
+    public
+||    hidden
+    {define-dll-class ?rest:tokens}
+    {return
+        {if not macro-env.meta-data.jit-compiled? then
+            {define-dll-class-impl rest}
+         else
+            {expand-template {CURL.LANGUAGE.DLL-INTERFACE.define-dll-class ?rest}}
+        }
+    }
+}

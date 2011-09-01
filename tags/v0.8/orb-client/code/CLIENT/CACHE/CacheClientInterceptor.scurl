@@ -1,0 +1,98 @@
+||| Copyright (C) 1998-2010, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+|| since 0.8
+
+{import HttpResponseHeaders from CURL.IO.HTTP}
+
+|| CacheClientInterceptor
+{define-class public final {CacheClientInterceptor-of t:ClassType}
+  {inherits ClientInterceptor}
+  
+  field private cache:Cache
+  field private request-interceptor:{proc-type {Cache, Method, #FastArray}:(bool, any)}
+  field private response-handler:{proc-type {Cache, Method, #FastArray, any}:void}
+  
+  || override
+  {method protected open {handle-stop-request
+                             method-name:Method,
+                             arguments:#FastArray
+                         }:(stop-request?:bool, return-val:any)
+    def (stop-request?, return-val) = 
+        {self.request-interceptor self.cache, method-name, arguments}
+    {if stop-request? then
+        {return stop-request?, return-val}
+    }
+    {return {super.handle-stop-request method-name, arguments}}
+  }
+  
+  || override
+  {method protected open {handle-after-response 
+                             http-response-headers:#HttpResponseHeaders,
+                             orb-response-hearders:#HashTable,
+                             method:Method,
+                             arguments:#FastArray,
+                             return-value:any
+                         }:(http-response-headers:#HttpResponseHeaders, orb-response-hearders:#HashTable)
+    {self.response-handler self.cache, method, arguments, return-value}
+    {return 
+        {super.handle-after-response
+            http-response-headers, orb-response-hearders, method, arguments, return-value
+        }
+    }
+  }
+  
+  || constructor
+  {constructor public {default
+                          cache-name:String,
+                          request-interceptor:{proc-type 
+                                                  {cache:Cache, method:Method, arguments:#FastArray
+                                                  }:(use-cache?:bool, return-val:any)
+                                              },
+                          response-handler:{proc-type
+                                               {cache:Cache, method:Method, arguments:#FastArray, return-val:any
+                                               }:void
+                                           },
+                          cache-spec:#CacheSpec = null,
+                          ...:ClassType || intercepted target classes instead of client-filter proc ....
+                      }
+      {assert {(t asa ClassType).subtype-of? Cache}}  
+      set self.cache = 
+          {{CacheManager.get-instance}.create-cache
+              t, cache-name, cache-spec
+          }
+      set self.request-interceptor = request-interceptor
+      set self.response-handler = response-handler
+      def class-types = {{Array-of ClassType} {splice ...}}
+      def argument-size = {count-arguments ...}
+      {construct-super client-filter =  
+          {proc {client:AbstractClient}:bool
+              || NOTE: no argument means registration for all classes 
+              {if argument-size == 0 then
+                  {return true}
+              }
+              {for ct in class-types do
+                  {if client isa ct then
+                      {return true}
+                  }
+              }
+              {return false}
+          }
+      }
+  }
+}

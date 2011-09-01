@@ -1,0 +1,154 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author ucai.zhang
+|||
+
+{import * from TESTS1}
+{import * from TESTS4}
+
+{import * from COM.CURL.ORB}
+
+{include "resources/support-performance.scurl"}
+
+|||
+||| This test case is to test performance
+|||
+{let nums:{Array-of int} =
+    {{Array-of int} 1000, 5000, 10000, 30000, 50000, 100000}}
+
+{TestSuite "performance case",
+    
+    ||
+    || DI client
+    || 
+    {test-case "sync DI",
+        {output "--- sync DI ---"}
+        {for num in nums do
+            {for v in HowSize do
+                {if v == HowSize.big and num >= 50000 then
+                    {continue}
+                }
+                let time:Time =
+                    {do-sync-test-di num, (num / 1000 * 1s), how-size = v}
+                {dump num, v, time}
+                
+            }
+        }
+    },
+
+    {test-case "async DI",
+        {output "--- async DI ---"}
+        {for num in nums do
+            {for v in HowSize do
+                {if v == HowSize.big and num >= 50000 then
+                    {continue}
+                }
+                let time:Time =
+                    {do-async-test-di num, (num / 1000 * 1s), how-size = v}
+                {dump num, v, time}
+            }
+        }
+    },
+
+    ||
+    || HttpSession
+    ||
+    {test-case "sync HttpSession",
+        {output "--- sync DI ---"}
+        {for num in nums do
+            {for v in HowSize do
+                {if v == HowSize.big and num >= 50000 then
+                    {continue}
+                }
+                let time:Time =
+                    {do-sync-test-hs num, (num / 1000 * 1s), how-size = v}
+                {dump num, v, time}
+                
+            }
+        }
+    },
+
+    {test-case "async HttpSession",
+        {output "--- async HttpSession ---"}
+        {for num in nums do
+            {for v in HowSize do
+                {if v == HowSize.big and num >= 50000 then
+                    {continue}
+                }
+                let time:Time =
+                    {do-async-test-hs num, (num / 1000 * 1s), how-size = v}
+                {dump num, v, time}
+            }
+        }
+    },
+
+    
+    ||
+    || RecordSet
+    ||
+    {test-case "sync record set",
+        let count:int = 50000
+        let foo:TESTS1.Foo = {TESTS1.Foo}
+        let sw:StopWatch = {StopWatch}
+        {sw.start}
+        let rs:SerializableRecordSet =
+            {non-null {foo.create-record-set-to-test-large-data count}}
+        {sw.stop}
+        {TestCondition.assert rs.size == count}
+        {TestCondition.assert {sw.elapsed} < 10s}
+    },
+
+    {test-case "async record set",
+        let count:int = 50000
+        let done?:bool
+        let result:int
+        let sw:StopWatch = {StopWatch}
+        let elapsed-time:Time
+        let foo:TESTS1.Foo = {TESTS1.Foo}
+        {sw.start}
+        let worker:AsyncWorker =
+            {foo.async-create-record-set-to-test-large-data
+                count,
+                {on e:AsyncCallbackEvent do
+                    {sw.stop} || HACK! It's correct time to fire event?
+                    {if-non-null ex = e.exception then
+                        {TestCondition.fail}
+                     else
+                        set elapsed-time = {sw.elapsed}
+                        set result =
+                            {non-null e.obj asa #SerializableRecordSet}.size
+                    }
+                    set done? = true
+                }
+            }
+        {while not done? do
+            {dispatch-events true}
+        }
+        {TestCondition.assert worker.done?}
+        {TestCondition.assert count == result}
+        {TestCondition.assert elapsed-time < 10s}
+    },
+    
+    ||
+    || Basher tests
+    ||
+    {test-case "async basher DI",
+        {output "--- basher ---"}
+        {for i = 0 below 10 do
+            {dump {do-async-test-di 1000, 1s, how-size = HowSize.big}}
+        }
+    }
+}

@@ -1,0 +1,14 @@
+
+{define-class public serializable StringDto 
+ 
+  {constructor public {default data:#String}   
+    set self.data = data
+  }
+||--  {constructor public {default}}
+||--  {factory public {from-str str:#String}:StringDto
+||--    def s = {StringDto}
+||--    set s.data = str
+||--    {return s}
+||--  }
+  field public data:#String 
+}

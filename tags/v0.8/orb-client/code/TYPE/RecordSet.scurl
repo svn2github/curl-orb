@@ -1,0 +1,287 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada, Ucai Zhang
+|||
+
+{import * from CURL.IO.SERIALIZE}
+{import * from CURL.DATA-ACCESS.BASE}
+
+||
+|| SerializableRecordField
+||
+{define-class public serializable SerializableRecordField
+  {inherits RecordField}
+
+  field private _name:String
+  field private _caption:String 
+  field private _domain:Type || instead of _domain:Domain
+  field private _modifiable?:bool
+  field private _nullable?:bool
+  field private _default-value:any
+  field private _index-type:int || instead of _index-type:RecordFieldIndexType
+
+  || override
+  {getter public open {name}:String
+    {return self._name}
+  }
+  {getter public open {caption}:String
+    {return self._caption}
+  }
+  {getter public open {domain}:Domain
+    {return
+        {switch self._domain
+         case Date do
+            {DateDomain}
+         case CDate do
+            {CDateDomain}
+         case CTime do
+            {CTimeDomain}
+         case CTimestamp do
+            {CTimestampDomain}
+         case BigInteger do
+            {BigIntegerDomain}
+         case BigDecimal do
+            {BigDecimalDomain}
+         case Blob do
+            {BlobDomain}
+         case Clob do
+            {ClobDomain}
+         case int8 do
+            {Int8Domain}
+         case int16 do
+            {Int16Domain}
+         else
+            {Domain.from-type self._domain}
+        }
+    }
+  }
+  {getter public open {modifiable?}:bool
+    {return self._modifiable?}
+  }
+  {getter public open {nullable?}:bool
+    {return self._nullable?}
+  }
+  {getter public open {default-value}:any
+    {return self._default-value}
+  }
+  {getter public open {index-type}:RecordFieldIndexType
+    {return
+        {switch self._index-type
+         case 0 do RecordFieldIndexType.unique
+         case 1 do RecordFieldIndexType.multiple
+         else RecordFieldIndexType.none
+        }
+    }
+  }
+  
+  || constructor
+  {constructor public {default 
+                          name:String,
+                          caption:String = name,
+                          domain:Domain = {Domain.from-type any},
+                          modifiable?:bool = true,
+                          nullable?:bool = false,
+                          default-value:any = {if nullable? then null else domain.default-value},
+                          index-type:RecordFieldIndexType = RecordFieldIndexType.none
+                      }
+    set self._name = name
+    set self._caption = caption
+    set self._domain = domain.type
+    set self._modifiable? = modifiable?
+    set self._nullable? = nullable?
+    set self._default-value = default-value
+    set self._index-type =
+        {switch index-type
+         case RecordFieldIndexType.unique do 0
+         case RecordFieldIndexType.multiple do 1
+         else 2
+        }
+  }
+
+  || constructor (deserialize)
+  {define-serialization class-version = 0}
+  {constructor public {object-deserialize in:SerializeInputStream}
+    def class-version = {in.read-class-version}
+    set self._name = {deserialize in, String}
+    set self._caption = {deserialize in, String}
+    set self._domain = {deserialize in, Type}
+    set self._modifiable? = {deserialize in, bool}
+    set self._nullable? = {deserialize in, bool}
+    set self._default-value = {deserialize in, any}
+    set self._index-type = {deserialize in, int}
+  }
+
+  || serialize (not need)
+||--  {method public open {object-serialize out:SerializeOutputStream}:void }
+}
+
+{doc-next {purpose This is the serializable {docref RecordData}.}}
+{define-class public serializable SerializableRecordData
+  {inherits DefaultRecordData}
+
+  {constructor public {default ...}
+    {construct-super ...}
+  }
+
+  || constructor (deserialize)
+  {define-serialization class-version = 0}
+  {constructor public {object-deserialize in:SerializeInputStream}
+    {in.read-class-version}
+    def data = {deserialize in, {HashTable-of any, any}}
+    def key-iterator = {data.keys-to-Iterator}
+    {construct-super}    
+    {for item in key-iterator do
+        {self.set item, {data.get item}}
+    }
+  }
+
+  || serialize
+  {method public open {object-serialize out:SerializeOutputStream}:void
+    def data = {HashTable} || {{HashTable-of String, any}}
+    def key-iterator = {self.keys-to-Iterator}
+    {for item in key-iterator do
+        {data.set item, {self.get item}}
+    }
+    {out.write-class-version 0}
+    {out.write-one data}
+  }
+}
+
+||
+|| SerializableRecordSet
+||
+{define-class public serializable SerializableRecordSet 
+  {inherits BasicRecordSet} 
+
+  field private _load-state:RecordSetLoadState = RecordSetLoadState.unloaded
+  {getter public {load-state}:RecordSetLoadState 
+    {return self._load-state}
+  }
+  
+  || constructor
+  {constructor public {default 
+                          fields:RecordFields,
+                          modifiable?:bool = true,
+                          ...:EventHandler
+                      }
+    
+    {construct-super fields, modifiable? = modifiable?, {splice ...}}
+  }
+
+  || constructor (deserialize)
+  {define-serialization class-version = 0}
+  {constructor public {object-deserialize in:SerializeInputStream}
+
+    def class-version = {in.read-class-version}
+    || new instance with fields
+    def record-fields = {{Array-of SerializableRecordField}}
+    {for record-field in {deserialize in, {FastArray-of #SerializableRecordField}} do
+        {if-non-null rf = record-field then 
+            {record-fields.append rf}
+        }
+    }
+    {construct-super {RecordFields {splice record-fields}}}
+
+    || append records
+    def records = {deserialize in, Array}
+    {for r in records do
+        {self.append r}
+    }
+    {self.commit}
+  }
+
+  || serialize
+  {method public open {object-serialize out:SerializeOutputStream}:void
+    {out.write-class-version 0}
+    def fields = self.fields
+    def field-size = fields.size
+    ||if the field is RecordFiled, then covert it to SerializableRecordField
+    def field-array = {{Array-of #SerializableRecordField}}    
+    {if-non-null fields then
+        {for item in fields do
+            def def-value =
+                {if {proc? item.default-value} then
+                    {item.default-value item, self}
+                 else
+                    item.default-value
+                }
+            def rf =
+                {SerializableRecordField
+                    item.name,
+                    caption = item.name,
+                    domain = item.domain,
+                    modifiable? = item.modifiable?,
+                    nullable? = item.nullable?,
+                    default-value = def-value
+                }
+            {field-array.append rf}
+        }
+    }
+    {out.write-one {{FastArray-of #SerializableRecordField} {splice field-array}}}
+    ||modified by ucai.zhang 2009-05-26
+    ||Becuase of java side ignoring the detail element type in Array-of ,
+    ||But curl side can detect the elements
+    ||def results = {{Array-of SerializableRecordData}}
+    def results = {Array}
+    ||modified end
+    {for r in self do
+        def record = {SerializableRecordData}
+        {for f in r.record-set.fields do
+            def name = f.name
+            {record.set name, r[name]}
+        }
+        {results.append record}
+    }
+    {out.write-one results}
+  }
+
+  || @Override
+  {method public open {load}:void
+    || do nothing
+  }
+
+  || insert records
+  ||  (args: {Array-of {FastArray-of any}} or {Array-of SerializableRecordData})
+  {method public open {insert-records records:Array}:void
+    set self._load-state = RecordSetLoadState.synchronizing
+    {for record in records do
+        {self.insert-record record}
+    }
+    {self.trigger-record-set-event {RecordsBulkChanges}}
+    set self._load-state = RecordSetLoadState.complete
+  }
+
+  || insert record
+  {method private {insert-record record:any}:void
+    def record-data =
+            {if record isa FastArray then
+                {SerializableRecordData}
+             elseif record isa SerializableRecordData then
+                record
+             else
+                {unreachable}
+            }
+    {if record isa FastArray then
+        {for i = 0 below record.size do
+            def f = {self.fields.get-by-index i}
+            set record-data[f.name] = record[i]
+        }
+    }
+    def allocated-record = {self.allocate-record}
+    {allocated-record.internal-set-record-data record-data, for-init? = true}
+    {self.internal-store-record allocated-record, RecordState.appended}
+  }
+}

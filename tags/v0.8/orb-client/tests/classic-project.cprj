@@ -1,0 +1,36 @@
+|| **********************************************************
+|| *** THIS FILE IS AUTOMATICALLY UPDATED BY THE CURL IDE ***
+|| ***              DO NOT MODIFY IT BY HAND              ***
+|| **********************************************************
+{project
+    version = 2,
+    manifest-location = "manifest.mcurl",
+    api-version = "7.0",
+    compiler-directives = "careful? = true",
+    use-style-sheets? = true,
+    project-look-and-feel = "default-style-sheet",
+    style-package-name = "",
+    style-sheet-name = "",
+    {target
+        name = "deploy",
+        target-url-name = "deploy-default",
+        certificate = "",
+        delegate-to-location = "..",
+        {package-transform "TESTS5\u0000package\u0000TESTS5/load.scurl", copy? = true},
+        {resource-transform "test-cases\u0000directory\u0000test-cases", copy? = true},
+        {resource-transform "cache-database\u0000file\u0000resources/database/orb-cache.db", copy? = true},
+        {resource-transform "tests-v8.curl\u0000file\u0000tests-v8.curl", copy? = true},
+        {package-transform "TESTS6\u0000package\u0000TESTS6/load.scurl", copy? = true},
+        {package-transform "TESTS2\u0000package\u0000TESTS2/load.scurl", copy? = true},
+        {resource-transform "test-list.scurl\u0000file\u0000test-list.scurl", copy? = true},
+        {assembly-transform "COM.CURL.CDU", action = "use-specified-location", relocate-path = "COM.CURL.CDU/manifest.mcurl"},
+        {package-transform "TESTS3\u0000package\u0000TESTS3/load.scurl", copy? = true},
+        {resource-transform "tests-v7.curl\u0000file\u0000tests-v7.curl", copy? = true},
+        {assembly-transform "COM.CURL.ORB", action = "use-specified-location", relocate-path = "../code/manifest.mcurl"},
+        {resource-transform "tests-v6.curl\u0000file\u0000tests-v6.curl", copy? = true},
+        {package-transform "TESTS4\u0000package\u0000TESTS4/load.scurl", copy? = true},
+        {package-transform "TESTS1\u0000package\u0000TESTS1/load.scurl", copy? = true},
+        {resource-transform "classic-project.cprj\u0000file\u0000classic-project.cprj", copy? = true},
+        {resource-transform "project.cprj\u0000file\u0000project.cprj", copy? = true}
+    }
+}

@@ -1,0 +1,371 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+{import * from TESTS1}
+{import * from TESTS2}
+{import * from TESTS3}
+{import * from TESTS6}
+
+{import * from CURL.DATA-ACCESS.BASE}
+{import * from COM.CURL.ORB}
+
+|||
+||| This test case is to check the behavior of basic functionalities. 
+|||
+{TestSuite "basic cases",
+    
+    ||
+    || new instance and destroy
+    ||
+    {test-case "new and destroy instances",
+        {{HogeImpl2}.destroy-instance}
+    },
+    
+    {test-case "new, destroy and access instances",
+        let constant hoge:HogeImpl2 = {HogeImpl2}
+        {hoge.destroy-instance}
+        {require-exception ORBServerException do
+            {hoge.get-hoge-name}
+        }
+    },
+    
+    {test-case "new, destroy instances and kill session",
+        let hoge1:HogeImpl2 = {HogeImpl2}
+        {TestCondition.assert {get-jsessionid-in-cookies} != null}
+        {hoge1.destroy-instance |#kill-session? = true#|}
+        {TestCondition.assert {get-jsessionid-in-cookies} != null}
+        
+        let hoge2:HogeImpl2 = {HogeImpl2}
+        {TestCondition.assert {get-jsessionid-in-cookies} != null}
+        {hoge2.destroy-instance kill-session? = true}
+        {TestCondition.assert {get-jsessionid-in-cookies} == null}
+        
+        let hoge3:HogeImpl2 = {HogeImpl2}
+        {TestCondition.assert {get-jsessionid-in-cookies} != null}
+        {hoge3.destroy-instance kill-session? = true}
+        {TestCondition.assert {get-jsessionid-in-cookies} == null}
+    },
+
+    ||
+    || invoke methods
+    ||
+    {test-case "invoke methods (HttpSession)",
+        let hoge:HogeImpl2 = {HogeImpl2}
+        {TestCondition.assert {hoge.get-hoge-name} == "hoge hoge hoge."}
+        {hoge.destroy-instance}
+    },
+
+    {test-case "invoke methods (DI)",
+        || ApplicationContext(spring2)
+        let foo:Foo = {Foo}
+        {foo.set-field-name "client1"}
+        {TestCondition.assert {foo.get-field-name} == "client1"}
+        {foo.set-field-name "client2"}
+        {TestCondition.assert {foo.get-field-name} == "client2"}
+        
+        || AOP (TODO: To do the generation test)
+        let aop:AopService = {AopService}
+        {TestCondition.assert {aop.echo "hoge"} == "hoge"}
+    },
+
+    || low level functionalites
+    {test-case "invoke methods using low level ones",
+        let orb1:HttpSessionClient = {HttpSessionClient "tests1.Foo"}
+        {TestCondition.assert
+            {orb1.invoke
+                "echo",
+                arguments = {{FastArray-of any} "orb-test1"}
+            } == "orb-test1"}
+        {TestCondition.assert
+            {orb1.invoke
+                "echo",
+                arguments = {{FastArray-of any} "orb-test2"}
+            } == "orb-test2"}
+        {require-exception ORBClientException do
+            {orb1.invoke "echo", arguments = {{FastArray-of any} null}}
+        }
+        {orb1.destroy-instance}
+
+        let orb2:ApplicationContextClient = {ApplicationContextClient "foo1"}
+        {TestCondition.assert
+            {orb2.invoke
+                "echo",
+                arguments = {{FastArray-of any} "orb-test1"}
+            } == "orb-test1"}
+        {TestCondition.assert
+            {orb2.invoke
+                "echo",
+                arguments = {{FastArray-of any} "orb-test2"}
+            } == "orb-test2"}
+    },
+    
+    {test-case "invoke methods with user defined class",
+        || phone class
+        let hoge:HogeImpl = {HogeImpl}
+        let phone:Phone = {Phone}
+        set phone.name = "phone-phone"
+        set phone.number = "000-1111-2222"
+        {hoge.set-phone phone}
+        {TestCondition.assert {hoge.get-phone}.name == "phone-phone"} 
+        {TestCondition.assert {hoge.get-phone}.number == "000-1111-2222"} 
+
+        || person class
+        let foo:Foo = {Foo}
+        let person:#Person = {foo.get-person}
+        {TestCondition.assert person.name == "amori"}
+        {TestCondition.assert person.phone-numbers[0].name == "home-phone"}
+
+        || The class wrapped the primitive type and class
+        let tester:WrapperClassTester = {WrapperClassTester}
+        let dto:#Dto = {tester.download-dto}
+        set dto.i = 1
+        set dto.ii = 10
+        set dto.l = 2
+        set dto.ll = 20
+        set dto.d = 1.1
+        set dto.dd = 10.1
+        set dto.s = 3
+        set dto.ss = 30
+        set dto.c = 'c'
+        set dto.cc = 'C'
+        set dto.z = true
+        set dto.zz = false
+        {tester.upload-dto {non-null dto}} || returns back 
+    },
+
+    {test-case "invoke methods of super class",
+        let foo:Foo = {Foo}
+        || The following methods for super class
+        {TestCondition.assert {foo.super-method} == "super"}
+        {TestCondition.assert {foo.supersuper-method} == "super-super"}
+    },
+
+    {test-case "invoke method of interfaces",
+        || Piyo is an interface
+        let piyo:Piyo = {Piyo}
+        {TestCondition.assert
+            {piyo.interface-method2} == "run interfaceMethod2"
+        }
+    },
+
+    {test-case "invoke methods to get RecordSet",
+        let foo:Foo = {Foo}
+        || RecordSet
+        let rs1:SerializableRecordSet =
+            {non-null {foo.create-record-set}}
+        {TestCondition.assert rs1.size == 4}
+
+        || echo RecordSet
+        let rs3:#SerializableRecordSet =
+            {foo.echo-record-set {non-null rs1}}
+        {TestCondition.assert rs1.size == rs3.size}
+    },
+
+    {test-case "invoke static methods",
+        let hoge:HogeImpl = {HogeImpl}
+        || static and non-static
+        {TestCondition.assert {HogeImpl.get-bar-bar} == 210}
+        {TestCondition.assert {hoge.new-person}.name == "hoge!!"}
+    },
+
+    {test-case "invoke methods to get inherited class",
+        let foo:Foo = {Foo}
+        || inherits 
+        let akira:#PersonAkira = {foo.get-person-akira "akira", "golf"}
+        {TestCondition.assert akira.name == "akira" and akira.hobby == "golf"}
+
+        || inherits annotation (RemoteService's @Inherited bug)
+        let fuga:InheritedFugaImpl = {InheritedFugaImpl}
+        {TestCondition.assert {fuga.method1} == "implements interface"}
+    },
+    
+    {test-case "invoke methods to get class in other packages",
+        || tests2(another packages) + HttpSession
+        let foo2:Foo2 = {Foo2}
+        {TestCondition.assert
+            {foo2.get-person}.name == "tests2"
+        }
+        let hoge2:HogeImpl2 = {HogeImpl2}
+        {TestCondition.assert
+            {hoge2.get-hoge-name} == "hoge hoge hoge."
+        }
+        let hitoshi:#PersonHitoshi = {foo2.get-person-hitoshi}
+        {TestCondition.assert
+            hitoshi.name == "hitoshi" and hitoshi.hobby == "hitoshi-hobby"
+        }
+    },
+
+    {test-case "invoke methods with remote object",
+        || RemoteObject is to hand object on HttpSession to arguments. 
+        let remote-callee:RemoteObjectCallee =
+            {RemoteObjectCallee "status1"}
+        let remote-caller:RemoteObjectCaller =
+            {RemoteObjectCaller remote-callee}
+        {TestCondition.assert {remote-caller.get-status} == "status1"}
+        {remote-caller.set-remote-object-callee2
+            "name1", {RemoteObjectCallee "status2"}, 100
+        }
+        {TestCondition.assert {remote-caller.get-status} == "status2"}
+        {TestCondition.assert {remote-caller.get-name} == "name1"}
+        {TestCondition.assert {remote-caller.get-id} == 100}
+
+        || two RemoteObjects
+        {remote-caller.set-remote-object-callee3
+            {RemoteObjectCallee "status3"}, {RemoteObjectCallee "status4"}
+        }
+        {if-non-null statuses = {remote-caller.get-all-status} then
+            {TestCondition.assert statuses[0] == "status3"}
+            {TestCondition.assert statuses[1] == "status4"}
+         else
+            {TestCondition.fail}
+        }
+        || NOTE: not support RemoteObject array for now.
+    },
+
+    {test-case "nested dto",
+        def nest:NestTester = {NestTester}
+        def nest-dto = {nest.get}
+        def gcs = nest-dto.child-dto.grand-childs
+        {TestCondition.assert gcs[0].str == "grand-child-1"}
+        {TestCondition.assert gcs[1].str == "grand-child-2"}
+
+        set gcs[0].str = "grand-child-1-from-curl"
+        set gcs[1].str = "grand-child-2-from-curl"
+        {nest.set {non-null nest-dto}}
+    },
+
+    ||
+    || invoke method asynchronously
+    ||
+    {test-case "async invoke method (HttpSession)",
+        let done?:bool
+        let hoge:HogeImpl2 = {HogeImpl2}
+        let worker:AsyncWorker =
+            {hoge.async-get-hoge-name
+                {on e:AsyncCallbackEvent do
+                    {TestCondition.assert e.obj == "hoge hoge hoge."}
+                    set done? = true
+                }
+            }
+        {TestCondition.assert not worker.done?}
+        {while not done? do
+            {dispatch-events true}
+        }
+        {TestCondition.assert worker.done?}
+        {hoge.destroy-instance}
+    },
+
+    {test-case "async invoke method (DI)",
+        let done?:bool
+        let foo:Foo = {Foo}
+        let worker:AsyncWorker =
+            {foo.async-sleeping
+                1500, || 1.5s
+                {on e:AsyncCallbackEvent do
+                    {if-non-null ex = e.exception then
+                        {TestCondition.fail message = ex.message}
+                    }
+                    set done? = true
+                }
+            }
+        {TestCondition.assert not worker.done?}
+        {while not done? do
+            {dispatch-events true}
+        }
+        {TestCondition.assert worker.done?}
+    },
+
+    || large data (not quite large)
+    {test-case "async large data",
+        let done?:bool
+        let foo:Foo = {Foo}
+        let worker:AsyncWorker =
+            {foo.async-create-record-set-to-test-large-data
+                10000,
+                {on e:AsyncCallbackEvent do
+                    {if-non-null ex = e.exception then
+                        {TestCondition.fail message = ex.message}
+                    }
+                    set done? = true
+                }
+            }
+        {while not done? do
+            {dispatch-events true}
+        }
+        {TestCondition.assert worker.done?}
+    },
+
+    || some requests
+    {test-case "async some requests",
+        let done?:bool
+        let foo:Foo = {Foo}
+        let workers:{Array-of AsyncWorker} = {{Array-of AsyncWorker}}
+        || async (a lot of requests for performace check)
+        let roop-count:int = 20
+        {for i:int = 0 below roop-count do
+            {workers.append
+                {foo.async-create-record-set-to-test-large-data
+                    100,
+                    {on e:AsyncCallbackEvent do
+                        {if-non-null ex = e.exception then
+                            {TestCondition.fail}
+                         else
+                            {TestCondition.assert
+                                {non-null e.obj asa #RecordSet}.size == 100
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        || waiting for async tests.
+        let p-worker-done? =
+            {proc {}:bool
+                {for w in workers do
+                    {if not w.done? then
+                        {return false}
+                    }
+                }
+                {return true}
+            }
+        {while not {p-worker-done?} do
+            {dispatch-events true}
+        }
+    },
+
+    ||
+    || surrogate pair
+    ||
+    {test-case "surrogate pair",
+        let surrogate-str1:String = "\U0002000B"
+        let surrogate-str2:String = "\U0002A6B2"
+        let st-str:String = surrogate-str1 & "A" & surrogate-str2 & "あ"
+        let foo:Foo = {Foo}
+        {TestCondition.assert {foo.check-surrogate st-str} == st-str}
+    },
+    
+    ||
+    || Japanese
+    ||
+    {test-case "japanese text",
+        let foo:Foo = {Foo}
+        let s:#String = {foo.echo "岡田一志(Hitoshi Okada)で～す。"}
+        {TestCondition.assert s == "岡田一志(Hitoshi Okada)で～す。"}
+    }
+}

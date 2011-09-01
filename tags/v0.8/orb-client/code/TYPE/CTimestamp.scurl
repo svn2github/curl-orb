@@ -1,0 +1,487 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Ucai zhang
+|||
+
+||
+|| Timestamp
+||
+{doc-next
+    {purpose
+        CTimestamp Class ,correspond to the type java.sql.Timestamp in Java.    
+    }
+    {details
+        Notice:Because of the utc-offset-minutes ,the contructor
+        from-year-month-day can not be called by outer.     
+    }
+    {notes
+        The detail,please see the Java API Document.
+    }
+}
+{define-class public serializable CTimestamp {inherits Date}
+
+  {doc-next
+    {purpose
+        a int value,it is the nanos second whose value should be between
+        0 with 999999999
+    }    
+  }
+  || nano second
+  field private _nanos:int
+
+  {doc-next
+    {purpose
+        Constructs this object.    
+    }
+    {parameter millsec,
+        int64.the millisecond value for this constructor
+    }
+  }
+  {constructor public {default millsec:int64}    
+    set super.time = (millsec div 1000) * 1000
+    set self._nanos = ((millsec rem 1000) * 1000000) asa int
+    {if self._nanos < 0 then
+        set self._nanos = 1000000000 + self.nanos
+        set super.time = ((millsec div 1000) - 1) * 1000
+    }
+  }
+
+  {doc-next
+    {purpose
+        Constructs this object.
+    }
+    {parameter year,
+        int value which express the year you want.
+    }
+    {parameter month,
+        int value which express the minute you want.        
+    }
+    {parameter date ,
+        int value which express the day you want.     
+    }
+    {parameter hrs,
+        int value which express the hour you want.
+    }
+    {parameter min,
+        int value which express the minute you want.        
+    }
+    {parameter sec ,
+        int value which express the second you want.     
+    }
+    {parameter nano ,
+        int value which express the nano you want.     
+    }
+  }
+  {constructor package {from-argument year:int, month:int, date:int, hrs:int, min:int, sec:int, nano:int}
+    {construct-super.from-argument year, month, date, hrs, min, sec}
+    set self.nanos =  nano
+  }
+
+  {doc-next
+    {purpose
+        It is a public setter.
+        set the given millisecond value to the current time value.
+    }
+    {parameter millsec,
+        int64.the millisecond value for this object
+    }
+  }
+  {setter public open {time millsec:int64}:void
+    set super.time = (millsec div 1000) * 1000
+    set self._nanos = ((millsec rem 1000) * 1000000) asa int
+    {if self._nanos > 0 then
+        set self._nanos = 1000000000 + self.nanos
+        set super.time = ((millsec div 1000) - 1) * 1000
+    }   
+  }
+
+  {doc-next
+    {purpose
+        It is a public getter.
+        It will return the current object's millisecond value .
+    }
+    {return-vals int64,
+        Returning value of the current object's millisecond value.
+    }
+  }
+  {getter public open {time}:int64
+    {return (super.time + (self.nanos div 1000000))}
+  }
+
+  {doc-next
+    {purpose
+        It is a public getter.
+        It will return the current object's nanos value .
+    }
+    {return-vals int,
+        Returning value of the current object's nanos value.
+    }
+  }
+  || see getNanos/setNanos in javadoc
+  {getter public open {nanos}:int
+    {return self._nanos}
+  }
+  
+  {doc-next
+    {purpose
+        It is a public setter.
+        It will set the given value to the current object's nanos value .
+    }
+    {parameter nanos ,
+        int value which express the nanos you want.     
+    }
+  }
+  {setter public open {nanos nanos:int}:void
+    {if nanos > 999999999 or  nanos < 0 then
+        {error "nanos > 999999999 or < 0"}
+    }
+    set self._nanos = nanos
+  }
+
+  {doc-next
+    {purpose
+        Indicates whether this Timestamp object is
+        later than the given Timestamp object.
+    }
+    {parameter ts,
+        the given Timestamp object
+    }
+    {return-vals bool,
+        true if this Timestamp object is later;
+        false otherwise
+    }
+  }
+  ||Indicates whether this Timestamp object is
+  ||later than the given Timestamp object.
+  ||true if this Timestamp object is later;
+  ||false otherwise
+  {method public open {after ts:CTimestamp}:bool
+    {return {self.compare ts} > 0}
+  }
+
+  {doc-next
+    {purpose
+        Indicates whether this Timestamp object is
+        earlier than the given Timestamp object.
+    }
+    {parameter ts,
+        the given Timestamp object
+    }
+    {return-vals bool.
+        true if this Timestamp object is earlier;
+        false otherwise
+    }
+  }
+  || see before in javadoc
+  {method public open {before ts:CTimestamp}:bool
+    {return {self.compare ts} < 0}
+  }
+
+  {doc-next
+    {purpose
+        Indicates whether this Timestamp object is
+        equal to the given Timestamp object.
+    }
+    {parameter ts,
+        the given Timestamp object
+    }
+    {return-vals bool.
+        true if this Timestamp object is equal to the current Timestamp object;
+        false otherwise
+    }
+  }
+  || see equals in javadoc
+  {method public open {equals ts:CTimestamp}:bool
+    {if self.time == ts.time then
+        {return self.nanos == ts.nanos}
+     else
+        {return false}
+    }
+  }
+
+  {doc-next
+    {purpose
+        Compare the current object with the given Timestamp object.
+    }
+    {parameter ts,
+        the given Timestamp object
+    }
+    {return-vals int.
+        1,if the current object is later;
+        0,if the two is equal;
+        -1,if the currrent object is ealier.
+    }
+  }
+  || see compareTo in javadoc
+  {method public open {compare ts:CTimestamp}:int
+    def compared-millsec = ts.time
+    def current-millsec = self.time
+    let i = {if current-millsec < compared-millsec then
+                -1
+             else
+                {if current-millsec == compared-millsec then
+                    0
+                 else
+                    1
+                }
+
+            }
+    {if i == 0 then
+        {if self.nanos > ts.nanos then
+            {return 1}
+         elseif self.nanos < ts.nanos then
+            {return -1}
+        }
+    }
+    {return i}
+  }
+  
+  {doc-next
+    {purpose
+        Convert a given string to Timestamp object
+        Notice:When call the method,the utc-offset-minutes will not added to
+        Timestamp
+    }
+    {parameter s,
+        String value. s should be as yyyy-mm-dd hh:mm:ss.fffffffff format
+    }
+    {return-vals CTimestamp,
+        According to the given s,create a Timestamp object.
+    }
+  }
+  || s should be as yyyy-mm-dd hh:mm:ss.fffffffff format
+  {define-proc public inline {value-of s:String}:CTimestamp
+    let date_s:String = ""
+    let time_s:String = ""
+    let nanos_s:String = ""
+    let year:int
+    let month:int
+    let day:int
+    let hour:int
+    let minute:int
+    let second:int
+    let nanos:int = 0
+    let firstDash:int
+    let secondDash:int
+    let dividingSpace:int
+    let firstColon:int = 0
+    let secondColon:int = 0
+    let period:int = 0
+    let formatError:String = "Timestamp format must be yyyy-mm-dd hh:mm:ss.fffffffff"
+    let zeros:String = "000000000"
+    
+    set s = {s.trim-clone}
+    {if s.size == 0  then
+        {error "empty string"}
+    }
+
+    || Split the string into date and time components
+    set dividingSpace = {s.find ' '}
+    {if dividingSpace > 0 then
+        set date_s = {s.substr 0, dividingSpace}
+        set time_s = {s.substr dividingSpace + 1, s.size - dividingSpace - 1 }
+     else
+        {error formatError}
+    }
+
+    || Parse the date
+    set firstDash = {date_s.find '-'}
+    set secondDash = {date_s.find '-', starting-index = firstDash + 1}
+
+    ||Parse the time
+    {if time_s == "" then
+        {error formatError}
+    }
+    set firstColon = {time_s.find ':'}
+    set secondColon = {time_s.find ':', starting-index = firstColon + 1}
+    set period = {time_s.find '.', starting-index = secondColon + 1}
+    
+    ||Convert the date
+    {if ((firstDash > 0) and (secondDash > 0) and (secondDash < date_s.size - 1)) then
+        set year = {{date_s.substr 0, firstDash}.to-int}
+        set month = {{date_s.substr firstDash + 1, secondDash - firstDash - 1}.to-int}
+        set day = {{date_s.substr secondDash + 1, date_s.size - secondDash - 1}.to-int}
+     else
+        {error formatError}
+    }
+
+    ||Convert the time; default missing nanos
+    {if (firstColon > 0) and (secondColon > 0) and (secondColon < time_s.size - 1) then
+        set hour = {{time_s.substr 0, firstColon}.to-int}
+        set minute = {{time_s.substr firstColon + 1, secondColon}.to-int}
+        {if (period > 0) and (period < time_s.size - 1) then
+            set second = {{time_s.substr secondColon + 1, period - secondColon - 1}.to-int}
+            set nanos_s = {time_s.substr period + 1, time_s.size - period - 1}
+            {if nanos_s.size > 9 or not {digit? {nanos_s.get 0}, 10} then
+                {error formatError}
+            }
+            set nanos_s = nanos_s & {zeros.substr 0, 9 - nanos_s.size}
+            set nanos = {nanos_s.to-int}
+         elseif period > 0 then
+            {error formatError}
+         else
+            set  second = {{time_s.substr secondColon + 1, time_s.size - secondColon - 1 }.to-int}
+        }
+     else
+        {error "Error happened"}
+    }
+    {return {CTimestamp.from-argument year, month, day, hour, minute, second, nanos}}
+  }
+
+  {doc-next
+    {purpose
+        Convert the current object to a string format.     
+    }
+    {return-vals String,
+        String value of the current object.
+        Its format should be yyyy-mm-dd hh:mm:ss.fffffffff
+    }
+  }
+  ||To specify a timestamp for the class
+  ||Format Pattern                              Result
+  ||   * --------------                           ------
+  ||   * "yyyy.MM.dd G 'at' hh:mm:ss z"   -->     2002.07.10 AD at 15:08:56 PDT
+  || return yyyy-mm-dd hh:mm:ss.fffffffff format string
+  {method public open {to-String}:String
+    {return {self.to-SpecialDateTimeString {self.to-LocaleDateTime}}}
+  }
+
+  {doc-next
+    {purpose
+        Formats a date in the date escape format yyyy-mm-dd.
+    }
+    {details
+        Formats a date in the date escape format yyyy-mm-dd.
+        Notice:its usage is the same as to-String.But its value
+        is less than to-String by {DateTime}.info.utc-offset-minutes
+    }
+    {return-vals String,
+        String value.Returning a String in yyyy-mm-dd format
+    }
+  }
+  {method public open {to-String-for-GMT}:String
+    {return {self.to-SpecialDateTimeString {self.to-GMTDateTime}}}    
+  }
+  
+  {doc-next
+    {purpose
+        Formats a date using the special TimeZone DateTime
+        Notice:it is a private method
+    }
+    {parameter time,
+        the DateTime object which will be expressed by String
+    }
+    {return-vals String,
+        String value.Returning a String in yyyy-mm-dd format
+    }
+  }
+  {method private {to-SpecialDateTimeString time:DateTime}:String
+    def year = time.info.year
+    def month = time.info.month
+    def day = time.info.day
+    def hour = time.info.hour
+    def minute = time.info.minute
+    def second = time.info.second
+    let yearString:String = ""
+    let monthString:String = ""
+    let dayString:String = ""
+    let hourString:String = ""
+    let minuteString:String = ""
+    let secondString:String = ""
+    let nanosString:String = ""
+    let zeros:String = "000000000"
+    let yearZeros:String = "0000"
+    let timestampBuf:StringBuf = {StringBuf}
+
+    {if year < 1000 then
+        ||Add leading zeros
+        set yearString = ""&year
+        set yearString = {yearZeros.substr 0, (4 - yearString.size)} & yearString
+     else
+        set yearString  = ""&year
+    }
+
+    {if month < 10 then
+        set monthString = "0" & month
+     else
+        set monthString = month & ""
+    }
+
+    {if day < 10 then
+        set dayString = "0" & day
+     else
+        set dayString = day & ""
+    }
+
+    {if hour < 10 then
+        set hourString = "0" & hour
+     else
+        set hourString = hour & ""
+    }
+
+    {if minute < 10 then
+        set minuteString = "0" & minute
+     else
+        set minuteString = minute & ""
+    }
+
+    {if second < 10 then
+        set secondString = "0" & second
+     else
+        set secondString = second & ""
+    }
+
+    {if self.nanos == 0 then
+        set nanosString = "0"
+     else
+        set nanosString = ""&self.nanos
+        ||Add leading zeros
+        set nanosString = {zeros.substr 0, 9 - nanosString.size}&nanosString
+        ||Truncate trailing zeros
+        let nanosChars:{Array-of char} = {{Array-of char}}
+        {for c in nanosString do
+            {nanosChars.append c}           
+        }
+        let truncIndex:int = 8
+        {while nanosChars[truncIndex] == '0' do
+            {dec truncIndex}
+        }
+        set nanosString = ""
+        {for index = 0 to truncIndex do
+            set nanosString = nanosString & nanosChars[index]
+        }
+    }
+
+    ||do a string buffer here instead.
+    {timestampBuf.write-one-string yearString}
+    {timestampBuf.write-one-string "-"}
+    {timestampBuf.write-one-string monthString}
+    {timestampBuf.write-one-string "-"}
+    {timestampBuf.write-one-string dayString}
+    {timestampBuf.write-one-string " "}
+    {timestampBuf.write-one-string hourString}
+    {timestampBuf.write-one-string ":"}
+    {timestampBuf.write-one-string minuteString}
+    {timestampBuf.write-one-string ":"}
+    {timestampBuf.write-one-string secondString}
+    {timestampBuf.write-one-string "."}
+    {timestampBuf.write-one-string nanosString}
+
+    {return {timestampBuf.to-String}}
+  }
+}
+
+

@@ -1,0 +1,338 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+||
+|| for ORB type tests
+||
+
+{define-proc {assert-recorset rs:SerializableRecordSet}:bool
+    let recordset:SerializableRecordSet =
+        {SerializableRecordSet
+            {RecordFields
+                {RecordField "string",domain = String},
+                {RecordField "int",domain = int},
+                {RecordField "double",domain = double},
+                {RecordField "datetime",domain = DateTime},
+                {RecordField "timestamp",domain = {CTimestampDomain}},
+                {RecordField "bigint",domain = {BigIntegerDomain}},
+                {RecordField "bigdec",domain = {BigDecimalDomain}},
+                {RecordField "bool",domain = bool},
+                {RecordField "float",domain = float},
+                {RecordField "short",domain = {Int16Domain}},
+                {RecordField "long",domain = int64},
+                {RecordField "byte",domain = {Int8Domain}},
+                {RecordField "char",domain = char},
+                {RecordField "cdate",domain = {CDateDomain}},
+                {RecordField "date",domain = {DateDomain}},
+                {RecordField "blob",domain = {BlobDomain}},
+                {RecordField "clob",domain = {ClobDomain}},
+                {RecordField "time",domain = {CTimeDomain}}
+            }
+        }
+    {recordset.insert-records
+        {{Array-of any}
+            {{FastArray-of any} "hokada", 32, 10.1, {DateTime year = 2009,month = 11, day = 20, zone = DateTimeZone.utc}, {CTimestamp 0}, {BigInteger.from-int 100},{BigDecimal.from-int 23},true,12.3,123,222222222222,1,'c',{CDate 1238774400000},{Date.from-millsecond 1241452800000},{Blob {{Array-of uint8} 'a','b',1}},{Clob {{Array-of char} '-','r','%'}},{CTime 1238774400000}},
+            {{FastArray-of any} "amori", 27, 20000.01, {DateTime year = 2009,month = 11, day = 20}, {CTimestamp 0}, {BigInteger.from-int 200},{BigDecimal.from-int 23},true,12.3,123,222222222222,1,'c',{CDate 1238774400000},{Date.from-millsecond 1241452800000},{Blob {{Array-of uint8} 'a','b',1}},{Clob {{Array-of char} '-','r','%'}},{CTime 1238774400000}},
+            {{FastArray-of any} "tyamamoto", 30, 0.0001, {DateTime year = 2009,month = 11, day = 20}, {CTimestamp 0}, {BigInteger.from-int 300},{BigDecimal.from-int 23},true,12.3,123,222222222222,1,'c',{CDate 1238774400000},{Date.from-millsecond 1241452800000},{Blob {{Array-of uint8} 'a','b',1}},{Clob {{Array-of char} '-','r','%'}},{CTime 1238774400000}},
+            {{FastArray-of any} "foo", 20, 2.2, {DateTime year = 2009,month = 11, day = 20}, {CTimestamp 0}, {BigInteger.from-int 400},{BigDecimal.from-int 23},true,12.3,123,222222222222,1,'c',{CDate 1238774400000},{Date.from-millsecond 1241452800000},{Blob {{Array-of uint8} 'a','b',1}},{Clob {{Array-of char} '-','r','%'}},{CTime 1238774400000}}
+            
+        }
+    }
+    ||RecordFileds compared
+    {if rs.fields.size != recordset.fields.size then
+        {return false}
+    }
+    {try
+        {for item in recordset.fields do
+            let name:String = item.name
+            let new-item:any = {rs.fields.get name}
+            {if not {equal? item.caption,new-item.caption} or {type-of item.domain} != {type-of new-item.domain} then
+                {return false}
+            }
+        }
+     catch e:Exception do
+        {return false}
+    }
+    
+    ||Data compared.
+    {if rs.size != recordset.size then
+        {return false}
+    }
+    let wanted-records:{Array-of Record} = {rs.select}
+    let compared-records:{Array-of Record} = {recordset.select}
+    let index:int = 0
+    {for item in wanted-records do
+        let new-item:Record = compared-records[index]
+        {for field-item in item.record-set.fields do
+            let name:String = field-item.name
+            {if name == "string" or name == "int" or name == "double" or name == "bool" or name == "float"
+                or name == "long" or name == "byte" or name == "char" or name == "short" or name == "int16"
+             then
+                {if item[name] != new-item[name] then
+                    {return false}
+                }
+             elseif {type-of item[name]} == CDate or {type-of item[name]} == Date or {type-of item[name]} == CTime then
+                {if item[name].time != new-item[name].time then
+                    {return false}
+                }
+             elseif {type-of item[name]} == Blob and not {item[name].bytes.equal? new-item[name].bytes} then
+                {return false}
+             elseif {type-of item[name]} == Clob and not {item[name].chars.equal? new-item[name].chars} then
+                {return false}
+             elseif {type-of item[name]} == DateTime then
+                let item-info:DateTimeInfo = item[name].info
+                let newitem-info:DateTimeInfo = new-item[name].info
+                {if item-info.year != newitem-info.year or
+                    item-info.month != newitem-info.month or
+                    item-info.day != newitem-info.day then
+                    {return false}
+                }
+             elseif {type-of item[name]} != Blob and {type-of item[name]} != Clob then
+                {if {item[name].compare new-item[name]} != 0 then
+                    {return false}
+                }
+            }                       
+        }
+        {inc index}
+    }
+    {return true}
+}
+
+{define-proc {assert-hoge hoge:Hoge}:void
+    {assert hoge.f1 == "string1"}
+    {assert hoge.f2 == 1}
+    {assert hoge.f3 == 2.0}
+    {assert hoge.f4 == true}
+}
+
+{define-proc {assert-foo foo:Foo}:void
+    || primitive
+    {assert foo.b == 1}
+    {assert foo.s == 2}
+    {assert foo.i == 3}
+    {assert foo.l == 4}
+    {assert foo.f == 5.0}
+    {assert foo.d == 6.0}
+    {assert foo.x == true} 
+    {assert foo.c == 'a'}
+
+    || java object to curl primitive
+    {assert foo.ob == 7}
+    {assert foo.os == 8}
+    {assert foo.oi == 9}
+    {assert foo.ol == 10}
+    {assert foo.of == 11.0}
+    {assert foo.od == 12.0}
+    {assert foo.ox == false}
+    {assert foo.oc == 'b'}
+
+    || String
+    {assert foo.str == "string"}
+
+    || DateTime
+    {assert foo.date1.info.year == 2000}
+    {assert foo.date1.info.month == 8}
+    {assert foo.date1.info.day == 8}
+
+    {assert foo.date2.info.year == 2000}
+    {assert foo.date2.info.month == 8}
+    {assert foo.date2.info.day == 8}
+    {assert foo.date2.info.hour == 1}
+    {assert foo.date2.info.minute == 2}
+    {assert foo.date2.info.second == 3}
+
+    || any
+    {assert-hoge foo.object}
+  
+    || FastArray-of 
+    {assert foo.strs[0] == "string1"}
+    {assert foo.strs[1] == "string2"}
+    {assert foo.strs[2] == "string3"} 
+    {assert foo.ints[0] == 1}
+    {assert foo.ints[1] == 2}
+    {assert foo.ints[2] == 3}
+||--    {assert foo.fooArr[0] isa Foo}
+||--    {assert foo.fooArr[1] isa Foo}
+||--    {assert foo.fooArr[2] isa Foo}
+    {assert foo.objects[0] == 1}
+    {assert foo.objects[1] == "string1"}
+    {assert-hoge foo.objects[2]}
+    {assert foo.array_2[0][0] == 0}
+    {assert foo.array_2[0][1] == 10}
+    {assert foo.array_2[1][0] == 1}
+    {assert foo.array_2[1][1] == 11}
+    {assert foo.array_2[2][0] == 2}
+    {assert foo.array_2[2][1] == 12}
+
+    || Array-of
+    {assert foo.list[0] == 1}
+    {assert foo.list[1] == "string1"}
+    {assert-hoge foo.list[2]}
+    {assert foo.list_2[0][0] == 1}
+    {assert foo.list_2[0][1] == "string1"}
+    {assert-hoge foo.list_2[0][2]}
+    {assert foo.list_2[1][0] == 2}
+    {assert foo.list_2[1][1] == "string2"}
+    {assert-hoge foo.list_2[1][2]}
+    {assert foo.list_2[2][0] == 3}
+    {assert foo.list_2[2][1] == "string3"}
+    {assert-hoge foo.list_2[2][2]}
+    {assert foo.pure_list[0] == 1}
+    {assert foo.pure_list[1] == 2}
+    {assert foo.pure_list[2] == 3}
+
+    || HashTable-of
+    {assert foo.map1["key1-1"] == 11}
+    {assert-hoge foo.map1["key1-2"]}
+    
+    {assert foo.map2["key2-1"] == 21}
+    {assert-hoge foo.map2["key2-2"]}
+
+    {assert foo.table["key1-1"] == 11}
+    {assert-hoge foo.table["key1-2"]}
+
+    {assert foo.pure_map["key4-1"] == "str1"}
+    {assert foo.pure_map["key4-2"] == "str2"}
+
+    || HashTable-of in FastArray-of
+    {assert foo.array_map.size == 3}
+    {assert foo.array_map[0].size == 1}
+    {assert foo.array_map[0]["key1-1"] == true}
+    {assert foo.array_map[1].size == 2}
+    {assert foo.array_map[1]["key1-2"] == 123}
+    {assert foo.array_map[1]["key2-2"] == 987}
+    {assert foo.array_map[2].size == 1}
+    {assert foo.array_map[2]["key1-3"] == "string"}
+    
+    || HashTable-of in Array-of
+    {assert foo.list_map.size == 3}
+    {assert foo.list_map[0].size == 1}
+    {assert foo.list_map[0]["key1-1"] == true}
+    {assert foo.list_map[1].size == 2}
+    {assert foo.list_map[1]["key1-2"] == 123}
+    {assert foo.list_map[1]["key2-2"] == 987}
+    {assert foo.list_map[2].size == 1}
+    {assert foo.list_map[2]["key1-2"] == "string"}
+    
+    || FastArray-of in HashTable-of
+    {assert foo.map_array.size == 3}
+    {assert foo.map_array["key1-1"].size == 3}
+    {assert foo.map_array["key1-2"].size == 3}
+    {assert foo.map_array["key1-3"].size == 3}
+    {assert foo.map_array["key1-1"][0] == 1}
+    {assert foo.map_array["key1-1"][1] == 2}
+    {assert foo.map_array["key1-1"][2] == 3}
+    {assert foo.map_array["key1-2"][0] == true}
+    {assert foo.map_array["key1-2"][1] == false}
+    {assert foo.map_array["key1-2"][2] == true}
+    {assert foo.map_array["key1-3"][0] == "str1"}
+    {assert foo.map_array["key1-3"][1] == "str2"}
+    {assert foo.map_array["key1-3"][2] == "str3"}
+    
+    || HashTable-of in HashTable-of
+    {assert foo.map_map.size == 3}
+    {assert foo.map_map["k1"]["key1-1"] == true}
+    {assert foo.map_map["k2"]["key1-2"] == 123}
+    {assert foo.map_map["k3"]["key1-3"] == "string"}
+    
+    || zero data
+    {assert foo.zero_array.size == 0}
+    {assert foo.zero_list.size == 0}
+    {assert foo.zero_map.size == 0}
+    
+    || null
+    {assert foo.str_null == null}
+    {assert foo.list_null == null}
+    {assert foo.array_null == null}
+    
+    || ByteArray
+    {assert foo.bytes[0] == ('f' asa int8)}
+    {assert foo.bytes[1] == ('o' asa int8)}
+    {assert foo.bytes[2] == ('o' asa int8)}
+    
+    {assert foo.string_-array[0][0][0] == "1"}
+    {assert foo.string_-array[0][0][1] == "2"}
+    {assert foo.string_-array[0][0][2] == "3"}
+    {assert foo.string_-array[1][0][0] == "1"}
+    {assert foo.string_-array[1][0][1] == "2"}
+    {assert foo.string_-array[1][0][2] == "3"}
+
+    || RecordSet
+    {TestCondition.assert {assert-recorset foo.recordset asa SerializableRecordSet} == true}
+    || RecordSet Array one
+    {for item in foo.recordset-array-one asa {FastArray-of #SerializableRecordSet} do
+        {TestCondition.assert {assert-recorset item asa SerializableRecordSet} == true} 
+    }
+
+    || RecordSetArray two
+    {for rsArrayOne in foo.recordset-array-two asa {FastArray-of #{FastArray-of #SerializableRecordSet}} do
+        {for item in rsArrayOne asa {FastArray-of #SerializableRecordSet} do
+            {TestCondition.assert {assert-recorset item asa SerializableRecordSet} == true} 
+        }
+    }
+    || Hash
+    let rsHash:#HashTable = foo.recordset-hash
+    {TestCondition.assert {rsHash.get 1} == 1}
+    {TestCondition.assert {rsHash.get 2} == true}
+    {TestCondition.assert {rsHash.get 3} == null}
+    {TestCondition.assert {rsHash.get 4} == "O.K"}
+    {TestCondition.assert {assert-recorset {rsHash.get 5} asa SerializableRecordSet} == true} 
+    let hash-list:#Array = {rsHash.get 6}
+    {TestCondition.assert hash-list[0] == 1}
+    {TestCondition.assert hash-list[1] == null}
+    {TestCondition.assert hash-list[2] == false}
+    {TestCondition.assert hash-list[3] == "string"}
+    {TestCondition.assert {assert-recorset hash-list[4] asa SerializableRecordSet} == true}
+
+    || List
+    let list:#Array = foo.recordset-array-list
+    {TestCondition.assert list[0] == 1}
+    {TestCondition.assert list[1] == null}
+    {TestCondition.assert list[2] == false}
+    {TestCondition.assert list[3] == "string"}
+    {TestCondition.assert {assert-recorset list[4] asa SerializableRecordSet} == true}
+
+    || Set
+    let rset:#Set = foo.recordset-set
+    {TestCondition.assert {rset.get-member 1} == 1}
+    {rset.remove 1}
+    {TestCondition.assert {rset.get-member null} == null}
+    {rset.remove null}
+    {TestCondition.assert {rset.get-member true} == true}
+    {rset.remove true}
+    {TestCondition.assert {rset.get-member "O.K"} == "O.K"}
+    {rset.remove "O.K"}
+    let leftElements = {rset.to-Iterator}       
+    let returnObj = {leftElements.read-one}
+    {if {type-of returnObj} == SerializableRecordSet then
+        {TestCondition.assert {assert-recorset returnObj asa SerializableRecordSet} == true}
+        let list = {leftElements.read-one}
+        {TestCondition.assert list[0] == 1}
+        {TestCondition.assert list[1] == null}
+        {TestCondition.assert list[2] == false}
+        {TestCondition.assert list[3] == "string"}
+        {TestCondition.assert {assert-recorset list[4] asa SerializableRecordSet} == true}
+     else
+        {TestCondition.assert returnObj[0] == 1}
+        {TestCondition.assert returnObj[1] == null}
+        {TestCondition.assert returnObj[2] == false}
+        {TestCondition.assert returnObj[3] == "string"}
+        {TestCondition.assert {assert-recorset returnObj[4] asa SerializableRecordSet} == true}
+        {TestCondition.assert {assert-recorset {leftElements.read-one} asa SerializableRecordSet} == true}
+    }
+}

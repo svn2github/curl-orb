@@ -1,0 +1,29 @@
+
+{import * from COM.CURL.ORB} 
+
+{define-class public AccesibleService {inherits ApplicationContextClient}
+ 
+  {constructor public {default server-url:#Url = null} 
+    {construct-super.ApplicationContextClient "accesibleService", server-url = server-url} 
+  } 
+
+  {method public {serialize}:#NonAccesibleDataClass
+    {return {self.invoke "serialize"} asa #NonAccesibleDataClass} 
+  }
+
+  {method public {deserialize v0:NonAccesibleDataClass}:void
+    {self.invoke "deserialize", arguments = {FastArray v0}}
+  }
+
+  {method public {serialize-list}:#Array
+    {return {self.invoke "serializeList"} asa #Array} 
+  }
+
+  {method public {deserialize-list v0:Array}:void
+    {self.invoke "deserializeList", arguments = {FastArray v0}}
+  }
+  
+  {method public {echo v0:NonAccesibleDataClass}:#NonAccesibleDataClass 
+    {return {self.invoke "echo", arguments = {FastArray v0}} asa #NonAccesibleDataClass} 
+  }
+}

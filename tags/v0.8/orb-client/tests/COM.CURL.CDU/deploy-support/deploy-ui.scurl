@@ -1,0 +1,196 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+{doc-next ||=== DeployUI
+    {purpose Create GUI for specified {docref DeploySpecs}.}
+}
+{define-class public DeployUI {inherits BaseFrame}
+  field public-get constant specs:DeploySpecs
+  field public-get constant context:DeployContext
+  field public-get constant base-url:Url
+  {constructor public {default 
+                          specs:DeploySpecs,
+                          base-url:Url = {get-working-directory-url},
+                          source-root:Url = base-url,
+                          target-root:Url = {base-url.concat "deployed"},
+                          preview?:bool = true,
+                          ...}
+    set self.specs = specs
+    set self.base-url = base-url
+    set self.context =
+        {DeployContext
+            preview? = preview?,
+            source-root = source-root,
+            target-root = target-root}
+    {construct-super ...}
+    {self.add-internal {self.make-display}}
+  }
+  {method {make-display}:Graphic
+    || parameters
+    let preview?:CheckButton = 
+        {CheckButton 
+            label = {lmessage Preview?},
+            value = self.context.preview?,
+            {on ValueFinished at c:CheckButton do
+                set self.context.preview? = c.value}}
+    let source-root:TextField =
+        {TextField 
+            value = {self.path-for self.context.source-root},
+            {on ValueFinished at c:TextField do
+                set self.context.source-root = {self.url-for c.value}}}
+    let target-root:TextField =
+        {TextField 
+            value = {self.path-for self.context.target-root},
+            {on ValueFinished at c:TextField do
+                set self.context.target-root = {self.url-for c.value}}}
+    || tree model
+    let root:TreeNode = {deploy-tree-node self.specs}
+    let model:TreeModel = {TreeModel root = root}
+    || tree
+    let tc:TreeControl = 
+        {TreeControl 
+            data-model = model,
+            tree-item-creation-proc = DeployTreeItem.default,
+            selection-policy = "multiple"}
+    {tc.add-event-handler
+        {on Action do
+            {if-non-null node = tc.current-node then
+                let expanded?:bool = {tc.expanded-nodes.member? node}
+                {if expanded? then
+                    {tc.collapse-node node, collapse-descendants? = true}
+                 else
+                    {tc.expand-node node, expand-descendants? = true}}}}}
+    {tc.expand-node root}
+    || filtering
+    let selected?:{proc-type {TreeNode}:bool} =
+        {proc {node:TreeNode}:bool
+            {return {tc.selection.nodes.member? node}}}
+    let ancestor-selected?:{proc-type {TreeNode}:bool} =
+        {proc {node:TreeNode}:bool
+            {return 
+                {if-non-null parent = node.parent 
+                 then {selected? parent} or {ancestor-selected? parent}
+                 else false}}}
+    || display
+    let display-log:VBox = {VBox}
+    let display-controls:VBox =
+        {VBox
+            margin = 3px,
+            hstretch? = true,
+            {VBox
+                border-color = "silver",
+                border-style = "sunken",
+                border-width = 2px,
+                {HBox
+                    margin = 3pt,
+                    spacing = 6pt,
+                    {CommandButton label = {message Deploy},
+                        {on Action do
+                            {if tc.selection.empty? then
+                                {tc.select-nodes root}}
+                            {display-log.add {bold {lmessage Start}}}
+                            {tc.walk-nodes enter-collapsed-nodes? = true,
+                                {proc {node:TreeNode}:bool
+                                    {if {selected? node} and not {ancestor-selected? node} then
+                                        {type-switch node.node-data
+                                         case x:DeployBase do
+                                            {x.do-deploy context = self.context}}}
+                                    {return false}}}
+                            {display-log.add {bold {lmessage Done}}}}},
+                    {CommandButton label = {message Clear},
+                        {on Action do
+                            {tc.select-nothing}
+                            {display-log.clear}}},
+                    {Fill}},
+                {Table
+                    columns = 2,
+                    cell-margin = 1px,
+                    {text source-root:}, source-root,
+                    {text target-root:}, target-root},
+                preview?},
+            tc}
+    || coordination
+    {self.specs.add-event-handler
+        {on e:DeployProgress do
+            {display-log.add 
+                {if e.message == "--" 
+                 then {hrule}
+                 else e.message}}
+            {if-non-null v = {display-log.get-view} then
+                {v.update}}}}
+    || arrangement
+    let display:PanedWindow = {PanedWindow orientation = "horizontal"}
+    {display.add-pane 
+        {ScrollBox hscroll? = false,
+            display-controls}}
+    {display.add-pane 
+        {ScrollBox hscroll? = false,
+            display-log}}
+    {display.set-pane-sizes {{Array-of double} 30%, 70%}}
+    {return display}
+  }
+  || locations
+  {method {url-for name:String}:Url
+    {return {parse-url relative-url = self.base-url, name}}
+  }
+  {method {path-for loc:Url}:String
+    {return {loc.name-relative-to-url self.base-url}}
+  }
+}
+
+|| tree functions
+|| --------------------
+{define-proc public {deploy-tree-node subject:DeployCommon}:TreeNode
+    let n:TreeNode = {TreeNode node-data = subject}
+    {with-compiler-directives 
+        allow-any-calls? = true, 
+        allow-implicit-any-casts? = true 
+     do
+        {if-non-null members = {deploy-members subject} then
+            {for x in members do
+                {n.append {deploy-tree-node x}}}
+        }}
+    {return n}
+}
+{define-proc public {deploy-members subject:DeployCommon}:any ||#GenericIterator
+    {return
+        {type-switch subject
+         case subject:DeploySpecs do {subject.specs.to-Iterator}
+         case subject:DeploySpec do null
+         case subject:DeployCopy do null
+         case subject:DeployAction do null
+         else
+            {output {message Unrecognized type: {value subject}}}
+            null}}
+}
+{define-proc public {deploy-label subject:DeployCommon}:String
+    {return subject.caption}
+}
+{define-class public DeployTreeItem {inherits DefaultTreeItem}
+  field public-get constant subject:DeployCommon
+  {factory public implicit {default node:TreeNode}:DeployTreeItem
+    {return {DeployTreeItem.internal node}}
+  }
+  {constructor public {internal node:TreeNode, ...}
+    set self.subject = node.node-data asa DeployCommon
+    {construct-super node, 
+||--        icon = {DeployTreeIcon},
+        {splice ...}}
+  }
+  {method public {get-label}:any
+    {return {deploy-label self.subject}}
+  }
+}

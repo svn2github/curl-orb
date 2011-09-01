@@ -1,0 +1,516 @@
+||| Copyright (C) 1998-2011, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author ucai zhang
+|||
+
+{import * from CURL.GUI.STANDARD}
+{include "orb-style-def.scurl"}
+
+|| make ShadedSkinSpec
+{define-proc public {make-skin 
+                        cr:RecordData,
+                        prefix:String,
+                        margin-spec:OffsetSpec = {OffsetSpec 0px},
+                        draw-bottom-edge?:bool = true,
+                        || For version 6.0
+                        {api-version-switch
+                         case "7.0+", "8.0+" do
+                            overlay-decoration:#SkinOverlayDecoration = null
+                         case "6.0+" do
+                            overlay-decoration:#ShadedOverlayDecoration = null
+                         else
+                            {error "No support version."}
+                        },
+                        highlight-boundary:double = -1.0,
+                        corner-radius:int = -1
+                    }:ShadedSkinSpec
+
+    def angle = (cr["angle"] asa double) * 1deg
+    def start-color = cr[prefix & "-start-color"] asa FillPattern
+    def end-color = cr[prefix & "-end-color"] asa FillPattern
+    def border-color = cr[prefix & "-border-color"] asa FillPattern
+    let radius:any = (cr[prefix & "-radius"] asa int) * 1px
+    {if corner-radius >= 0 then
+        set radius = corner-radius * 1px
+    }
+
+    let glow?:bool = cr[prefix & "-glow"] asa bool
+    let gap:double = {if glow? then 0.2 else 0.0}
+    let a1:double = cr[prefix & "-alpha1"] asa double 
+    let a2:double = cr[prefix & "-alpha2"] asa double
+    let boundary:double = cr[prefix & "-boundary"] asa double
+    {if highlight-boundary >= 0.0 then
+        set boundary = highlight-boundary
+    }
+    {if boundary == 0.0 then
+        set a1 = 0.0
+        set a2 = 0.0
+    }
+    {if boundary + gap > 1.0 then
+        set boundary = 1.0 - gap
+    }
+
+    {return
+        {ShadedSkinSpec
+            start-color,
+            end-color,
+            margin-spec = margin-spec,
+            rollover-start-color = start-color,
+            rollover-end-color = end-color,
+            border-color = border-color,
+            rollover-border-color = border-color,
+            gradient-angle = angle,
+            highlight-alpha-1 = a1,
+            highlight-alpha-2 = a2,
+            highlight-boundary = boundary,
+            highlight-gap = gap,
+            corner-radius = radius,
+            upper-left-rounded? = cr[prefix & "-round-ul"] asa bool,
+            upper-right-rounded? = cr[prefix & "-round-ur"] asa bool,
+            lower-right-rounded? = cr[prefix & "-round-lr"] asa bool,
+            lower-left-rounded? = cr[prefix & "-round-ll"] asa bool,
+            draw-bottom-edge? = draw-bottom-edge?,
+            orientation-transform = "rotate-base",
+            overlay-decoration = overlay-decoration
+        }
+    }
+}
+
+{let angle:Angle = (cr["angle"] asa double) * 1deg}
+{def dialog-color = cr["dialog-color"] asa FillPattern}
+{def color = cr["color"] asa FillPattern}
+{def rollover-color = cr["rollover-color"] asa FillPattern}
+{let radius:int = cr["button-radius"] asa int}
+{let a1:double = cr["button-alpha1"] asa double}
+{let a2:double = cr["button-alpha2"] asa double}
+{let boundary:double = cr["button-boundary"] asa double}
+{if boundary == 0.0 then
+    set a1 = 0.0
+    set a2 = 0.0
+}
+{let transparent:FillPattern = {FillPattern.get-transparent}}
+{let constant BASE-FOCUS-COLOR:FillPattern = cr["field-border-color"] asa String}
+
+{def button-skin = {make-skin cr, "button"}}
+{def button-focus-skin =
+    {FocusShadedSkinSpec.from-shaded-spec
+        button-skin,
+        base-color = BASE-FOCUS-COLOR
+    }
+}
+
+{def radio-button-skin =
+    {ShadedSkinSpec 
+        "white",
+        cr["radio-color"] asa String,
+        border-color = cr["field-border-color"] asa String,
+        rollover-border-color = cr["field-border-color"] asa String,
+        gradient-angle = angle,
+        highlight-alpha-1 = 0.0,
+        highlight-alpha-2 = 0.0,
+        corner-radius = 7px,
+        margin-spec = 5px
+    }
+}
+{def radio-button-checked-skin =
+    {ShadedSkinSpec 
+        "white",
+        cr["radio-color"] asa String,
+        border-color = cr["field-border-color"] asa String,
+        rollover-border-color = cr["field-border-color"] asa String,
+        gradient-angle = angle,
+        highlight-alpha-1 = 0.0,
+        highlight-alpha-2 = 0.0,
+        corner-radius = 7px,
+        overlay-decoration = "dot"
+    }
+}
+{def radio-button-focus-skin =
+    {FocusShadedSkinSpec.from-shaded-spec
+        radio-button-skin,
+        base-color = BASE-FOCUS-COLOR
+    }
+}
+{def transparent-skin =
+    {ShadedSkinSpec 
+        transparent, transparent,
+        rollover-start-color = transparent,
+        rollover-end-color = transparent,
+        rollover-border-color = transparent,
+        gradient-angle = 0deg,
+        highlight-alpha-1 = 0.0,
+        highlight-alpha-2 = 0.0
+    }
+}
+{def check-button-skin =
+    {ShadedSkinSpec 
+        "white", cr["radio-color"] asa String,
+        border-color = cr["field-border-color"] asa String,
+        rollover-border-color = cr["field-border-color"] asa String,
+        gradient-angle = angle,
+        highlight-alpha-1 = 0.0,
+        highlight-alpha-2 = 0.0,
+        corner-radius = 0px,
+        margin-spec = 5px
+    }
+}
+{def check-button-checked-skin =
+    {ShadedSkinSpec 
+        "white", cr["radio-color"] asa String,
+        border-color = cr["field-border-color"] asa String,
+        rollover-border-color = cr["field-border-color"] asa String,
+        gradient-angle = angle,
+        highlight-alpha-1 = 0.0,
+        highlight-alpha-2 = 0.0,
+        corner-radius = 0px,
+        overlay-decoration = "check"
+    }
+}
+{def check-button-focus-skin =
+    {FocusShadedSkinSpec.from-shaded-spec
+        check-button-skin,
+        base-color = BASE-FOCUS-COLOR
+    }
+}
+
+{def text-control-skin =
+    {ShadedSkinSpec
+        content-background-inset = 0,
+        draw-content-background? = true,
+        margin-spec =
+            {OffsetSpec
+                left = 4px, right = 4px,
+                bottom = 3px, top = 3px
+            },
+        cr["text-control-color"] asa String,
+        cr["text-control-color"] asa String,
+        gradient-angle = angle,
+        highlight-alpha-1 = .2,
+        highlight-alpha-2 = .2,
+        border-color = cr["field-border-color"] asa String,
+        corner-radius = 1px,
+        draw-top-edge? = false,
+        draw-left-edge? = false,
+        draw-right-edge? = false
+    }
+}
+{def text-control-focus-skin =
+    {FocusShadedSkinSpec.from-shaded-spec
+        text-control-skin,
+        base-color = BASE-FOCUS-COLOR
+    }
+}
+{def dropdown-list-skin =
+    {ShadedSkinSpec
+        content-background-inset = 0,
+        draw-content-background? = true,
+        margin-spec = {OffsetSpec 1px},
+        cr["text-control-color"] asa String,
+        cr["text-control-color"] asa String,
+        gradient-angle = angle,
+        highlight-alpha-1 = .2,
+        highlight-alpha-2 = .2,
+        border-color = cr["field-border-color"] asa String,
+        corner-radius = 2px
+    }
+}
+{def dropdown-list-focus-skin =
+    {FocusShadedSkinSpec.from-shaded-spec
+        dropdown-list-skin,
+        base-color = BASE-FOCUS-COLOR
+    }
+}
+{def top-button-skin =
+    {ShadedSkinSpec 
+        "#EAEAEA", "#666666",
+        border-color = "#828282",
+        gradient-angle = angle,
+        highlight-alpha-1 = 0.0,
+        highlight-alpha-2 = 0.0,
+        corner-radius = 2px
+    }
+}
+{def top-button-focus-skin =
+    {ShadedSkinSpec 
+        "#767676", "#353535",
+        border-color = "#3D3D3D",
+        gradient-angle = angle,
+        highlight-alpha-1 = 0.0,
+        highlight-alpha-2 = 0.0,
+        corner-radius = 2px
+    }
+}
+
+{StyleSheet
+    {splice
+        {if cr["button-text-color"] != "black" then
+            {Array
+                {StyleRule 
+                    "CommandButton",
+                    "DropdownList/drop-button", 
+                    "ComboBox/drop-button",
+                    "Scrollbar",
+                    "Scrollbar/decrease-button",
+                    "Scrollbar/increase-button",
+
+                    color = cr["button-text-color"]
+                }
+            }
+         else 
+            {Array} || An else is required, so return an empty list
+        }
+    },
+    {StyleRule "CommandButton",
+        rollover-color = rollover-color,
+        skin = button-skin,
+        focus-skin = button-focus-skin,
+        cursor = cursor-hand
+    },
+    {StyleRule "CommandButton.function","RadioButton.function",
+        font-size = 10px,
+        height = {ensure-min-size 20pt},
+        width = {ensure-min-size 60pt}
+    },
+    {StyleRule "CommandButton.main-menu",
+        font-size = 12pt,
+        font-weight = "bold",
+        label-inset = 10px,
+        width = 240pt
+    },
+    {StyleRule "RadioButton.top",
+        skin = top-button-skin,
+        checked-skin = top-button-focus-skin,
+        focus-skin = top-button-focus-skin,
+        accent-color = "black",
+        color = "white",
+        font-weight = "bold",
+        font-size = 14px,
+        width = 140px
+    },
+    
+    {StyleRule "CommandButton.mail",
+        font-size = 12pt,
+        font-weight = "bold",
+        label-inset = 10px,
+        width = 240pt
+    },
+
+    {StyleRule "GroupBox",
+        title-area-skin = 
+            {if cr["glabel-none"] asa bool then
+                transparent-skin
+             else
+                {make-skin cr, "glabel"}
+            },
+
+        label-skin = 
+            || label at the left
+            {ShadedSkinSpec 
+                margin-spec = {OffsetSpec 2px},
+                {FillPattern.get-transparent},
+                {FillPattern.get-transparent},
+                rollover-start-color = {FillPattern.get-transparent},
+                rollover-end-color = {FillPattern.get-transparent},
+                rollover-border-color = {FillPattern.get-transparent},
+                gradient-angle = 0deg,
+                highlight-alpha-1 = 0.0,
+                highlight-alpha-2 = 0.0
+            },
+
+        content-skin =
+            {make-skin cr, "group",
+                margin-spec = {OffsetSpec 4px}
+            }
+    },
+    {StyleRule "GroupBox/label",
+        border-color = {FillPattern.get-transparent},
+        border-spec = {BorderSpec left-border-width = 4pt}
+    },
+    {StyleRule "DropdownList.tab-dropdown-list-control",
+        width = {make-elastic minimum-size = 15px, preferred-size = 1m},
+        height = {make-elastic minimum-size = 15px, preferred-size = 1m},
+        margin = 2px,
+        skin =
+            {ShadedSkinSpec
+                cr["button-start-color"] asa String,
+                cr["button-end-color"] asa String,
+                border-color = cr["button-border-color"] asa String,
+                corner-radius = 5px,
+                overlay-decoration = "triangle-down",
+                margin-spec = 7px,
+                orientation-transform = "rotate-base"
+            },
+        focus-skin = null
+    },
+    {StyleRule "Fill.tab-selector-interval-spacer",
+        width = 0pt,
+        height = 0pt
+    },
+    {StyleRule "Fill.tab-selectors-list-spacer",
+        width = 1px,
+        height = 1px
+    },
+
+    {StyleRule "RadioButton",
+        skin = radio-button-skin,
+        focus-skin = radio-button-focus-skin,
+        checked-skin = radio-button-checked-skin
+    },
+    {StyleRule "RadioButton/toggle",
+        vorigin = 0.92
+    }
+    ,            
+    {StyleRule "CheckButton",
+        skin = check-button-skin,
+        checked-skin = check-button-checked-skin,
+        focus-skin = check-button-focus-skin,
+        font-size = 10px
+    },
+    {StyleRule "CheckButton/toggle",
+        vorigin = 0.92
+    }
+    ,
+    {StyleRule 
+        "TextField",                
+        skin = text-control-skin,
+        focus-skin = text-control-focus-skin
+    },
+    {StyleRule "TextDisplay",
+        skin = 
+            {ShadedSkinSpec 
+                content-background-inset = 0,
+                draw-content-background? = true,
+                margin-spec = {OffsetSpec 2px},
+                "red", "red",
+                border-color = "#c0c0c0",
+                gradient-angle = angle,
+                highlight-alpha-1 = .2,
+                highlight-alpha-2 = .2,
+                corner-radius = 2px
+            },
+        focus-skin = text-control-focus-skin
+    },
+    {StyleRule "TextDisplay/string-box",
+        border-width = 1px, 
+        border-color = transparent,
+        background = transparent
+    },
+    {StyleRule "ListValueItem",
+        border-spec = {BorderSpec left-margin = 2px}
+    },
+    {StyleRule "DropdownList",
+        "ComboBox",
+        vorigin = 0.73,
+        skin = dropdown-list-skin,
+        focus-skin = dropdown-list-focus-skin
+    },
+    {StyleRule "ComboBox/string-box",
+        border-spec =
+            {BorderSpec
+                left-margin = 3px, right-margin = 3px,
+                top-margin = 2px, bottom-margin = 2px
+            }
+    },
+    {StyleRule "DropdownList/item-frame",
+        border-color = transparent,
+        border-spec = {BorderSpec left-border-width = 2px, right-border-width = 2px},
+        margin = 2px
+    },
+    {StyleRule "DropdownList/drop-button", 
+        width = 14px,
+        skin = 
+            {ShadedSkinSpec
+                margin-spec = {OffsetSpec 1px},
+                cr["drop-button-start-color"] asa String,
+                cr["drop-button-end-color"] asa String,
+                border-color = cr["drop-button-border-color"] asa String,
+                gradient-angle = angle,
+                highlight-alpha-1 = cr["button-alpha1"] asa double,
+                highlight-alpha-2 = cr["button-alpha2"] asa double,
+                highlight-boundary = .25,
+                highlight-gap = .2,
+                corner-radius = 2px,
+                upper-left-rounded? = false,
+                lower-left-rounded? = false,
+                overlay-decoration = "triangle-down"
+            }
+    },
+    {StyleRule "Scrollbar",
+        border-width = 0px,
+        accent-color = cr["accent-color"] asa String,
+        skin = 
+            {ShadedSkinSpec 
+                margin-spec = {OffsetSpec 1px}, || this does nothing
+                cr["button-start-color"] asa String,
+                cr["button-end-color"] asa String,
+                border-color = cr["button-border-color"] asa String,
+                rollover-border-color = 
+                    cr["button-border-color"] asa String,
+                gradient-angle = -90deg,
+                highlight-alpha-1 = 0.7,
+                highlight-alpha-2 = 0.15,
+                highlight-boundary = .5,
+                corner-radius = 2px
+            },
+
+        thumb-skin =
+            {ShadedSkinSpec 
+                cr["thumb-color"] asa String,
+                cr["thumb-color"] asa String,
+                border-color = cr["button-border-color"] asa String,
+                gradient-angle = 0deg,
+                highlight-alpha-1 = 0.2,
+                highlight-alpha-2 = 0.1,
+                highlight-boundary = .05,
+                overlay-decoration = "grip",
+                corner-radius = 3px
+            },
+
+        channel-skin = 
+            {ShadedSkinSpec 
+                "#bbb", "#dde6eb",
+                border-color = cr["button-border-color"] asa String,
+                rollover-border-color = cr["button-border-color"] asa String,
+                gradient-angle = -90deg,
+                highlight-alpha-1 = 0.0,
+                highlight-alpha-2 = 0.0,
+                highlight-boundary = .35,
+                corner-radius = 0px,
+                orientation-transform = "rotate-base"
+            }
+    },
+    {StyleRule "Scrollbar/decrease-button",
+        skin = 
+            {make-skin
+                cr,
+                "button",
+                overlay-decoration = "decrease-triangle",
+                highlight-boundary = .05,
+                corner-radius = 3
+            }
+    },
+    {StyleRule "Scrollbar/increase-button",
+        skin = 
+            {make-skin
+                cr,
+                "button",
+                overlay-decoration = "increase-triangle",
+                highlight-boundary = .05,
+                corner-radius = 3
+            }
+    }
+}
+

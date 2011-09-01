@@ -1,0 +1,148 @@
+
+{define-class public serializable Dto 
+ 
+  field private _i:int 
+  field private _l:int64 
+  field private _s:int16 
+  field private _d:double 
+  field private _f:float 
+  field private _z:bool 
+  field private _b:int8 
+  field private _c:char 
+  field private _ii:int 
+  field private _ll:int64 
+  field private _ss:int16 
+  field private _dd:double 
+  field private _ff:float 
+  field private _zz:bool 
+  field private _bb:int8 
+  field private _cc:char 
+
+  {getter public {i}:int 
+    {return self._i} 
+  } 
+
+  {getter public {l}:int64 
+    {return self._l} 
+  } 
+
+  {getter public {s}:int16 
+    {return self._s} 
+  } 
+
+  {getter public {d}:double 
+    {return self._d} 
+  } 
+
+  {getter public {f}:float 
+    {return self._f} 
+  } 
+
+  {getter public {z}:bool 
+    {return self._z} 
+  } 
+
+  {getter public {b}:int8 
+    {return self._b} 
+  } 
+
+  {getter public {c}:char 
+    {return self._c} 
+  } 
+
+  {getter public {ii}:int 
+    {return self._ii} 
+  } 
+
+  {getter public {ll}:int64 
+    {return self._ll} 
+  } 
+
+  {getter public {ss}:int16 
+    {return self._ss} 
+  } 
+
+  {getter public {dd}:double 
+    {return self._dd} 
+  } 
+
+  {getter public {ff}:float 
+    {return self._ff} 
+  } 
+
+  {getter public {zz}:bool 
+    {return self._zz} 
+  } 
+
+  {getter public {bb}:int8 
+    {return self._bb} 
+  } 
+
+  {getter public {cc}:char 
+    {return self._cc} 
+  } 
+
+  {setter public {i v:int}:void 
+    set self._i = v 
+  } 
+
+  {setter public {l v:int64}:void 
+    set self._l = v 
+  } 
+
+  {setter public {s v:int16}:void 
+    set self._s = v 
+  } 
+
+  {setter public {d v:double}:void 
+    set self._d = v 
+  } 
+
+  {setter public {f v:float}:void 
+    set self._f = v 
+  } 
+
+  {setter public {z v:bool}:void 
+    set self._z = v 
+  } 
+
+  {setter public {b v:int8}:void 
+    set self._b = v 
+  } 
+
+  {setter public {c v:char}:void 
+    set self._c = v 
+  } 
+
+  {setter public {ii v:int}:void 
+    set self._ii = v 
+  } 
+
+  {setter public {ll v:int64}:void 
+    set self._ll = v 
+  } 
+
+  {setter public {ss v:int16}:void 
+    set self._ss = v 
+  } 
+
+  {setter public {dd v:double}:void 
+    set self._dd = v 
+  } 
+
+  {setter public {ff v:float}:void 
+    set self._ff = v 
+  } 
+
+  {setter public {zz v:bool}:void 
+    set self._zz = v 
+  } 
+
+  {setter public {bb v:int8}:void 
+    set self._bb = v 
+  } 
+
+  {setter public {cc v:char}:void 
+    set self._cc = v 
+  }
+} 

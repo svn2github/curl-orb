@@ -1,0 +1,910 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+{doc-next
+    {purpose
+        Base class for a {docref Connection} that is backed by a SQL
+        query for a SQL database.
+    }
+    {notes
+        Known subclasses include {docref SQLiteConnection}.
+    }
+}
+{define-class public abstract SQLConnection {inherits Connection}
+
+  {constructor public {default 
+                          url:Url
+                      }
+    {construct-super url}
+  }
+
+  {doc-next
+    {purpose
+        Execute one or more SQL statements, and provide results, if any.
+    }
+    {parameter database-name, The name of a database known to the
+        {docref Connection}. (Use {docref Connection.get-database-names}
+        to get a list of these names.)
+    }
+    {parameter query,
+        The SQL query or queries to execute.
+    }
+    {parameter callback,
+        Called with each row that results from executing a query.
+        May return {ctext false} to stop execution of that query.
+    }
+    {parameter throw-on-error?,
+        If {ctext true} and executing the statement fails,
+        an error will be thrown. Otherwise no error will be thrown and
+        the caller is responsible to check the return value of this
+        method to see if the statement was successfully
+        executed or not.
+
+        It is {ctext true} by default.
+    }
+    {parameter start-record,
+        The index of the first row to be provided to {param callback}.
+    }
+    {parameter size-limit,
+        The maximum number of rows to be provided to {param callback}.
+        The default value of -1 means no limit.
+    }
+    {return-vals
+        Returns {ctext true} if execution succeeded.
+    }
+  }
+  || Note: Could return an iterator over row instead of callback
+  {method public abstract {execute-sql
+                              database-name:String,
+                              query:String,
+                              callback:#{proc-type {row:Array}:bool} = null,
+                              throw-on-error?:bool = true,
+                              start-record:int = 0,
+                              size-limit:int = -1
+                          }:bool
+  }
+
+  || inherited from Connection
+  || query can be a table-name or a query
+  {method public abstract {create-record-set
+                              database-name:String,
+                              query:String,
+                              request-modifiable?:bool = false,
+                              size-limit:int = -1,
+                              ...:EventHandler
+                          }:SQLConnectedRecordSet
+  }
+
+  {doc-next
+    {purpose
+        Create a {docref SQLConnectedRecordSet} from a table name.
+    }
+    {parameter table-name,
+        Name of the SQL table to load.  A SQL query against that table
+        will be created.
+    }
+    {parameter load-now?,
+        Should the {docref RecordSet} be loaded when construction is complete.
+    }
+    {notes
+        {docref SQLConnection.create} calls this or
+        {docref SQLConnection.create-sql-record-set} depending on if it
+        thinks that it got a table name or a query.
+    }
+  }
+  {method public abstract {create-sql-record-set-from-table-name
+                              database-name:String,
+                              table-name:String,
+                              request-modifiable?:bool = false,
+                              size-limit:int = -1,
+                              base-where-clause:#String = null,
+                              load-now?:bool = true,
+                              strict-types?:bool = false,
+                              ...:EventHandler
+                          }:SQLConnectedRecordSet
+  }
+
+  {doc-next
+    {purpose
+        Create a {docref SQLConectedRecordSet} from a SQL query.
+    }
+    {details
+        Parameters are the same as {docref SQLConnectedRecordSet.create}.
+    }
+    {parameter load-now?,
+        Should the {docref RecordSet} be loaded when construction is complete.
+    }
+    {notes
+        {docref SQLConnection.create} calls this or
+        {docref SQLConnection.create-sql-record-set-from-table-name} depending on if it
+        thinks that it got a table name or a query.
+    }
+  }
+  {method public abstract {create-sql-record-set
+                              database-name:String,
+                              query:String,
+                              request-modifiable?:bool = false,
+                              size-limit:int = -1,
+                              table-name:#String = null,
+                              base-where-clause:#String = null,
+                              hidden-primary-key-field:int = -1,
+                              || I.E. does the query look like *, or
+                              || ROWID, *, with hidden-primary-key-field = 0
+                              || This allows optimized INSERT statements to be
+                              || used.
+                              query-is-full-row?:bool = false,
+                              || We can sometimes figure out the keys
+                              || but often we can't.
+                              primary-keys:#{Array-of String} = null,
+                              load-now?:bool = true,
+                              strict-types?:bool = false,
+                              ...:EventHandler
+                          }:SQLConnectedRecordSet
+  }
+
+  {doc-next
+    {purpose
+        Get {docref RecordFields} and the name of the
+        {param hidden-primary-key-field}, if there is one.
+    }
+    {details
+        The parameters match the parameters of the same name on
+        {docref SQLConnection.create-sql-record-set}.
+    }
+    {notes
+        This method produces more data than {docref Connection.get-fields},
+        if more information is provided in the keyword arguments.  This is
+        used by {docref SQLConnectedRecordSet} and its subclasses.
+    }
+  }
+  {method public abstract {get-sql-fields
+                              database-name:String,
+                              query:String,
+                              table-name:#String = null,
+                              hidden-primary-key-field:int = -1,
+                              query-is-full-row?:bool = false,
+                              primary-keys:#{Array-of String} = null,
+                              strict-types?:bool = false
+                          }:(RecordFields,
+                             hidden-primary-key-field-name:#String)
+  }
+
+}
+
+{doc-next
+    {purpose
+        Base class for a {docref ConnectedRecordSet} that is backed by a SQL
+        query for a SQL database.
+    }
+    {notes
+        Known subclasses include {docref SQLiteRecordSet}.
+    }
+}
+{define-class public abstract SQLConnectedRecordSet
+  {inherits ConnectedRecordSet, BasicRecordSet}
+
+  field public-get protected-set table-name:#String
+  field protected base-where-clause:#String
+  field protected hidden-primary-key-field:int
+  field protected query-is-full-row?:bool
+  field protected primary-keys:#{Array-of String}
+  field protected hidden-primary-key-field-name:#String
+  field protected strict-types?:bool
+
+  {doc-next
+    {purpose
+        Create a {docref SQLConectedRecordSet} from a SQL query.
+    }
+    {parameter database-name, The name of a database known to the
+        {docref Connection}. (Use {docref Connection.get-database-names}
+        to get a list of these names.)
+    }
+    {parameter query, A query used to fill the RecordSet with data.
+    }
+    {parameter request-modifiable?, If true, an attempt will be made
+        to return a modifiable {docref RecordSet}. Some subclasses may
+        be unable to create a modifiable {ctext RecordSet} if the
+        {param query} is too complex.
+    }
+    {parameter size-limit, Used to limit the number of records loaded.
+        The default value of -1 means there is no limit.
+    }
+    {parameter table-name,
+        The name of the table in {param database-name} being loaded
+        from by {param query}.  Do not supply if the query will produce
+        columns that are not part of a single table.
+    }
+    {parameter base-where-clause,
+        A SQL logical expression that can go in a WHERE clause that
+        narrows down the data to be fetched.  This could also be used to
+        supply part of a primary key when the key's column is not part of
+        the query.
+    }
+    {parameter strict-types?,
+        Should the {docref RecordField}s and {docref Domain}s strictly
+        match the type declared in the database.  This may not mean anything
+        for some subclasses.
+    }
+    {parameter hidden-primary-key-field,
+        Which column should be used as a primary key and not appear in the
+        record data.  Default value {ctext -1} means that no column should
+        be treated specially.
+    }
+    {parameter query-is-full-row?,
+        Indicates if {param query} is the complete row of the {param table},
+        after removing the column listed in {param hidden-primary-key-field},
+        if any.
+    }
+    {parameter primary-keys,
+        Indicates the names of the columns in {param query} that
+        are primary keys.
+        Sometimes an implementation may be able to calculate this
+        automatically.
+    }
+    {parameter 
+        ..., may include {docref EventHandler}s to
+        be attached to this recordset.
+    }
+    {notes
+        Some of the optional parameters must be supplied in order for
+        a {docref SQLConnectedRecordSet} to be modifiable, and only
+        {param strict-types?} is needed if {param request-modifiable?}
+        is {ctext false}.
+    }
+  }
+  {constructor public {create
+                          connection:SQLConnection,
+                          database-name:String,
+                          query:String,
+                          request-modifiable?:bool = false,
+                          size-limit:int = -1,
+                          table-name:#String = null,
+                          base-where-clause:#String = null,
+                          hidden-primary-key-field:int = -1,
+                          || We should be able to figure out what the keys
+                          || are, and what type things are without this.
+                          || I.E. does the query look like *, or
+                          || ROWID, *, with hidden-primary-key-field = 0
+                          || This allows optimized INSERT statements to be
+                          || used.
+                          query-is-full-row?:bool = false,
+                          primary-keys:#{Array-of String} = null,
+                          strict-types?:bool = false,
+                          ...:EventHandler
+                      }
+    set self.table-name = table-name
+    set self.base-where-clause = base-where-clause
+    set self.hidden-primary-key-field = hidden-primary-key-field
+    set self.query-is-full-row? = query-is-full-row?
+    set self.primary-keys = primary-keys
+    set self.strict-types? = strict-types?
+    {construct-super.ConnectedRecordSet
+        connection,
+        database-name,
+        query,
+        request-modifiable?,
+        size-limit,
+        ...
+    }
+    || also sets self.modifiable?
+    let fields:RecordFields =
+        {self.query-initialized}
+    {construct-super.BasicRecordSet
+        fields,
+        modifiable? = request-modifiable? and self.modifiable?
+    }
+  }
+
+  {doc-next
+    {purpose Repopulate this {docref ConnectedRecordSet} according
+        to a new query. Both fields and data may change as a result.
+    }
+    {details
+        The parameters are the same as
+        {docref SQLConnection.create-sql-record-set-from-table-name}.
+    }
+    {notes
+        This creates a query for the supplied {param table-name}.
+    }
+  }
+  {method public abstract {fill-from-table-name
+                              database-name:String = self.database-name,
+                              table-name:String = self.table-name,
+                              request-modifiable?:bool =
+                                  self.request-modifiable?,
+                              size-limit:int = self.size-limit,
+                              base-where-clause:#String =
+                                  self.base-where-clause,
+                              strict-types?:bool = self.strict-types?
+                          }:void
+  }
+
+  {doc-next
+    {purpose
+        Called after the fields on the {docref SQLConnectedRecordSet}
+        have been set, or changed.
+    }
+    {parameter query-changed?,
+        Indicates of the query for this {docref SQLConnectedRecordSet}
+        has changed.
+    }
+    {details
+        Called by the various {ctext constructors}, and {ctext create} and
+        {ctext fill} methods.
+    }
+  }
+  {method protected abstract {query-initialized
+                                 query-changed?:bool = true
+                             }:RecordFields
+  }
+
+  {doc-next
+    {purpose Repopulate this {docref ConnectedRecordSet} according
+        to a new query. Both fields and data may change as a result.
+    }
+    {details
+        The parameters are the same as
+        {docref SQLConnection.create-sql-record-set}.
+    }
+  }
+  {method public {fill-sql
+                     database-name:String = self.database-name,
+                     query:String = self.query,
+                     request-modifiable?:bool = false,
+                     size-limit:int = -1,
+                     table-name:#String = self.table-name,
+                     base-where-clause:#String = self.base-where-clause,
+                     hidden-primary-key-field:int =
+                         self.hidden-primary-key-field,
+                     query-is-full-row?:bool = self.query-is-full-row?,
+                     primary-keys:#{Array-of String} = self.primary-keys,
+                     strict-types?:bool = self.strict-types?
+                 }:void
+    let query-changed?:bool =
+        (self.database-name != database-name or self.query != query)
+    set self.database-name = database-name
+    set self.query = query
+    set self.request-modifiable? = request-modifiable?
+    set self.size-limit = size-limit
+    set self.table-name = table-name
+    set self.base-where-clause = base-where-clause
+    set self.hidden-primary-key-field = hidden-primary-key-field
+    set self.query-is-full-row? = query-is-full-row?
+    set self.primary-keys = primary-keys
+    set self.strict-types? = strict-types?
+    let fields:RecordFields =
+        {self.query-initialized query-changed? = query-changed?}
+    {if query-changed? then
+        {self.init fields = fields}
+    }
+    || load will call init and refresh the fields, but should we call init
+    || before changing the state?
+    set self.load-state = RecordSetLoadState.unloaded
+    {self.load}
+  }
+
+  || inherited from ConnectedRecordSet
+  {method public {fill
+                     database-name:String = self.database-name,
+                     query:String = self.query,
+                     request-modifiable?:bool = self.request-modifiable?,
+                     size-limit:int = self.size-limit
+                 }:void
+    || What can we do about the other info that could change with a new query?
+    {if {query.find ' '} < 0 then
+        let same-query?:bool =
+            (query == self.table-name and database-name == self.database-name)
+        {self.fill-from-table-name
+            database-name = database-name,
+            table-name = query,
+            request-modifiable? = request-modifiable?,
+            size-limit = size-limit,
+            base-where-clause =
+                {if same-query? then self.base-where-clause else null}
+        }
+     else
+        let same-query?:bool =
+            (query == self.query and database-name == self.database-name)
+        {self.fill-sql
+            database-name = database-name,
+            query = query,
+            request-modifiable? = request-modifiable?,
+            size-limit = size-limit,
+            base-where-clause =
+                {if same-query? then self.base-where-clause else null},
+            hidden-primary-key-field =
+                {if same-query? then self.hidden-primary-key-field else -1},
+            query-is-full-row? =
+                {if same-query? then self.query-is-full-row? else false},
+            primary-keys = {if same-query? then self.primary-keys else null}
+        }
+    }
+  }
+
+  || SQL generation code
+  {doc-next
+    {purpose
+        Generate the list of field names for use in a SQL INSERT query.
+    }
+  }
+  {method protected {generate-field-names-list-sql buf:StringBuf}:void
+    {buf.concat "("}
+    {for fi = 0 below self.fields.size do
+        let constant f:SQLRecordField =
+            {self.fields.get-by-index fi} asa SQLRecordField
+        {if fi != 0 then
+            {buf.concat ", "}
+        }
+        {buf.concat f.name}
+    }
+    {buf.concat ") "}
+  }
+
+  {doc-next
+    {purpose
+        Generate the list of all values for the columns in a record,
+        for use in a SQL INSERT query.
+    }
+  }
+  {method protected abstract {generate-values-list-sql
+                                 buf:StringBuf,
+                                 record:BasicRecord
+                             }:void
+    || for CDBC this will generate a string with everything in it.
+    || for SQLite this will generate a string with ?s in it.
+    || And the caller will need to call bind for each parameter;
+    || the problem is that it has to do that for values and for
+    || where-clause key stuff.
+  }
+
+  {doc-next
+    {purpose
+        Generate the SQL INSERT query for a record.
+    }
+  }
+  {method protected {generate-insert-statement-sql
+                        buf:StringBuf,
+                        record:BasicRecord
+                    }:void
+    {self.generate-prefix-values-sql buf, record}
+    {buf.concat "INSERT INTO "} ||""
+    {buf.concat {self.table-name-for-sql {non-null self.table-name}}}
+    {buf.concat " "}
+    {if not self.query-is-full-row? then
+        {self.generate-field-names-list-sql buf}
+    }
+    {buf.concat "VALUES("} ||""
+    {self.generate-values-list-sql buf, record}
+    {buf.concat ")"}
+  }
+
+  {doc-next
+    {purpose
+        Generate a value for a field for a SQL statement.
+    }
+  }
+  {method protected abstract {generate-field-value-sql
+                                 buf:StringBuf,
+                                 f:#RecordField,
+                                 record-value:any,
+                                 part-of-statement:String = ""
+                             }:void
+  }
+
+  {doc-next
+    {purpose
+        Indicates if a field has an uncommitted change for a supplied record.
+    }
+  }
+  {method protected {field-modified? f:SQLRecordField, record:BasicRecord}:bool
+    let constant f-name:String = f.name
+    {return
+        f.modifiable? and
+        || If value changed
+        {f.domain.compare record[f-name], record[f-name, pending? = false]} != 0
+    }
+  }
+
+  {doc-next
+    {purpose
+        Generate a list of assignments for changed fields in a record for
+        a SQL UPDATE statement.
+    }
+  }
+  {method protected {generate-assignments-sql
+                        buf:StringBuf,
+                        record:BasicRecord
+                    }:void
+    let first?:bool = true
+    {for fi = 0 below self.fields.size do
+        let constant f:SQLRecordField =
+            {self.fields.get-by-index fi} asa SQLRecordField
+        let constant f-name:String = f.name
+        let constant record-value:any = record[f-name]
+        {if not {self.field-modified? f, record} then
+            || skip this column.
+            {continue}
+        }
+        {if not first? then
+            {buf.concat ",\n"}
+        }
+        set first? = false
+        {buf.concat " "}
+        {buf.concat f-name}
+        {buf.concat "="}
+        {self.generate-field-value-sql buf, f, record-value,
+            part-of-statement = "set"
+        }
+    }
+  }
+
+  {doc-next
+    {purpose
+        Indicates if a supplied field's column is a primary key in the SQL
+        database.
+    }
+  }
+  {method public {field-primary-key? f:RecordField}:bool
+    {return
+        {type-switch f
+         case f:SQLRecordField do
+            f.primary-key?
+         else
+            false
+        }
+    }
+  }
+
+  {doc-next
+    {purpose
+        Generate any values that need to be send as a prefix to a SQL
+        statement.
+    }
+    {parameter check-if-modified?,
+        If {ctext true} then only include values for which
+        {docref SQLConnectedRecordSet.field-modified?} is {ctext true}.
+    }
+    {parameter primary-keys?,
+        If {ctext true} then only include values that are for columns
+        for which {docref SQLConnectedRecordSet.field-primary-key?} is
+        {ctext true}.
+    }
+  }
+  {method protected abstract {generate-prefix-values-sql
+                                 buf:StringBuf,
+                                 record:BasicRecord,
+                                 check-if-modified?:bool = false,
+                                 primary-keys?:bool = false
+                             }:void
+  }
+
+  {doc-next
+    {purpose
+        Generate a SQL WHERE clause based on {ctext self.base-where-clause}
+        and the {ctext self.hidden-primary-key-field} if any, or the
+        primary key fields in the supplied record.
+    }
+  }
+  {method public {generate-where-sql buf:StringBuf, record:BasicRecord}:void
+    {buf.concat "WHERE "} ||""
+    {if-non-null base-where-clause = self.base-where-clause then
+        {buf.concat "("} ||""
+        {buf.concat base-where-clause}
+        {buf.concat ") AND "} ||""
+    }
+    {type-switch record
+     case r:SQLHiddenIndexRecord do
+        {buf.concat {non-null self.hidden-primary-key-field-name}}
+        {buf.concat "="}
+        || Should this go through some indirection, or should there be a
+        || row-id RecordField somewhere?
+        {self.generate-field-value-sql buf, null, r.row-id,
+            part-of-statement = "whererowid"}
+        {return}
+    }
+    let key-count:int = 0
+    {for fi:int = 0 below self.fields.size do
+        let constant f:RecordField = {self.fields.get-by-index fi}
+        {if {self.field-primary-key? f} then
+            let constant f-name:String = f.name
+            let constant old-record-value:any =
+                {record.get f-name, pending? = false}
+            {if key-count > 0 then
+                {buf.concat " AND "} ||""
+            }
+            {buf.concat f-name}
+            {if old-record-value == null then
+                {buf.concat " IS NULL"} ||""
+             else
+                {buf.concat "="}
+                {self.generate-field-value-sql buf, f, old-record-value,
+                    part-of-statement = "where"}
+            }
+            {inc key-count}
+        }
+    }
+    {if key-count == 0 then
+        {error
+            {lmessage
+                Can not generate valid WHERE clause with no known primary keys.
+            }
+        }
+    }
+  }
+
+  {doc-next
+    {purpose
+        Generate a SQL UPDATE statement for the supplied record.
+    }
+  }
+  {method public {generate-update-statement-sql
+                     buf:StringBuf,
+                     record:BasicRecord
+                 }:void
+    {self.generate-prefix-values-sql buf, record, check-if-modified? = true}
+    || 
+    {self.generate-prefix-values-sql buf, record, primary-keys? = true}
+    {buf.concat "UPDATE "}
+    {buf.concat {self.table-name-for-sql {non-null self.table-name}}}
+    {buf.concat " SET "}
+    {self.generate-assignments-sql buf, record}
+    {buf.concat " "}
+    {self.generate-where-sql buf, record}
+  }
+
+  {doc-next
+    {purpose
+        Generate a SQL DELETE statement for the supplied record.
+    }
+  }
+  {method public {generate-delete-statement-sql
+                     buf:StringBuf,
+                     record:BasicRecord
+                 }:void
+    || But suppress stuff that didn't change
+    {self.generate-prefix-values-sql buf, record, primary-keys? = true}
+    {buf.concat "DELETE FROM "}
+    {buf.concat {self.table-name-for-sql {non-null self.table-name}}}
+    {buf.concat " "}
+    {self.generate-where-sql buf, record}
+  }
+
+  {doc-next
+    {purpose Load or reload this {ctext SQLConnectedRecordSet} 
+        between {ctext start-record} and {ctext size-limit}
+    }
+    {notes
+        Called by {docref SQLConnectedRecordSet.load-range} after clearing
+        existing record data and setting event batching.
+    }
+  }
+  {method protected {load-range-internal
+                        start-record:int = 0,
+                        size-limit:int = -1
+                    }:void
+    let connection:SQLConnection = self.connection asa SQLConnection
+    {self.init}
+    {connection.execute-sql
+        self.database-name,
+        self.query,
+        start-record = start-record,
+        size-limit = size-limit,
+        callback =
+            {proc {row:Array}:bool
+                || use (faster) internal-store-record
+                || NOTE: no need for domain conversion here
+                let r:BasicRecord = {self.allocate-record}
+                let record-index:int = 0
+                {for col key i in row do
+                    {if i == self.hidden-primary-key-field then
+                        {if col == null then
+                            set col = -1
+                            set self.request-modifiable? = false
+                        }
+                        set (r asa SQLHiddenIndexRecord).row-id = col asa int64
+                     else
+                        {r.internal-set-value record-index, col, for-init? = true}
+                        {inc record-index}
+                    }
+                }
+                {self.internal-store-record r, RecordState.original}
+                {self.trigger-record-set-event {RecordAdded r}}
+                {return true}
+            }
+    }
+    {super.commit}
+  }
+
+  {method public {allocate-record}:BasicRecord
+    {return
+        {if self.hidden-primary-key-field >= 0 then
+            {SQLHiddenIndexRecord self}
+         else
+            {BasicRecord self}
+        }
+    }
+  }
+
+  || Note: This api matches the BasicConnectedRecordSet one, but
+  || keyword values seem much more natural.
+  {doc-next
+    {purpose Load or reload this {ctext SQLConnectedRecordSet} 
+        between {ctext start-record} and {ctext size-limit}
+    }
+  }
+  {method public {load-range start-record:int, size-limit:int}:void
+    || This is odd, why would this be a saved value?  (But that is what
+    || BasicConnectedRecordSet does.)
+    set self.size-limit = size-limit
+    {with
+        self.batch-events? = true,
+        self.modifiable? = true
+     do
+        set self.load-state = RecordSetLoadState.synchronizing
+        {if self.size > 0 then || TODO: delete-internal !
+            {self.delete-all}
+            {super.commit}}
+        {self.load-range-internal
+            start-record = start-record, size-limit = size-limit
+        }
+        set self.load-state = RecordSetLoadState.complete
+    }
+  }
+
+  {method public {load}:void
+    {self.load-range 0, self.size-limit}
+  }
+
+  field _load-state:RecordSetLoadState
+  {setter public open {load-state value:RecordSetLoadState}:void
+    {if self._load-state != value then
+        set self._load-state = value
+        {self.trigger-record-set-event {RecordSetLoadStateChanged}}}
+  }
+  {getter public open {load-state}:RecordSetLoadState
+    {return self._load-state}
+  }
+
+  {doc-next
+    {purpose
+        Used to get the table-name by methods that compose SQL statements.
+    }
+  }
+  {method protected {table-name-for-sql table-name:String}:String
+    {return table-name}
+  }
+}
+
+
+{doc-next
+    {purpose
+        Class used to hold records by {docref SQLConnectedRecordSet} when
+        there is a {ctext hidden-primary-key-field}.
+    }
+}
+{define-class public SQLHiddenIndexRecord {inherits BasicRecord}
+  || Holds an index that isn't a field as well as normal Record stuff.
+  || Mostly needed by SQLite for its ROWID concept.
+  || FIXME: Should this instead hold a normal record value to support
+  || non-int64 hidden index fields?
+  {doc-next
+    {purpose
+        Value of {ctext hidden-primary-key-field} for this record.
+    }
+  }
+  field public row-id:int64
+
+  {constructor public {default record-set:BasicRecordSet}
+    {construct-super record-set}
+  }
+}
+
+
+|| Should this be shared?
+{doc-next
+    {purpose
+        A {docref RecordField} with some extra fields to keep information
+        about SQL columns, and handle marshaling data.
+    }
+}
+{define-class public SQLRecordField {inherits ConnectedField}
+  {doc-next
+    {purpose
+        Is this field a primary key.
+    }
+  }
+  field public constant primary-key?:bool
+
+  {doc-next
+    {purpose
+        Is this field auto increment, and so get special treatment on
+        append and insert.
+    }
+  }
+  field public constant auto-increment?:bool
+
+  {doc-next
+    {purpose
+        Is this field marked as NOT NULL in the database.
+    }
+  }
+  field public constant not-null?:bool
+
+  field public constant type-name:String
+
+  {getter public {default-value}:any
+    {if self.auto-increment? then
+        {return null}
+    }
+    {return super.default-value}
+  }
+
+  {constructor public {default 
+                          field-name:String,
+                          caption:String = field-name,
+                          domain:Domain = {StandardAnyDomain},
+                          modifiable?:bool = true,
+                          nullable?:bool = false,
+                          default-value:any = domain.default-value,
+                          index-type:RecordFieldIndexType = 
+                              RecordFieldIndexType.none,
+                          type-name:String,
+                          primary-key?:bool = false,
+                          not-null?:bool = false,
+                          auto-increment?:bool = false
+                      }
+    set self.primary-key? = primary-key?
+    set self.auto-increment? = auto-increment?
+    set self.not-null? = not-null?
+    set self.type-name = type-name
+    {construct-super 
+        field-name, 
+        caption = caption, 
+        domain = domain,
+        modifiable? = modifiable?,
+        nullable? = nullable?,
+        default-value = default-value,
+        index-type = index-type
+    }
+  }
+
+  {method public open {marshal v:any}:String
+    {return
+        {if v == null then
+            "NULL" ||""
+         || Hacky way of deciding that this should turn into a SQL
+         || format string.
+         elseif self.domain.type == String then
+            || For SQL, double \ or '
+            def s = v asa String
+            let qr:StringBuf = {StringBuf efficient-size = s.size + 2}
+            {qr.append '\''}
+            {for ch in s do
+                {if ch == '\'' or ch == '\\' then
+                    {qr.append ch}
+                }
+                {qr.append ch}
+            }
+            {qr.append '\''}
+            {qr.to-String}
+         else
+            {super.marshal v}
+        }
+    }
+  }
+
+}
+

@@ -1,0 +1,225 @@
+||| Copyright (C) 1998-2010, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+|| since 0.8
+
+|| store LRU caches into SQLite database. 
+{let SQLiteDatabase:Type = {uninitialized-value-for-type Type}}
+{let the-database:any}
+
+{define-class package SimpleCacheStorageUtil
+  
+  {define-proc {create-cache-database encryption-key:#ByteArray = null}:void
+    {api-version-switch
+     case "7+" do
+        def p = {import-package {make-package-selector "COM.CURL.CDK.SQLITE"}}
+        set SQLiteDatabase = {p.lookup "SQLiteDatabase", check-imports? = true}
+        set the-database = 
+            {SQLiteDatabase 
+                {manifest-url 
+                    "file", "cache-database",
+                    manifest = {get-current-manifest}
+                },
+                auto-vacuum? = true,
+                encryption-type = {if encryption-key != null then "aes256" else "none"},
+                key = {if encryption-key != null then {non-null encryption-key} else null}
+            }
+        {the-database.execute 
+            |" 
+               CREATE TABLE IF NOT EXISTS orb_simple_cache (
+                 name VARCHAR, 
+                 key VARCHAR,
+                 value BLOB,
+                 PRIMARY KEY (name, key)) "|}
+     else
+        {error "The disk caching supports more than Curl RTE 7.0."}
+    }
+  }
+  
+  {define-proc {load-into-cache cache:Cache}:void
+    def db = the-database asa SQLiteDatabase
+    def rows = 
+        {db.sql-rows
+            |"SELECT key, value FROM orb_simple_cache WHERE name = ? "|,
+            cache.name
+        }
+    {for r in rows do
+        set (cache asa SimpleCache).cache-table[r[0]] = {parse-value r[1]}
+    }
+  }
+  
+  {define-proc {write-cache-value cache-name:String, key:String, value:any}:void
+    def db = the-database asa SQLiteDatabase
+    def stmt = 
+        {db.create-statement 
+            |"INSERT INTO orb_simple_cache(name, key, value) VALUES (?, ?, ?)"|
+        }
+    {stmt.bind cache-name, key, {format-value value}}
+    {stmt.step}
+  }
+  
+  {define-proc {remove-cache-value cache-name:String, key:String}:void
+    def db = the-database asa SQLiteDatabase
+    def stmt = {db.create-statement |"DELETE FROM orb_simple_cache WHERE name = ? AND key = ? "|}
+    {stmt.bind cache-name, key}
+    {stmt.step}
+  }
+  
+  {define-proc {remove-cache cache-name:String}:void
+    def db = the-database asa SQLiteDatabase
+    def stmt = {db.create-statement |"DELETE FROM orb_simple_cache WHERE name = ? "|}
+    {stmt.bind cache-name}
+    {stmt.step}
+  }
+}
+
+|| storage utility for LRUCache
+{define-class package LRUCacheStorageUtil
+  
+  {define-proc {create-cache-database encryption-key:#ByteArray = null}:void
+    {api-version-switch
+     case "7+" do
+        def p = {import-package {make-package-selector "COM.CURL.CDK.SQLITE"}}
+        set SQLiteDatabase = {p.lookup "SQLiteDatabase", check-imports? = true}
+        set the-database = 
+            {SQLiteDatabase 
+                {manifest-url
+                    "file", "cache-database",
+                    manifest = {get-current-manifest}    
+                },
+                auto-vacuum? = true,
+                encryption-type = {if encryption-key != null then "aes256" else "none"},
+                key = {if encryption-key != null then {non-null encryption-key} else null}
+            }
+        {the-database.execute 
+            |" 
+               CREATE TABLE IF NOT EXISTS orb_lru_cache (
+                 name VARCHAR, 
+                 key VARCHAR,
+                 value BLOB,
+                 create_date VARCHAR,
+                 last_access_date VARCHAR,
+                 PRIMARY KEY (name, key)) "|}
+     else
+        {error "The disk caching supports more than Curl RTE 7.0."}
+    }
+  }
+  
+  {define-proc {load-into-cache cache:Cache}:void
+    def db = the-database asa SQLiteDatabase
+    def rows = 
+        {db.sql-rows
+            |"SELECT key, value, create_date, last_access_date FROM orb_lru_cache WHERE name = ? "|,
+            cache.name
+        }
+    {for r in rows do
+        set (cache asa LRUCache).cache-table[r[0]] = 
+            {LRUCacheElement 
+                {parse-value r[1]},
+                {parse-DateTime r[2]},
+                {parse-DateTime r[3]}
+            }
+    }
+  }
+  
+  {define-proc {write-cache-value cache-name:String, key:String, cache-element:LRUCacheElement}:void
+    def db = the-database asa SQLiteDatabase
+    def stmt = 
+        {db.create-statement 
+            |"INSERT INTO orb_lru_cache(name, key, value, create_date, last_access_date) VALUES (?, ?, ?, ?, ?)"|
+        }
+    {stmt.bind 
+        cache-name, 
+        key,
+        {format-value cache-element.value}, 
+        {format-DateTime cache-element.create-date}, 
+        {format-DateTime cache-element.last-access-date}
+    }
+    {stmt.step}
+  }
+  
+  {define-proc {update-last-access-date cache-name:String, key:String, last-access-date:DateTime}:void
+    def db = the-database asa SQLiteDatabase
+    def stmt = 
+        {db.create-statement 
+            |"UPDATE orb_lru_cache SET last_access_date = ? WHERE name = ? AND key = ? "|
+        }
+    {stmt.bind {format-DateTime last-access-date}, cache-name, key}
+    {stmt.step}
+  }
+  
+  {define-proc {remove-cache-value cache-name:String, key:String}:void
+    def db = the-database asa SQLiteDatabase
+    def stmt = {db.create-statement |"DELETE FROM orb_lru_cache WHERE name = ? AND key = ? "|}
+    {stmt.bind cache-name, key}
+    {stmt.step}
+  }
+  
+  {define-proc {remove-cache cache-name:String}:void
+    def db = the-database asa SQLiteDatabase
+    def stmt = {db.create-statement |"DELETE FROM orb_lru_cache WHERE name = ? "|}
+    {stmt.bind cache-name}
+    {stmt.step}
+  }
+}
+
+{define-proc {get-current-manifest}:ComponentManifest
+    {return
+        {evaluate
+            |"{get-default-manifest}"|
+        } asa ComponentManifest
+    }
+}
+
+|| write local file
+||--{define-proc package {read-cache cache-name:String}:#Cache
+||--    def disk = {url cache-name}
+||--    {if {local-file-exists? disk} then
+||--        {with-open-streams in = {SerializeInputStream {read-open-byte disk}} do
+||--            {return {in.read-one} asa Cache}
+||--        }
+||--    }
+||--    {return null}
+||--}
+||--
+||--{define-proc package {write-cache cache:Cache}:void
+||--    def disk = {url cache.name}
+||--    {remove-cache cache.name}
+||--    {try
+||--        {with-open-streams
+||--            out = {SerializeOutputStream
+||--                      {write-open-byte
+||--                          disk,
+||--                          create? = true,
+||--                          create-mode = 0o666,
+||--                          error-if-exists? = true
+||--                      }
+||--                  }
+||--         do
+||--            {out.write-one cache}
+||--            {out.flush}
+||--        }
+||--     catch e:Exception do
+||--        {remove-cache cache.name}
+||--    }
+||--}
+||--
+||--{define-proc package {remove-cache cache-name}:void
+||--    def disk = {url cache-name}
+||--    {delete disk, error-if-missing? = false}
+||--}

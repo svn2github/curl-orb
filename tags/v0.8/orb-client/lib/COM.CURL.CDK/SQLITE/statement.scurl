@@ -1,0 +1,1479 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+|||
+
+|| prepared statement
+|| --------------------
+{doc-next
+    {purpose
+        Represents a prepared SQLite statement.
+    }
+    {notes
+        Call {docref SQLiteDatabase.prepare} to construct this object.
+    }
+}
+{define-class public open SQLiteStatement
+
+  {doc-next
+    {purpose
+        The {docref SQLiteStatementHandle} that points to the prepared SQL
+        statement in the memory.
+    }
+  }
+  field package stmt:SQLiteStatementHandle
+
+  {doc-next
+    {purpose
+        The SQL statement this object represents.
+    }
+  }
+  field public-get private-set sql:String
+
+  {doc-next
+    {purpose
+        The left over SQL statement, after processing the first query
+        with {docref SQLiteStatement.prepare}.
+    }
+  }
+  field public-get private-set tail-sql:#String
+
+  {doc-next
+    {purpose
+        The {docref SQLiteDatabase} this object was constructed for.
+    }
+  }
+  field constant public database:SQLiteDatabase
+
+  {doc-next
+    {purpose
+        Table that has the association of the column index to the
+        value it is bound to.
+    }
+    {notes
+        If non-{ctext null}, it contains a list of column indexes with
+        the corresponding values it is bound to.
+        
+        This is populated when the bind methods are called for this
+        statement. It is used when the statement is recompiled after
+        it has been finalized.
+    }
+  }
+  field package _bind-table:#{HashTable-of int, any}
+
+  {doc-next
+    {purpose
+        Construct a {docref SQLiteStatement} object.
+    }
+    {parameter database,
+        The {docref SQLiteDatabase} this statement is associated with.
+    }
+    {parameter sql,
+        The SQL statement this object represents.
+    }
+    {notes
+        The {param sql} statement will not be prepared till it is
+        needed.
+    }
+  }
+  || TODO: Should this be "protected" and people should just use
+  || SQLiteDatabase.create-statement?
+  {constructor public {default 
+                           database:SQLiteDatabase, 
+                           sql:StringInterface
+                       }
+    set self.database = database
+    set self.sql = {sql.to-String}
+    set self.stmt = {SQLiteStatementHandle}
+  }
+
+  {doc-next
+    {purpose
+        Returns a pointer to the compiled sql statement.
+    }
+    {notes
+        This getter will always return a compiled {docref
+        SQLiteStatement.sql} statement. If the statement was not
+        compiled or finalized, it will re-compile it.
+
+        Call {docref SQLiteStatement.stmt} if you do not want to
+        recompile the statement.
+    }
+  }
+  {getter private {non-null-stmt}:SQLiteStatementHandle
+    || Calling prepare is a no-op if the statement is already
+    || compiled.
+    {self.prepare}
+    {return self.stmt}
+  }
+
+  {doc-next
+    {purpose
+        Table that has the association of the column index to the
+        value it is bound to.
+    }
+    {notes
+        If non-{ctext null}, it contains a list of column indexes with
+        the corresponding values it is bound to.
+        
+        This is populated when the bind methods are called for this
+        statement. It is used when the statement is recompiled after
+        it has been finalized.
+    }
+  }
+  || TODO: Should this really be public?
+  {getter public {bind-table}:{HashTable-of int, any}
+    {return
+        {if-non-null bind-table = self._bind-table then
+            bind-table
+         else
+            let constant bind-table:{HashTable-of int, any} =
+                {{HashTable-of int, any}}
+            set self._bind-table = bind-table
+            bind-table
+        }
+    }
+  }
+
+  {doc-next
+    {purpose
+        Compiles {docref SQLiteStatement.sql} into a byte-code program
+        readable by the SQLite virtual machine.
+    }
+    {parameter throw-on-error?,
+        If {ctext true} and preparing the statement fails,
+        an error will be thrown. Otherwise no error will be thrown and
+        the caller is responsible to check the return value of this
+        method to see if the statement was successfully
+        executed or not.
+
+        It is {ctext true} by default.
+    }
+    {return-vals
+        Returns the {docref SQLiteStatus} about the preparation.
+    }
+    {notes
+        This method is a no-op if {ctext SQLiteStatement.stmt} is a
+        valid, i.e. not 0.
+
+        This method is called lazily to compile the SQL statement if
+        it is not compiled or had been previously finalized. This is
+        called by {docref SQLiteStatement.non-null-stmt} getter if
+        {docref SQLiteStatement.stmt} is 0.
+        
+        This method will also bind all the columns with their
+        respective values as stored in the {docref
+        SQLiteStatement.bind-table}.
+
+        If the compilation fails a {docref SQLiteException} will be thrown.
+    }
+  }
+  {method public {prepare throw-on-error?:bool = true}:SQLiteStatus
+    {if self.stmt.open? then {return SQLiteStatus.OK}}
+
+    let status:SQLiteStatus
+    set (self.tail-sql, status) =
+        {self.database.prepare-statement self.sql, self.stmt, throw-on-error?}
+    {if status == SQLiteStatus.OK then
+        {if-non-null table = self._bind-table then
+            {for val key i in table do
+                {self.bind-any i, val}
+            }
+        }
+    }
+    {return status}
+  }
+
+  {doc-next
+    {purpose
+        Compiles {docref SQLiteStatement.tail-sql} into a byte-code program
+        readable by the SQLite virtual machine.
+    }
+    {parameter throw-on-error?,
+        If {ctext true} and preparing the statement fails,
+        an error will be thrown. Otherwise no error will be thrown and
+        the caller is responsible to check the return value of this
+        method to see if the statement was successfully
+        executed or not.
+
+        It is {ctext true} by default.
+    }
+    {return-vals
+        If {docref SQLiteStatement.tail-sql} is {ctext null}, including
+        if {docref SQLiteStatement.prepare} has never been called,
+        then does nothing, but returns {ctext false}.
+        If a new SQL query has been prepared, this return {ctext true}.
+
+        The second return value is the {docref SQLiteStatus} about the
+        preparation.
+    }
+  }
+  {method public {prepare-next
+                     throw-on-error?:bool = true
+                 }:(bool, SQLiteStatus)
+    {if-non-null tail-sql = self.tail-sql then
+        set self.sql = tail-sql
+        set self.tail-sql = null
+        set self._bind-table = null
+        {self.finalize}
+        let status:SQLiteStatus =
+            {self.prepare throw-on-error? = throw-on-error?}
+        {return true, status}
+    }
+    {return false, SQLiteStatus.OK}
+  }
+  
+  {doc-next
+    {purpose
+        Executes the {docref SQLiteStatement}.
+    }
+    {parameter throw-on-error?,
+        If {ctext true} and executing the statement fails,
+        an error will be thrown. Otherwise no error will be thrown and
+        the caller is responsible to check the return value of this
+        method to see if the statement was successfully
+        executed or not.
+
+        It is {ctext true} by default.
+    }
+    {return-vals
+        The return value is either {ctext SQLiteStatus.BUSY}, {ctext
+        SQLiteStatus.DONE}, {ctext SQLiteStatus.ROW}, {ctext
+        SQLiteStatus.ERROR} or {ctext SQLiteStatus.MISUSE}.
+
+        {ctext SQLiteStatus.DONE} means that this statement has finished
+        executing successfully. {ctext SQLiteInterface.step} should
+        not be called again on this object without calling {docref
+        SQLiteStatement.reset}.
+
+        If this SQL statement being executed returns any data, then
+        {ctext SQLiteStatus.ROW} is returned for each time a row of data is
+        ready for processing by the caller. The values can be accessed
+        by using {docref SQLiteSatement.get-column} method. Subsequent
+        rows are retrieved by calling {ctext SQLiteStatement.step}
+        method.
+    }
+    {notes
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+    }
+  }
+  {method public open {step
+                          throw-on-error?:bool = true
+                      }:SQLiteStatus
+    let status:SQLiteStatus
+    {if not self.stmt.open? then
+        set status = {self.prepare throw-on-error? = throw-on-error?}
+        {if status != SQLiteStatus.OK then
+            {return status}
+        }
+    }
+    set status = {self.non-null-stmt.step}
+    {if throw-on-error? and not {SQLiteStatus-ok? status} then
+        || Note: as of SQLite 3.5.6, you must reset in order to get
+        || appropriate error messages (and maybe error codes), even
+        || though the docs imply otherwise.  See SQLite ticket 2940:
+        || http://www.sqlite.org/cvstrac/tktview?tn=2940,2
+        {self.reset}
+        || will throw, with error message
+        {self.database.check-status}
+    }
+    {return status}
+  }
+
+  {doc-next
+    {purpose
+        Returns the number of values in the current row of the result
+        set.
+    }
+    {return-vals
+        If called before {docref SQLiteStatement.step} or after {ctext
+        SQLiteStatement.step} has returned a value that is not {ctext
+        SQLiteStatus.ROW}, the return value is zero. Otherwise it is
+        the number of values in the current row of the result set.
+    }
+    {notes
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+    }
+  }
+  {getter public open {column-data-count}:int
+    {return {{SQLiteInterface}.data-count self.non-null-stmt}}
+  }
+
+  {doc-next
+    {purpose
+        Returns the number of columns in the result set.
+    }
+    {return-vals
+        Returns the number of columns in the result set. It is zero if
+        this {docref SQLiteStatement} represents an SQL statement that
+        does not return data.
+    }
+    {notes
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+    }
+  }
+  {getter public open {column-count}:int
+    {return {{SQLiteInterface}.column-count self.non-null-stmt}}
+  }
+
+  {doc-next
+    {purpose
+        The name of a column in this {docref SQLiteStatement}.
+    }
+    {parameter column-index,
+        The column ordinal for which the column name is to be
+        retrieved. The column index is zero-based.
+    }
+    {return-vals
+        The column name.
+    }
+    {notes
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+    }
+  }
+  {method public open {get-column-name column-index:int}:String
+    {return {{SQLiteInterface}.column-name self.non-null-stmt, column-index}}
+  }
+
+  {doc-next
+    {purpose
+        Return the names of all of the columns in the result set for this
+        statement.
+    }
+    {return-vals
+        The column names.
+    }
+    {notes
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+    }
+  }
+  {getter public open {column-names}:StringArray
+    let constant column-name-count:int = self.column-count
+    let constant column-names:StringArray =
+        {StringArray efficient-size = column-name-count}
+    {for i = 0 below column-name-count do
+        {column-names.append {self.get-column-name i}}
+    }
+    {return column-names}
+  }
+
+  {doc-next
+    {purpose
+        The data type of a column in this {docref SQLiteStatement}.
+    }
+    {parameter column-index,
+        The column ordinal for which the column type is to be
+        retrieved. The column index is zero-based.
+    }
+    {return-vals
+        Returns the data type of a given column with ordinal
+        {param column-index} in the result set for this object.
+
+        See also {docref SQLiteStatement.get-column-decltype}.
+    }
+    {notes
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+    }
+  }
+  {method public open {get-column-type column-index:int}:SQLiteDatatype
+    {return 
+        {{SQLiteInterface}.column-type self.non-null-stmt, column-index}
+    }
+  }
+
+  {doc-next
+    {purpose
+        The declared type of a column in this {docref SQLiteStatement}.
+    }
+    {parameter column-index,
+        The column ordinal for which the column declared type is to be
+        retrieved. The column index is zero-based.
+    }
+    {return-vals
+        Returns the declared type of a column, as it is defined in the
+        {ctext CREATE TABLE} statement in the database.
+
+        If the column does not correspond to an actual table column
+        {ctext null} is returned.
+    }
+    {notes
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+    }
+  }
+  {method public open {get-column-decltype column-index:int}:#String
+    {return {{SQLiteInterface}.column-decltype self.non-null-stmt, column-index}}
+  }
+
+  {doc-next
+    {purpose
+        Returns the value, as a {ctext int}, of a
+        column of the current row in a result set.
+    }
+    {parameter column-index,
+        The column ordinal for which the column value is to be
+        retrieved. The column index is zero-based.
+    }
+    {return-vals
+        The value of the column as a {ctext int}.
+    }
+    {notes
+        If this {ctext SQLiteStatement} is currently not pointing to a
+        valid row, or if the column index is out of range, the result
+        is undefined.
+
+        If the item is {ctext null} in the table, you will get a
+        0. In order to distinguish between a {ctext null} value or a
+        value with 0 one can use {docref SQLiteStatement.column-type}.
+
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+    }
+  }
+  {method public open {get-column-int column-index:int}:int
+    {return {{SQLiteInterface}.column-int self.non-null-stmt, column-index}}
+  }
+
+  {doc-next
+    {purpose
+        Returns the value, as a {ctext int64}, of a
+        column of the current row in a result set.
+    }
+    {parameter column-index,
+        The column ordinal for which the column value is to be
+        retrieved. The column index is zero-based.
+    }
+    {return-vals
+        The value of the column as a {ctext int64}.
+    }
+    {notes
+        If this {docref SQLiteStatement} is currently not pointing to
+        a valid row, or if the column index is out of range, the
+        result is undefined.
+
+        If the item is {ctext null} in the table, you will get a
+        0. In order to distinguish between a {ctext null} value or a
+        value with 0 one can use {docref SQLiteStatement.column-type}.
+
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+    }
+  }
+  {method public open {get-column-int64 column-index:int}:int64
+    {return {{SQLiteInterface}.column-int64 self.non-null-stmt, column-index}}
+  }
+
+  {doc-next
+    {purpose
+        Returns the value, as a {ctext double}, of a
+        column of the current row in a result set.
+    }
+    {parameter column-index,
+        The column ordinal for which the column value is to be
+        retrieved. The column index is zero-based.
+    }
+    {return-vals
+        The value of the column as a {ctext double}.
+    }
+    {notes
+        If this {ctext SQLiteStatement} is currently not pointing to a
+        valid row, or if the column index is out of range, the result
+        is undefined.
+
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+    }
+  }
+  {method public open {get-column-double column-index:int}:double
+    {return {{SQLiteInterface}.column-double self.non-null-stmt, column-index}}
+  }
+
+  {doc-next
+    {purpose
+        Returns the value, as a {docref String}, of a
+        column of the current row in a result set.
+    }
+    {parameter column-index,
+        The column ordinal for which the column value is to be
+        retrieved. The column index is zero-based.
+    }
+    {return-vals
+        The value of the column as a {docref String}.
+    }
+    {notes
+        If this {docref SQLiteStatement} is currently not pointing to a valid
+        row, or if the column index is out of range, the result is
+        undefined.
+
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+    }
+  }
+  {method public open {get-column-text column-index:int}:#String
+    {return {{SQLiteInterface}.column-text self.non-null-stmt, column-index}}
+  }
+
+  {doc-next
+    {purpose
+        Returns the value, as a {docref ByteArray}, of a
+        column of the current row in a result set.
+    }
+    {parameter column-index,
+        The column ordinal for which the column value is to be
+        retrieved. The column index is zero-based.
+    }
+    {return-vals
+        The value of the column as a {docref ByteArray}.
+    }
+    {notes
+        If this {ctext SQLiteStatement} is currently not pointing to a
+        valid row, or if the column index is out of range, the result
+        is undefined.
+
+        One can use {docref SQLiteStatement.column-bytes} to get the
+        number of bytes in the {ctext blob}.
+
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+    }
+  }
+  {method public open {get-column-blob
+                          column-index:int,
+                          out:#ByteArray = null
+                      }:#ByteArray
+    {return {{SQLiteInterface}.column-blob self.non-null-stmt, column-index, out = out}}
+  }
+
+  {doc-next
+    {purpose
+        Returns the number of bytes it will take to hold the
+        the value of the column of the current row.
+    }
+    {parameter column-index,
+        The column ordinal for which the column value is to be
+        retrieved. The column index is zero-based.
+    }
+    {return-vals
+        The number of bytes it will take to hold the
+        the value of the column of the current row.
+    }
+    {notes
+        If this {ctext SQLiteStatement} is currently not pointing to a
+        valid row, or if the column index is out of range, the result
+        is undefined.
+
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+    }
+  }
+  {method public open {get-column-bytes column-index:int}:int
+    {return {{SQLiteInterface}.column-bytes self.non-null-stmt, column-index}}
+  }
+
+  {doc-next
+    {purpose
+        Returns the value of a column of the current row in a result set.
+    }
+    {parameter column-index,
+        The column ordinal for which the column value is to be
+        retrieved. The column index is zero-based.
+    }
+    {return-vals
+        The value of the column as what ever type is appropriate for
+        the value in the column
+    }
+    {notes
+        If this {ctext SQLiteStatement} is currently not pointing to a
+        valid row, or if the column index is out of range, the result
+        is undefined.
+
+        One can use {docref SQLiteStatement.column-bytes} to get the
+        number of bytes in the {ctext blob}.
+
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+    }
+  }
+  {method public {get-column-value index:int}:any
+    let t:SQLiteDatatype = {self.get-column-type index}
+    {return
+        {switch t
+         case SQLiteDatatype.INTEGER do
+            || TODO: is there a better way?
+            let xi:int64 = {self.get-column-int64 index}
+            {if xi <= max-int32 and xi >= min-int32 then
+                xi asa int
+             else xi}
+         case SQLiteDatatype.REAL do {self.get-column-double index}
+         case SQLiteDatatype.TEXT do {self.get-column-text index}
+         case SQLiteDatatype.NULL do null
+         case SQLiteDatatype.BLOB do
+            || TODO: test this
+            {self.get-column-blob index}
+         else
+            {throw
+                {SQLiteException 
+                    SQLiteStatus.MISMATCH,
+                    {lmessage Unexpected SQLite datatype {value t}.}
+                }
+            }
+        }
+    }
+  }
+
+  {doc-next
+    {purpose
+        Return the column values in the current row of this statement.
+    }
+    {return-vals
+        The column values.
+
+        These will be undefined if there is no current row.
+    }
+  }
+
+  {getter public {current-row}:Array
+    || - zero if no current row
+    let nval:int = self.column-data-count
+    let row:Array = {Array efficient-size = nval}
+    {for i = 0 below nval do
+        {row.append {self.get-column-value i}}
+    }
+    {return row}
+  }
+
+  {doc-next
+    {purpose
+        Return an {docref Iterator-of} {docref Array} that will iterate
+        over all of the rows in the results for the statement.
+    }
+  }
+  {method public {rows-to-Iterator}:{Iterator-of Array}
+    {return {SQLiteStatementRowsIterator self}}
+  }
+
+  || SQL convenience functions
+  || --------------------
+  
+  {doc-next
+    {purpose
+        Return whether this statement contains any data.
+    }
+    {notes
+        This resets the statement at the start and end of the method.
+    }
+    {return-vals
+        If any rows are selected by the statement, returns {ctext true}.
+    }
+  }
+
+  {method public {data-exists?}:bool
+    {self.reset}
+    def status = {self.step}
+    def exists? = status == SQLiteStatus.ROW 
+    {self.reset}
+    {return exists?}
+  }
+  
+  {doc-next
+    {purpose
+        Return one value from the first row of this statement.
+        {parameter index, specifies which column.}
+    }
+    {notes
+        This resets the statement at the start and end of the method.
+    }
+    {return-vals
+        The value of the specified column for the first row,
+        or null if no rows are selected by the statement.
+    }
+  }
+
+  {method public {data-value index:int = 0}:any
+    {self.reset}
+    def status = {self.step}
+    def val = {self.get-column-value index}
+    {self.reset}
+    {return val}
+  }
+
+  {doc-next
+    {purpose
+        Return the values in the first row of this statement.
+    }
+    {notes
+        This resets the statement at the start and end of the method.
+    }
+    {return-vals
+        An array of values.
+
+        These will be undefined if there is no current row.
+    }
+  }
+
+  {method public {data-row}:Array
+    {self.reset}
+    def status = {self.step}
+    def row:Array = self.current-row
+    {self.reset}
+    {return row}
+  }
+
+  {doc-next
+    {purpose
+        Return the values in each row of this statement.
+    }
+    {notes
+        This resets the statement at the start and end of the method.
+    }
+    {return-vals
+        An array of rows.
+    }
+  }
+
+  {method public {data-rows}:{Array-of Array}
+    let constant rows:{Array-of Array} = {{Array-of Array}}
+    {self.reset}
+    {while {self.step} == SQLiteStatus.ROW do
+        {rows.append self.current-row}
+    }
+    {self.reset}
+    {return rows}
+  }
+
+  {doc-next
+    {purpose
+        Return the values in a column of this statement.
+    }
+    {notes
+        This resets the statement at the start and end of the method.
+    }
+    {return-vals
+        An array of values.
+    }
+  }
+
+  {method public {data-column index:int = 0}:Array
+    let constant col:Array = {Array}
+    {self.reset}
+    {while {self.step} == SQLiteStatus.ROW do
+        {col.append {self.get-column-value index}}
+    }
+    {self.reset}
+    {return col}
+  }
+
+  || ==========
+
+
+  {doc-next
+    {purpose
+        Deletes this prepared SQL statement.
+    }
+    {return-vals
+        Returns the status code of the most recent step or
+        prepare of the statement.
+    }
+    {notes
+        All prepared statements must be finalized before calling
+        {docref SQLiteDatabase.close}, otherwise {ctext
+        SQLiteDatabase.close} will fail and return {ctext
+        SQLiteStatus.BUSY}.
+
+        This function can be called at any point during the execution
+        of the virtual machine. If the virtual machine has not
+        completed execution when this routine is called, it is like
+        encountering an error or an interrupt. In this case, incomplete
+        updates may be rolled back and transactions canceled,
+        depending on the circumstances, and {ctext
+        SQLiteStatement.finalize} will return {ctext
+        SQLiteStatus.ABORT}.
+
+        It is a no-op to call this method if this object is already
+        finalized and not re-compiled.
+    }
+  }
+  {method public open {finalize}:SQLiteStatus
+    {if not self.stmt.open? then {return SQLiteStatus.OK}}
+    let constant status:SQLiteStatus =
+        {self.database.finalize-statement self.stmt}
+    {return status}
+  }
+
+  {doc-next
+    {purpose
+        Resets the {docref SQLiteStatement}.
+    }
+    {return-vals
+        Returns the status code of the most recent step or
+        prepare of the statement.
+    }
+    {notes
+        After this call this {ctext SQLiteStatement} is ready to be
+        re-executed. Any SQL parameters that have values bound to them
+        will retain their values on the subsequent execution.
+        Use {docref-abbr SQLiteStatement.clear-bindings} to unset parameter
+        bindings.
+    }
+    {notes
+        If the {ctext SQLiteStatement} is not yet prepared or it is
+        finalized then this method is a no-op and returns {ctext
+        SQLiteStatement.OK}.
+    }
+  }
+  {method public open {reset}:SQLiteStatus
+    {return {self.stmt.reset}}
+  }
+
+
+  {doc-next
+    {purpose
+        Clears parameter bindings for the {docref SQLiteStatement}.
+    }
+  }
+  {method public open {clear-bindings}:void
+    {if not self.stmt.open? then {return}}
+    set self._bind-table = null
+    
+    {if {{SQLiteInterface}.clear-bindings self.stmt} != SQLiteStatus.OK then
+        {self.database.check-status}
+    }
+  }
+
+  {doc-next
+    {purpose
+        Assigns (or binds) an {ctext int} to a parameter in this prepared SQL
+        statement.
+    }
+    {parameter index,
+        Index of the parameter to be set. 
+
+        All parameters are identified by an index or a
+        number. Positional parameters, for example, are numbered using
+        sequential integer values, starting with 1 for the first
+        parameter.
+    }
+    {parameter val,
+        The value to bind to the parameter with the index {param index}.
+    }
+    {notes
+        Unbound parameters are interpreted as NULL.
+
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+
+        If the binding operation is successful, the {docref
+        SQLiteStatement.bind-table} will be updated to reflect this
+        binding so that this binding can be re-applied if this
+        statement is recompiled in the future.
+    }
+  }
+  {method public open {bind-int index:int, val:int}:void
+    let constant status:SQLiteStatus =
+        {{SQLiteInterface}.bind-int self.non-null-stmt, index, val}
+    
+    {if status == SQLiteStatus.OK then
+        set self.bind-table[index] = val
+     else
+        {self.database.check-status}
+    }
+  }
+
+  {doc-next
+    {purpose
+        Assigns (or binds) an {ctext int64} to a parameter in this prepared SQL
+        statement.
+    }
+    {parameter index,
+        Index of the parameter to be set. 
+
+        All parameters are identified by an index or a
+        number. Positional parameters, for example, are numbered using
+        sequential integer values, starting with 1 for the first
+        parameter.
+    }
+    {parameter val,
+        The value to bind to the parameter with the index {param index}.
+    }
+    {notes
+        Unbound parameters are interpreted as NULL.
+
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+        
+        If the binding operation is successful, the {docref
+        SQLiteStatement.bind-table} will be updated to reflect this
+        binding so that this binding can be re-applied if this
+        statement is recompiled in the future.
+    }
+  }
+  {method public open {bind-int64 index:int, val:int64}:void
+    let constant status:SQLiteStatus =
+        {{SQLiteInterface}.bind-int64 self.non-null-stmt, index, val}
+    
+    {if status == SQLiteStatus.OK then
+        set self.bind-table[index] = val
+     else
+        {self.database.check-status}
+    }
+  }
+
+  {doc-next
+    {purpose
+        Assigns (or binds) a {ctext double} to a parameter in this prepared
+        SQL statement.
+    }
+    {parameter index,
+        Index of the parameter to be set. 
+
+        All parameters are identified by an index or a
+        number. Positional parameters, for example, are numbered using
+        sequential integer values, starting with 1 for the first
+        parameter.
+    }
+    {parameter val,
+        The value to bind to the parameter with the index {param index}.
+    }
+    {notes
+        Unbound parameters are interpreted as NULL.
+
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+
+        If the binding operation is successful, the {docref
+        SQLiteStatement.bind-table} will be updated to reflect this
+        binding so that this binding can be re-applied if this
+        statement is recompiled in the future.
+    }
+  }
+  {method public open {bind-double index:int, val:double}:void
+    let constant status:SQLiteStatus =
+        {{SQLiteInterface}.bind-double self.non-null-stmt, index, val}
+
+    {if status == SQLiteStatus.OK then
+        set self.bind-table[index] = val
+     else
+        {self.database.check-status}
+    }
+  }
+
+  {doc-next
+    {purpose
+        Assigns (or binds) a {ctext null} value to a parameter in this
+        prepared SQL statement.
+    }
+    {parameter index,
+        Index of the parameter to be set. 
+
+        All parameters are identified by an index or a
+        number. Positional parameters, for example, are numbered using
+        sequential integer values, starting with 1 for the first
+        parameter.
+    }
+    {notes
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+
+        If the binding operation is successful, the {docref
+        SQLiteStatement.bind-table} will be updated to reflect this
+        binding so that this binding can be re-applied if this
+        statement is recompiled in the future.
+    }
+  }
+  {method public open {bind-null index:int}:void
+    let constant status:SQLiteStatus =
+        {{SQLiteInterface}.bind-null self.non-null-stmt, index}
+
+    {if status == SQLiteStatus.OK then
+        set self.bind-table[index] = null
+     else
+        {self.database.check-status}
+    }
+  }
+
+  {doc-next
+    {purpose
+        Assigns (or binds) a {docref String} value to a parameter in this
+        prepared SQL statement.
+    }
+    {parameter index,
+        Index of the parameter to be set. 
+
+        All parameters are identified by an index or a
+        number. Positional parameters, for example, are numbered using
+        sequential integer values, starting with 1 for the first
+        parameter.
+    }
+    {parameter val,
+        The value to bind to the parameter with the index {param
+        index}.
+    }
+    {notes
+        Unbound parameters are interpreted as NULL.
+
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+
+        If the binding operation is successful, the {docref
+        SQLiteStatement.bind-table} will be updated to reflect this
+        binding so that this binding can be re-applied if this
+        statement is recompiled in the future.
+    }
+  }
+  {method public open {bind-text index:int, val:String}:void
+    let constant status:SQLiteStatus =
+        {{SQLiteInterface}.bind-text self.non-null-stmt, index, val}
+
+    {if status == SQLiteStatus.OK then
+        set self.bind-table[index] = val
+     else
+        {self.database.check-status}
+    }
+  }
+
+  {doc-next
+    {purpose
+        Assigns (or binds) a {docref ByteArray} to a parameter in
+        a prepared SQL statement.
+    }
+    {parameter index,
+        Index of the parameter to be set. 
+
+        All parameters are identified by an index or a
+        number. Positional parameters, for example, are numbered using
+        sequential integer values, starting with 1 for the first
+        parameter.
+    }
+    {parameter val,
+        The value to bind to the parameter with the index {param
+        index}.
+    }
+    {notes
+        Unbound parameters are interpreted as NULL.
+
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+
+        If the binding operation is successful, the {docref
+        SQLiteStatement.bind-table} will be updated to reflect this
+        binding so that this binding can be re-applied if this
+        statement is recompiled in the future.
+    }
+  }
+  {method public open {bind-blob index:int, val:ByteArray}:void
+    let constant status:SQLiteStatus =
+        {{SQLiteInterface}.bind-blob self.non-null-stmt, index, val}
+
+    {if status == SQLiteStatus.OK then
+        set self.bind-table[index] = {val.clone}
+     else
+        {self.database.check-status}
+    }
+  }
+
+  {doc-next
+    {purpose
+        Number of parameters in this precompiled statement.
+    }
+    {return-vals
+        The number of parameters.
+    }
+    {notes
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+    }
+  }
+  {getter public open {bind-parameter-count}:int
+    {return {{SQLiteInterface}.bind-parameter-count self.non-null-stmt}}
+  }
+
+  {doc-next
+    {purpose
+        The name of a parameter in this precompiled statement.
+    }
+    {parameter index,
+        Index of the parameter whose name is to be retrieved. 
+
+        All parameters are identified by an index or a
+        number. Positional parameters, for example, are numbered using
+        sequential integer values, starting with 1 for the first
+        parameter.
+    }
+    {return-vals
+        The name of the parameter at {param index} in this precompiled
+        statement.
+    }
+    {notes
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+    }
+  }
+  {method public open {get-bind-parameter-name index:int}:#String
+    {return {{SQLiteInterface}.bind-parameter-name self.non-null-stmt, index}}
+  }
+  
+  {doc-next
+    {purpose
+        The index of the parameter in this precompiled statement.
+    }
+    {parameter name,
+        The name of the parameter whose index is requested.
+    }
+    {return-vals
+        The index of the parameter with the given name.
+
+        The name must match exactly. If there is no parameter with the
+        given name, this method returns 0.
+    }
+    {notes
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+    }
+  }
+  {method public open {get-bind-parameter-index name:String}:int
+    {return {{SQLiteInterface}.bind-parameter-index self.non-null-stmt, name}}
+  }    
+
+  {doc-next
+    {purpose
+        Assigns (or binds) a value to a parameter in this prepared SQL
+        statement.
+    }
+    {parameter index,
+        Index of the parameter to be set. 
+
+        All parameters are identified by an index or a
+        number. Positional parameters, for example, are numbered using
+        sequential integer values, starting with 1 for the first
+        parameter.
+    }
+    {parameter val,
+        The value to bind to the parameter with the index {param index}.
+    }
+    {notes
+        Unbound parameters are interpreted as NULL.
+
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+        
+        If the binding operation is successful, the {docref
+        SQLiteStatement.bind-table} will be updated to reflect this
+        binding so that this binding can be re-applied if this
+        statement is recompiled in the future.
+    }
+  }
+  {method public {bind-any index:int, val:any}:void
+    let constant interface:SQLiteInterface = {SQLiteInterface}
+    let constant stmt:SQLiteStatementHandle = self.non-null-stmt
+    let constant status:SQLiteStatus =
+        {type-switch val
+         case x:String do
+            {interface.bind-text stmt, index, x}
+         case x:int do
+            {interface.bind-int stmt, index, x}
+         case x:int64 do
+            {interface.bind-int64 stmt, index, x}
+         case x:double do
+            {interface.bind-double stmt, index, x}
+         case x:Null do
+            {interface.bind-null stmt, index}
+         case x:ByteArray do
+            {interface.bind-blob stmt, index, x}
+         else
+            {throw
+                {SQLiteException 
+                    SQLiteStatus.MISMATCH,
+                    {lmessage Unexpected type {type-of val}.}
+                }
+            }
+        }
+
+    {if status != SQLiteStatus.OK then
+        {self.database.check-status}
+    }
+  }
+
+  {doc-next
+    {purpose
+        Assigns (or binds) a value to a parameter in this prepared SQL
+        statement.
+    }
+    {parameter name,
+        Name of the parameter to be set. 
+
+        The name should be of the form {ctext :<alpha-numeric-name>},
+        {ctext @<alpha-numeric-name>}, or
+        {ctext $<alpha-numeric-name>}.
+    }
+    {parameter val,
+        The value to bind to the parameter named {param name}.
+    }
+    {notes
+        Unbound parameters are interpreted as NULL.
+
+        If {docref SQLiteStatement.sql} is not compiled or was
+        finalized, it will be compiled to get the byte code.
+        
+        If the binding operation is successful, the {docref
+        SQLiteStatement.bind-table} will be updated to reflect this
+        binding so that this binding can be re-applied if this
+        statement is recompiled in the future.
+    }
+  }
+  {method public {bind-any-by-name name:String, val:any}:void
+    let constant stmt:SQLiteStatementHandle = self.non-null-stmt
+    || Just let the underlying bind call fail if bind-parameter-index returns
+    || 0 for name not found.
+    {self.bind-any {{SQLiteInterface}.bind-parameter-index stmt, name}, val}
+  }
+  
+  {doc-next
+    {purpose
+        Binds statement parameters to supplied arguments.
+    }
+    {parameter ...,
+        Keyword arguments will be bound to a parameter of the same name with
+        any of the allowed punctionation prefixes;
+        see {docref SQLiteStatement.bind-any-by-name} for details.
+        Positional arguments will be bound to the next unnamed parameter
+        in the order that they appear at in the argument list.
+   }
+  }
+  {method public {bind ...}:void
+    let constant database:SQLiteDatabase = self.database
+    let constant count:int = self.bind-parameter-count
+    let unnamed-index:int = 1
+    let last-named:int = count
+    let constant stmt:SQLiteStatementHandle = self.non-null-stmt
+    let constant interface:SQLiteInterface = {SQLiteInterface}
+    {for (v, k) in ... do
+        {if-non-null k then
+            let found?:bool
+            {if count > 0 then
+                let named-index:int = (last-named mod count) + 1
+                {while true do
+                    {if-non-null
+                        name = {interface.bind-parameter-name stmt, named-index} 
+                     then
+                        {if {name.suffix? k} and
+                            name.size == (k.size + 1) and
+                            name[0] != '?'
+                         then
+                            {self.bind-any named-index, v}
+                            set found? = true
+                            {break}
+                        }
+                    }
+                    {if named-index == last-named then
+                        {break}
+                    }
+                    set named-index = (named-index mod count) + 1
+                }
+
+                {if found? then
+                    set last-named = named-index
+                }
+            }
+            {if not found? then
+                {throw
+                    {SQLiteException
+                        SQLiteStatus.ERROR,
+                        {lmessage Named parameter not found.}
+                    }
+                }
+            }
+         else
+            || Search for the next unnamed parameter, but be willing to
+            || go too high to induce an error from the SQLite code if there
+            || are too many unnamed parameters.
+            {while unnamed-index <= (count + 1) do
+                let name:#String =
+                    {interface.bind-parameter-name stmt, unnamed-index}
+                || sqlite.org bug 2975 has been filed about the fact that
+                || ?NNN returns a non-null name which is not what their docs
+                || say will happen.
+                {if name == null or {name.prefix? "?"} then
+                    {break}
+                }
+                {inc unnamed-index}
+            }
+            {self.bind-any unnamed-index, v}
+            {inc unnamed-index}
+        }
+    }
+  }
+  
+  {define-proc private {sql-insert-for table:String, ncol:int}:String
+    let buf:StringBuf = {StringBuf "INSERT INTO '"}
+    {buf.concat {table.replace-clone "'", "''"}}
+    {buf.concat "'\n VALUES ("}
+    {for i = 0 below ncol do
+        {if i > 0 then {buf.concat ", "}}
+        {buf.concat "?"}
+    }
+    {buf.concat ");\n"}
+    {return {buf.to-String}}
+  }
+
+  {define-proc private {insert-statement-for
+                           database:SQLiteDatabase,
+                           table-name:String
+                       }:SQLiteStatement
+    let ncols:int = 
+        {with-statement in database
+            stmt = {format "SELECT * from '%s' LIMIT 0", {table-name.replace-clone "'", "''"}}
+         do
+            stmt.column-count
+        }
+    let sql:String = {SQLiteStatement.sql-insert-for table-name, ncols}
+    {return {database.create-statement sql}}
+  }
+
+  {doc-next
+    {purpose
+        Returns a procedure that can be used to insert rows
+        into the specified table.
+    }
+    {parameter database,
+        The database.
+    }
+    {parameter table-name,
+        The table name.
+    }
+    {parameter throw-on-error?,
+        If {ctext true} and executing the statement fails,
+        an error will be thrown. Otherwise no error will be thrown and
+        the caller is responsible to check the return value of this
+        method to see if the statement was successfully
+        executed or not.
+
+        It is {ctext true} by default.
+    }
+    {return-vals
+        A procedure that inserts a row into the table,
+        given a {ctext StringArray} containing column values.
+    }
+  }
+  {define-proc public {insert-proc 
+                          database:SQLiteDatabase,
+                          table-name:String,
+                          throw-on-error?:bool = true
+                      }:({proc-type {...:any}:SQLiteStatus}, SQLiteStatement)
+    let statement:SQLiteStatement = 
+        {SQLiteStatement.insert-statement-for database, table-name}
+    {return
+        {proc {...:any}:SQLiteStatus
+            {statement.bind {splice ...}}
+            || execute
+            def status:SQLiteStatus =
+                {statement.step throw-on-error? = throw-on-error?}
+            {statement.reset}
+            {return status}
+        },
+        statement
+    }
+  }
+  {doc-next
+    {purpose
+        Import CSV data into the specified table.
+    }
+    {parameter database,
+        The database.
+    }
+    {parameter table-name,
+        The table name.
+    }
+    {parameter loc,
+        The CSV file.
+    }
+    {parameter throw-on-error?,
+        If {ctext true} and executing the statement fails,
+        an error will be thrown. Otherwise no error will be thrown and
+        the caller is responsible to check the return value of this
+        method to see if the statement was successfully
+        executed or not.
+
+        It is {ctext true} by default.
+    }
+    {parameter ...,
+        The rest args are supplied to {docref CsvDataReader}.
+    }
+  }
+  {define-proc public {import-csv
+                          database:SQLiteDatabase,
+                          table-name:String,
+                          loc:Url,
+                          throw-on-error?:bool = true,
+                          ...}:void
+    let (f:{proc-type {...:any}:SQLiteStatus}, statement:SQLiteStatement) =
+        {SQLiteStatement.insert-proc database, table-name,
+            throw-on-error? = throw-on-error?}
+    {try
+        {with-open-streams
+            in:CsvDataReader = {CsvDataReader loc, {splice ...}}
+         do
+            {with-transaction in database immediate do
+                {while true do
+                    {if-non-null xs = {in.read-record} then
+                        let constant status:SQLiteStatus = {f {splice xs}}
+                        {switch status
+                         case SQLiteStatus.OK, SQLiteStatus.DONE do
+                            || success
+                         else 
+                            || NOTE: consider collect and return failed records
+                            || BETTER: use ON CONFLICT clause, per keyword arg
+                            {database.check-status}
+                        }
+                     else
+                        {break}
+                    }
+                }
+            }
+        }
+     finally
+        {statement.finalize}
+    }
+  }
+}
+
+{define-class package SQLiteStatementRowsIterator
+  {inherits {Iterator-of Array}}
+
+  field private constant stmt:SQLiteStatement
+
+  {constructor package {default stmt:SQLiteStatement}
+    set self.stmt = stmt
+  }
+
+  {method public {reset}:void
+    {self.stmt.reset}
+  }
+
+  {method public {read-one}:(val:Array, eof?:bool)
+    def status = {self.stmt.step}
+    {if status == SQLiteStatus.ROW then
+        {return self.stmt.current-row, false}
+     else
+        {return {uninitialized-value-for-type Array}, true}
+    }
+  }
+
+}

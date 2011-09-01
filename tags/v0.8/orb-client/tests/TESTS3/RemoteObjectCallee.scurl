@@ -1,0 +1,13 @@
+ 
+{import * from COM.CURL.ORB}
+
+{define-class public RemoteObjectCallee {inherits HttpSessionClient}
+
+  {constructor public {default v0:String} 
+    {construct-super.HttpSessionClient "tests3.RemoteObjectCallee", arguments = {FastArray v0}} 
+  } 
+
+  {method public {get-status}:#String 
+    {return {self.invoke "getStatus"}} 
+  }
+} 

@@ -1,0 +1,14 @@
+{curl 6.0 manifest}
+{manifest COM.CURL.GUI.STYLED, version = "6.0"}
+
+{component package COM.CURL.GUI.STYLED-CONTROLS,
+    location = "skinned-controls/load.pcurl",
+    version = "6.0"
+}
+{component directory resources,
+    location = "resources"
+}
+{component translations COM.CURL.GUI.STYLED-CONTROLS,
+    locale="ja",
+    location="resources/ja/messages.xml"
+}

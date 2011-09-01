@@ -1,0 +1,550 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+{doc-next
+    {purpose
+        Indicates that the content pointer is constant and will never
+        change.
+    }
+    {details
+        It is a special value for the destructor that is passed in as
+        the final argument to routines like {docref
+        SQLiteInterface.result-blob}. It indicates to the destructor
+        that the content pointer is constant and will never change so
+        it should not be destroyed.
+    }
+}
+{let package constant SQLiteStatic:CPointer = 0}
+
+{doc-next
+    {purpose
+        Indicates that the content pointer is transient.
+    }
+    {details
+        It is a special value for the destructor that is passed in as
+        the final argument to routines like {docref
+        SQLiteInterface.result-blob}. It indicates to the destructor
+        that the content pointer is transient, and hence may change,
+        so it should make its own private copy of the content before
+        returning.
+    }
+}
+{let package constant SQLiteTransient:CPointer = -1 asa CPointer}
+
+{let package constant SQLITE_UTF8:int = 1}
+
+{let package constant LowSQLiteDatabaseHandle:Type = CPointer}
+{let package constant LowSQLiteStatementHandle:Type = CPointer}
+{let package constant SQLiteContextHandle:Type = CPointer}
+{let package constant SQLiteValueHandle:Type = CPointer}
+
+{let package constant LowSQLiteExecCallbackProcType:ProcType =
+    {proc-type 
+        {userdata-ptr:CPointer,
+         number-of-columns:int,
+         data-pointer:CPointer,
+         columns-pointer:CPointer
+        }:int}
+}
+{let package constant SQLiteExecCallbackPointerType:Type =
+    {CdeclCallback-to LowSQLiteExecCallbackProcType}
+}
+{let package constant LowSQLiteUpdateCallbackProcType:ProcType =
+    {proc-type 
+        {userdata-ptr:CPointer,
+         which:int,
+         database:CStringUTF8,
+         table:CStringUTF8,
+         rowid:int64
+        }:void
+    }
+}
+{let public constant SQLiteUpdateCallbackPointerType:Type =
+    {CdeclCallback-to LowSQLiteUpdateCallbackProcType}
+}
+{let package constant LowSQLiteCommitCallbackProcType:ProcType =
+    {proc-type 
+        {userdata-ptr:CPointer}:int
+    }
+}
+{let public constant SQLiteCommitCallbackPointerType:Type =
+    {CdeclCallback-to LowSQLiteCommitCallbackProcType}
+}
+{let package constant LowSQLiteRollbackCallbackProcType:ProcType =
+    {proc-type 
+        {userdata-ptr:CPointer}:void
+    }
+}
+{let public constant SQLiteRollbackCallbackPointerType:Type =
+    {CdeclCallback-to LowSQLiteRollbackCallbackProcType}
+}
+{let package constant LowSQLiteBusyHandlerProcType:ProcType =
+    {proc-type 
+        {userdata-ptr:CPointer,
+         ncalls:int
+        }:int
+    }
+}
+{let public constant SQLiteBusyHandlerPointerType:Type =
+    {CdeclCallback-to LowSQLiteBusyHandlerProcType}
+}
+{let public constant SQLiteBusyHandlerProcType:ProcType =
+    {proc-type 
+        {ncalls:int}:bool
+    }
+}
+{let package constant LowSQLiteValueHandleArray:ClassType =
+    {if-built-in
+        {Reference-to SQLiteValueHandle}
+     else
+        {CArray-of SQLiteValueHandle}
+    }
+}
+{define-proc package {LowSQLiteValueHandleArray-to-Array
+                        args:LowSQLiteValueHandleArray,
+                        num-args:int
+                     }:{Array-of SQLiteValueHandle}
+    {return
+        {if-built-in
+            let array:{Array-of SQLiteValueHandle} =
+                {new {Array-of SQLiteValueHandle}, efficient-size = num-args}
+            {for i = 0 below num-args do
+                {array.append {unsafe-get SQLiteValueHandle, args, i}}}
+            array
+         else
+            {args.to-Array num-args}
+        }
+    }
+}
+{define-proc package {bytes-to-ByteArray
+                        bytes:CPointer,
+                        length:int,
+                        out:#ByteArray = null
+                     }:ByteArray
+    let nn-out:ByteArray =
+        {if-non-null out then
+            set out.efficient-size = out.size + length
+            out
+         else
+            {ByteArray efficient-size = length}
+        }
+    {for i:int = 0 below length do
+        {nn-out.append
+            {if-built-in
+                {unsafe-get byte, bytes, i}
+             else
+                {unsafe-memory-get byte, bytes, index = i}
+            }
+        }
+    }
+    {return nn-out}
+}
+{let package constant LowSQLiteFunctionProcType:ProcType =
+    {proc-type
+        {context:SQLiteContextHandle,
+         nargs:int,
+         args:LowSQLiteValueHandleArray
+        }:void
+    }
+}
+{let public constant SQLiteFunctionProcType:ProcType =
+    {proc-type
+        {context:SQLiteContextHandle,
+         args:{Array-of SQLiteValueHandle}
+        }:void
+    }
+}
+{let public constant SQLiteFunctionPointerType:Type =
+    {CdeclCallback-to LowSQLiteFunctionProcType}
+}
+{let public constant SQLiteFinalFunctionProcType:ProcType =
+    {proc-type
+        {context:SQLiteContextHandle}:void
+    }
+}
+{let public constant SQLiteFinalFunctionPointerType:Type =
+    {CdeclCallback-to SQLiteFinalFunctionProcType}
+}
+{let package constant LowSQLiteProgressHandlerProcType:ProcType =
+    {proc-type
+        {CPointer}:int
+    }
+}
+{let public constant SQLiteProgressHandlerPointerType:Type =
+    {CdeclCallback-to LowSQLiteProgressHandlerProcType}
+}
+
+{let constant public SQLiteUpdateHookProcType:ProcType =
+    {proc-type 
+        {operation:SQLiteOperation,
+         database-name:String,
+         table-name:String,
+         rowid:int64
+        }:void
+    }
+}
+{let package constant LowSQLiteAuthorizerProcType:ProcType =
+    {proc-type
+        {CPointer, int, CStringUTF8, CStringUTF8, CStringUTF8, CStringUTF8}:int
+    }
+}
+{let public constant SQLiteAuthorizerPointerType:Type =
+    {CdeclCallback-to LowSQLiteAuthorizerProcType}
+}
+
+{let constant public SQLiteAuthorizerProcType:ProcType =
+    {proc-type 
+        {operation:SQLiteOperation,
+         data1:#String,
+         data2:#String,
+         data3:#String,
+         data4:#String
+        }:SQLiteAuthorizerReturnCode
+    }
+}
+
+{doc-next
+    {purpose
+        The type of the commit callback.
+    }
+    {notes
+        This is the signature of the callback procedure that is
+        registered via {docref SQLiteDatabaseHandle.commit-hook}.
+    }
+}
+{let constant public SQLiteCommitHookProcType:ProcType =
+      {proc-type {}:bool}
+}
+
+{doc-next
+    {purpose
+        The type of the rollback callback.
+    }
+    {notes
+        This is the signature of the callback procedure that is
+        registered via {docref SQLiteDatabaseHandle.rollback-hook}.
+    }
+}
+{let constant public SQLiteRollbackHookProcType:ProcType =
+      {proc-type {}:void}
+}
+
+{doc-next
+    {purpose
+        The type of the progress handler callback.
+    }
+    {notes
+        This is the signature of the callback procedure that is
+        registered via {docref SQLiteDatabaseHandle.set-progress-handler}.
+    }
+}
+{let constant public SQLiteProgressHandlerProcType:ProcType =
+      {proc-type {}:bool}
+}
+
+{doc-next
+    {purpose
+        The Data types supported by SQLite.
+    }
+    {details
+        Each value stored in an SQLite database (or manipulated by the
+        database engine) has one of the following storage classes:
+
+        {itemize
+            {item {ctext INTEGER}: The value is a signed integer,
+                stored in 1, 2, 3, 4, 6, or 8 bytes depending on the
+                magnitude of the value.
+            }
+            {item {ctext REAL}: The value is a floating point value,
+                stored as an 8-byte IEEE floating point number.
+            }
+            {item {ctext TEXT}: The value is a text string, stored
+                using the database encoding UTF-8.
+            }
+            {item {ctext BLOB}: The value is a blob of data, stored
+                exactly as it was input.
+            }
+            {item {ctext NULL}: The value is a NULL value.}
+        }
+    }
+    {since 7.0}
+}
+{define-enum public SQLiteDatatype
+    ERROR =      0,
+    INTEGER =      1,
+    REAL =         2, || aka FLOAT
+    TEXT =         3,
+    BLOB =         4,
+    NULL =         5
+}
+
+{doc-next
+    {purpose
+        The error codes that the {docref SQLiteInterface} APIs may
+        return.
+    }
+    {details
+        Here is the list of the error codes.
+
+        {itemize
+            {item {ctext OK}: Successful result.}
+            {item {ctext ERROR}: SQL error or missing database.}
+            {item {ctext INTERNAL}: Internal logic error in SQLite.}
+            {item {ctext PERM}: Access permission denied.}
+            {item {ctext ABORT}: A callback routine requested an abort.}
+            {item {ctext BUSY}: The database file is locked.}
+            {item {ctext LOCKED}: A table in the database is locked.}
+            {item {ctext NOMEM}: Insufficient Memory.}
+            {item {ctext READONLY}: Attempt to write a readonly database.}
+            {item {ctext INTERRUPT}: Operation terminated by 
+                {docref SQLiteInterface.interrupt}.
+            }
+            {item {ctext IOERR}: Disk I/O error occurred.}
+            {item {ctext CORRUPT}: Database disk image is malformed.}
+            {item {ctext NOTFOUND}: Table or record not found.}
+            {item {ctext FULL}: Insertion failed because database is full.}
+            {item {ctext CANTOPEN}: Unable to open the database file.}
+            {item {ctext PROTOCOL}: Database lock protocol error.}
+            {item {ctext EMPTY}: Database is empty.}
+            {item {ctext SCHEMA}: The database schema changed.}
+            {item {ctext TOOBIG}: Too much data for one row.}
+            {item {ctext CONSTRAINT}: Abort due to contraint violation.}
+            {item {ctext MISMATCH}: Data type mismatch.}
+            {item {ctext MISUSE}: Library used incorrectly.}
+            {item {ctext NOLFS}: Uses OS features not supported on host.}
+            {item {ctext AUTH}: Authorization denied.}
+            {item {ctext FORMAT}: Auxiliary database format error.}
+            {item {ctext RANGE}: 2nd parameter to 
+                {ctext SQLiteInterface.bind-*} out of range.
+            }
+            {item {ctext NOTADB}: File opened is not a database file.}
+            {item {ctext ROW}: {docref SQLiteStatementHandle.step} has another 
+                row ready.}
+            {item {ctext DONE}: {docref SQLiteStatementHandle.step} has finished
+                executing.}
+        }
+    }
+    {since 7.0}
+}
+{define-enum public SQLiteStatus
+    OK =           0, ||  Successful result
+    ERROR =        1, || SQL error or missing database
+    INTERNAL =     2, || NOT USED. Internal logic error in SQLite
+    PERM =         3, || Access permission denied
+    ABORT =        4, || Callback routine requested an abort
+    BUSY =         5, || The database file is locked
+    LOCKED =       6, || A table in the database is locked
+    NOMEM =        7, || A malloc() failed
+    READONLY =     8, || Attempt to write a readonly database
+    INTERRUPT =    9, || Operation terminated by sqlite3_interrupt()*/
+    IOERR =       10, || Some kind of disk I/O error occurred
+    CORRUPT =     11, || The database disk image is malformed
+    NOTFOUND =    12, || NOT USED. Table or record not found
+    FULL =        13, || Insertion failed because database is full
+    CANTOPEN =    14, || Unable to open the database file
+    PROTOCOL =    15, || Database lock protocol error
+    EMPTY =       16, || Database is empty
+    SCHEMA =      17, || The database schema changed
+    TOOBIG =      18, || NOT USED. Too much data for one row
+    CONSTRAINT =  19, || Abort due to contraint violation
+    MISMATCH =    20, || Data type mismatch
+    MISUSE =      21, || Library used incorrectly
+    NOLFS =       22, || Uses OS features not supported on host
+    AUTH =        23, || Authorization denied
+    FORMAT =      24, || Auxiliary database format error
+    RANGE =       25, || 2nd parameter to sqlite3_bind out of range
+    NOTADB =      26, || File opened that is not a database file
+
+    || In 6.0 we could just have a value class with a single int
+    || field and a bunch of class constants for the interesting values.
+    || The goal is to make the index match the value, so that we can
+    || just magically turn int's into a SQLiteStatus
+    UNUSED27,
+    UNUSED28,
+    UNUSED29,
+    UNUSED30,
+    UNUSED31,
+    UNUSED32,
+    UNUSED33,
+    UNUSED34,
+    UNUSED35,
+    UNUSED36,
+    UNUSED37,
+    UNUSED38,
+    UNUSED39,
+    UNUSED40,
+    UNUSED41,
+    UNUSED42,
+    UNUSED43,
+    UNUSED44,
+    UNUSED45,
+    UNUSED46,
+    UNUSED47,
+    UNUSED48,
+    UNUSED49,
+    UNUSED50,
+    UNUSED51,
+    UNUSED52,
+    UNUSED53,
+    UNUSED54,
+    UNUSED55,
+    UNUSED56,
+    UNUSED57,
+    UNUSED58,
+    UNUSED59,
+    UNUSED60,
+    UNUSED61,
+    UNUSED62,
+    UNUSED63,
+    UNUSED64,
+    UNUSED65,
+    UNUSED66,
+    UNUSED67,
+    UNUSED68,
+    UNUSED69,
+    UNUSED70,
+    UNUSED71,
+    UNUSED72,
+    UNUSED73,
+    UNUSED74,
+    UNUSED75,
+    UNUSED76,
+    UNUSED77,
+    UNUSED78,
+    UNUSED79,
+    UNUSED80,
+    UNUSED81,
+    UNUSED82,
+    UNUSED83,
+    UNUSED84,
+    UNUSED85,
+    UNUSED86,
+    UNUSED87,
+    UNUSED88,
+    UNUSED89,
+    UNUSED90,
+    UNUSED91,
+    UNUSED92,
+    UNUSED93,
+    UNUSED94,
+    UNUSED95,
+    UNUSED96,
+    UNUSED97,
+    UNUSED98,
+    CURL-INTERNAL-MISSING-API,
+
+    ROW =        100, || sqlite3_step() has another row ready
+    DONE =       101  || sqlite3_step() has finished executing
+}
+
+{doc-next
+    {purpose
+        Indicate if a {docref SQLiteStatus} value is a success of some sort.
+    }
+    {since 7.0}
+}
+{define-proc public inline {SQLiteStatus-ok? status:SQLiteStatus}:bool
+    {return
+        {switch status
+         case
+            SQLiteStatus.OK,
+            SQLiteStatus.DONE,
+            SQLiteStatus.ROW
+         do
+            true
+         else
+            false
+        }}
+}
+
+{doc-next
+    {purpose
+        Represents a SQLite operation.
+    }
+    {notes
+        Used by {ctext SQLiteUpdateEvent} and
+        {docref SQLiteDatabaseHandle.authorizer}.
+    }
+    {since 7.0}
+}
+{define-enum public SQLiteOperation
+    COPY =                  0,
+    CREATE_INDEX =          1,
+    CREATE_TABLE =          2,
+    CREATE_TEMP_INDEX =     3,
+    CREATE_TEMP_TABLE =     4,
+    CREATE_TEMP_TRIGGER =   5,
+    CREATE_TEMP_VIEW =      6,
+    CREATE_TRIGGER =        7,
+    CREATE_VIEW =           8,
+    DELETE =                9,
+    DROP_INDEX =           10,
+    DROP_TABLE =           11,
+    DROP_TEMP_INDEX =      12,
+    DROP_TEMP_TABLE =      13,
+    DROP_TEMP_TRIGGER =    14,
+    DROP_TEMP_VIEW =       15,
+    DROP_TRIGGER =         16,
+    DROP_VIEW =            17,
+    INSERT =               18,
+    PRAGMA =               19,
+    READ =                 20,
+    SELECT =               21,
+    TRANSACTION =          22,
+    UPDATE =               23,
+    ATTACH =               24,
+    DETACH =               25,
+    ALTER_TABLE =          26,
+    REINDEX =              27,
+    ANALYZE =              28,
+    CREATE_VTABLE =        29,
+    DROP_VTABLE =          30,
+    FUNCTION =             31
+}
+
+{doc-next
+    {purpose
+        Return value for an authorizer callback.
+    }
+    {notes
+        Used by {docref SQLiteDatabaseHandle.authorizer}.
+    }
+    {since 7.0}
+}
+{define-enum public SQLiteAuthorizerReturnCode
+    OK = 0,
+    DENY = 1,
+    IGNORE = 2
+}
+
+
+{doc-next
+    {purpose
+        Indicates type of encryption to use on a database
+    }
+    {notes
+        Used by {ctext SQLiteDatabase.default},
+        {ctext SQLiteDatabase.attach}
+        {ctext SQLiteLibrary.rekey}.
+    }
+    {since 7.0}
+}
+{define-enum public SQLiteEncryptionType
+    none,
+    rc4,
+    aes128,
+    aes256
+}

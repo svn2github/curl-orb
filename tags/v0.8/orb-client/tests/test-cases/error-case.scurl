@@ -1,0 +1,218 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+{import * from TESTS1}
+{import * from TESTS2}
+{import * from TESTS3}
+
+{import * from COM.CURL.ORB}
+
+|||
+||| This test case is to comfirm the error.
+|||
+{TestSuite "error cases",
+
+    ||
+    || ClassNotFound on server side.
+    ||
+    {test-case "class not found",
+        || not found class
+        {require-exception ORBServerException do
+            || "java.lang.ClassNotFoundException"
+            let orb:HttpSessionClient = {HttpSessionClient "tests1.Fooooooo"}
+        }
+    },
+    {test-case "method not found",
+        || not found method
+        let orb:HttpSessionClient = {HttpSessionClient "tests1.Foo"}
+        {require-exception ORBServerException do
+            {orb.invoke "no-method"}
+        }
+    },
+
+    ||
+    || bind exceptions
+    ||
+    {test-case "non binding exception",
+        {clear-exceptions}
+        let foo:Foo = {Foo}
+        {require-exception ORBServerException do
+            {foo.occur-exception1}
+        }
+        {require-exception ORBServerException do
+            {foo.occur-exception2}
+        }
+        {require-exception ORBServerException do
+            {foo.occur-exception3}
+        }
+    },
+    
+    {test-case "binding exception",
+        || user defined exception (mapping client-server exception)
+        {clear-exceptions}
+        {bind-exception
+            || java, curl 
+            "tests1.TestException1", TestException1 
+        }
+        {bind-exception
+            || java, curl
+            "tests1.TestException2", TestException1 
+        }
+
+        let foo:Foo = {Foo}
+        || bind own exception
+        {require-exception TestException1 do
+            {foo.occur-exception1}
+        }
+        || bind other exception
+        {require-exception TestException1 do
+            {foo.occur-exception2}
+        }
+        || not bind
+        {require-exception ORBServerException do
+            {foo.occur-exception3}
+        }
+        {clear-exceptions}
+    },
+    
+    {test-case "exception with fields",
+        {clear-exceptions}
+        let foo:Foo = {Foo}
+        {bind-exception
+            || java, curl 
+            "tests1.TestException1", TestException1 
+        }
+        {try
+            {foo.occur-exception1}
+            {TestCondition.fail}
+         catch e:TestException1 do
+            || exception's fields
+            {TestCondition.assert e.ex-string == "ex-ex-ex"}
+            {TestCondition.assert e.ex-int == 1234}
+            {TestCondition.assert e.ex-null == null}
+        }
+        {clear-exceptions}
+    },
+
+    {test-case "async non binding exception",
+        let done?:bool
+        let foo:Foo = {Foo}
+        let worker:AsyncWorker =
+            {foo.async-occur-exception1
+                {on e:AsyncCallbackEvent do
+                    {if-non-null ex = e.exception asa ORBServerException then
+                        || exception-name property
+                        {TestCondition.assert
+                            ex.exception-content.exception-name
+                            == "tests1.TestException1"
+                        }
+                        || exception-name-as-curl-style property
+                        {TestCondition.assert
+                            ex.exception-content.exception-name-as-curl-style
+                            == "TESTS1.TestException1"
+                        }
+                     else
+                        {TestCondition.fail}
+                    }
+                    set done? = true
+                }
+            }
+        {while not done? do
+            {dispatch-events true}
+        }
+        {TestCondition.assert worker.done?}
+    },
+
+    {test-case "async binding exception",
+        || user defined exception (mapping client-server exception)
+        {bind-exception
+            "tests1.TestException1", TestException1 || java, curl 
+        }
+        {bind-exception
+            "tests1.TestException3", TestException1 || java, curl
+        }
+
+        let done?:bool
+        let foo:Foo = {Foo}
+        || bind own exception
+        let worker:AsyncWorker =
+            {foo.async-occur-exception1
+                {on e:AsyncCallbackEvent do
+                    {if-non-null ex = e.exception then
+                        {TestCondition.assert-isa TestException1, ex}
+                     else
+                        {TestCondition.fail}
+                    }
+                    set done? = true
+                }
+            }
+        {while not done? do
+            {dispatch-events true}
+        }
+        {TestCondition.assert worker.done?}
+        set done? = false
+
+        || bind other exception
+        set worker = 
+            {foo.async-occur-exception3
+                {on e:AsyncCallbackEvent do
+                    {if-non-null ex = e.exception then
+                        {TestCondition.assert-isa TestException1, ex}
+                        set done? = true
+                     else
+                        {TestCondition.fail}
+                    }
+                }
+            }
+        {while not done? do
+            {dispatch-events true}
+        }
+        {TestCondition.assert worker.done?}
+        {clear-exceptions}
+    },
+
+    {test-case "async exception with fields",
+        {clear-exceptions}
+        let done?:bool
+        let foo:Foo = {Foo}
+        {bind-exception
+            || java, curl 
+            "tests1.TestException1", TestException1 
+        }
+        let worker:AsyncWorker = 
+            {foo.async-occur-exception1
+                {on e:AsyncCallbackEvent do
+                    {if-non-null ex = e.exception then
+                        {TestCondition.assert-isa TestException1, ex}
+                        let te:TestException1 = ex asa TestException1
+                        {TestCondition.assert te.ex-string == "ex-ex-ex"}
+                        {TestCondition.assert te.ex-int == 1234}
+                        {TestCondition.assert te.ex-null == null}
+                     else
+                        {TestCondition.fail}
+                    }
+                    set done? = true
+                }
+            }
+        {while not done? do
+            {dispatch-events true}
+        }
+        {TestCondition.assert worker.done?}
+        {clear-exceptions}
+    }
+}

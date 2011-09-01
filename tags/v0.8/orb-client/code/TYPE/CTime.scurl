@@ -1,0 +1,200 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Ucai zhang
+|||
+
+{doc-next
+    {purpose
+        CTime Class ,correspond to the type java.sql.Time in Java.    
+    }
+    {details
+        Notice:Because of the utc-offset-minutes ,the contructor
+        from-argument can not be called by outer.     
+    }
+    {notes
+        The detail,please see the Java API Document.
+    }
+}
+||
+|| Time,correspond to the type java.sql.Time
+||
+{define-class public serializable CTime {inherits Date}
+
+  {doc-next
+    {purpose
+        Constructs this object.
+    }
+    {details
+        The default constructor,when call this constructor,
+        The Time class will just express the time as you want.
+    }
+    {parameter millsec,
+        int64 value.it represents the millsec
+    }
+  }
+  {constructor public {default millsec:int64}
+    set self.time = millsec
+    
+  }
+
+  {doc-next
+    {purpose
+        Constructs this object.
+    }
+    {details
+        When user give especial value to hour,minute and second,
+        The Time class will express time as you want.
+    }
+    {parameter hour,
+        int value which express the hour you want.
+    }
+    {parameter minute,
+        int value which express the minute you want.        
+    }
+    {parameter second ,
+        int value which express the second you want.     
+    }
+  }
+  {constructor package {from-argument hour:int, minute:int, second:int}
+    {construct-super.from-argument
+        1970, 1, 1, hour, minute, second
+    }
+  }
+
+
+  {doc-next
+    {purpose
+        Convert current  Date object to DateTime object   
+    }
+    {return-vals DateTime,
+        return the current object expressed by DateTime of local DataTimeZone
+        
+    }
+  } 
+  {method public open {to-LocaleDateTime}:DateTime
+    def date = {DateTime.date  year = 1970}
+    set date.zone = {DateTimeZone mode = "utc", utc-offset-minutes = {DateTime}.info.utc-offset-minutes}
+    {return
+        date +  self.time * 0.001s 
+    }
+  }
+
+  {doc-next
+    {purpose
+        Convert current Date object to DateTime object   
+    }
+    {return-vals DateTime,
+        DateTime object.Returning the DateTime object which the current CTime object represents
+    }
+  } 
+  {method public open {to-GMTDateTime}:DateTime
+    {return
+        {DateTime.date  year = 1970} +  self.time * 0.001s 
+    }
+  }
+
+  {doc-next
+    {purpose
+        Convert the given string value to Time object
+        Notice:When call the method,the utc-offset-minutes will not added to
+        Time
+    }
+    {parameter s,
+        s is String type.it should be hh:mm:ss.  
+    }
+    {return-vals CTime,
+        CTime object.Returning the Time object which the s argument represents
+    }
+  }
+  || s time in format "hh:mm:ss"
+  ||return Time Object
+  {define-proc public inline {value-of s:String}:CTime
+    let hour:int
+    let minute:int
+    let second:int
+    let firstColon:int
+    let secondColon:int
+    set s = {s.trim-clone}
+    {if s == null or s.size == 0 then
+        {error "Error Time Format.It should be as hh:mm:ss"}
+    }
+    set firstColon =  {s.find ':'}
+    set secondColon = {s.find ':', starting-index = firstColon + 1}
+    {if firstColon > 0 and secondColon > 0 and secondColon < s.size - 1 then
+        def hourString = {s.substr 0, firstColon}
+        def minuteString = {s.substr firstColon + 1, secondColon - firstColon - 1}
+        def secondString = {s.substr secondColon + 1, s.size - secondColon - 1}
+        {if not {string-digit? hourString} or not {string-digit? minuteString} or not {string-digit? secondString} then
+            {error "Error Time Format.It should be as hh:mm:ss"}
+        }
+        set hour = {hourString.to-int}
+        set minute = {minuteString.to-int}
+        set second = {secondString.to-int}
+     else
+        {error "Error Time Format.It should be as hh:mm:ss"}
+    }
+    {return {CTime.from-argument hour, minute, second}}
+  }
+
+  {doc-next
+    {purpose
+        Convert the current Time Object to String format.
+    }
+    {return-vals String,
+        String Value.Returning a Sting value in the format of hh:mm:ss
+    }
+  }
+  || return a String in hh:mm:ss format
+  {method public open {to-String}:String
+    {return {self.to-SpecialDateTimeString {self.to-LocaleDateTime}}}
+  }
+
+  {doc-next
+    {purpose
+        Formats a date in the date escape format yyyy-mm-dd.
+    }
+    {details
+        Formats a date in the date escape format yyyy-mm-dd.
+        Notice:its usage is the same as to-String.But its value
+        is less than to-String by {DateTime}.info.utc-offset-minutes
+    }
+    {return-vals String,
+        String value.Returning a String in yyyy-mm-dd format
+    }
+  }
+  {method public open {to-String-for-GMT}:String
+    {return {self.to-SpecialDateTimeString{self.to-GMTDateTime}}}
+  }
+
+  {doc-next
+    {purpose
+        Formats a date using the special TimeZone DateTime
+        Notice:it is a private method
+    }   
+    {return-vals String,
+        String value.Returning a String in yyyy-mm-dd format
+    }
+  }
+  {method private {to-SpecialDateTimeString time:DateTime}:String
+    def hour = time.info.hour
+    def minute = time.info.minute
+    def second = time.info.second
+    let  hourString:String = {if hour < 10 then "0" & hour else hour & ""}
+    let minuteString:String = {if minute < 10 then "0" & minute else minute & ""}
+    let secondString:String = {if second < 10 then "0" & second else second & ""}
+    {return hourString & ":" & minuteString & ":" & secondString}
+  }
+}

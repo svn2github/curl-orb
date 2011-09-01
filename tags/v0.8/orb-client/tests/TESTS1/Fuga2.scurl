@@ -1,0 +1,22 @@
+ 
+{import * from COM.CURL.ORB}
+
+{define-class public Fuga2 {inherits ApplicationContextClient}
+
+  {constructor public {default} 
+    {construct-super.ApplicationContextClient "fuga"} 
+  } 
+
+  {method public {method1}:#String 
+    {return {self.invoke "method1", client-method-name = "dummy"}} 
+  } 
+
+  {method public {method2 v0:String, v1:int, v2:bool}:#String 
+    {return {self.invoke "method2", client-method-name = "dummy", arguments = {FastArray v0, v1, v2}}} 
+  } 
+ 
+  || added by hokada 
+  {method public {method3}:#String 
+    {return {self.invoke "method3", client-method-name = "dummy"}} 
+  } 
+} 

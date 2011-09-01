@@ -1,0 +1,4 @@
+#if ( $javadoc )
+	## TODO: define comment format
+#end
+

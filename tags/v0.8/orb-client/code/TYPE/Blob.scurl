@@ -1,0 +1,130 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author ucai.zhang
+|||
+
+{doc-next
+    {purpose
+        Blob Class, correspond to the type javax.sql.rowset.serial.SerialBlob.                
+    }
+    {details
+        A serialized mapping in the Java programming language of an SQL
+        BLOB value
+    }
+    {notes
+        The detail,please see the Java API Document.
+    }
+}
+{define-class public serializable Blob
+  {inherits AbstractExtraSerializableType}
+  
+  {doc-next
+    {purpose
+        A serialized array of uninterpreted bytes representing the
+        value of this Blob object.
+    }
+  }
+  field public-get private-set bytes:ByteArray || {Array-of uint8}
+  
+  {doc-next
+    {purpose
+        The number of bytes in this Blob object's array of bytes.
+    }
+  }
+  field public-get private-set length:int64
+  
+  {doc-next
+    {purpose
+        Copies the specified number of bytes, starting at the given
+        position, from this Blob object to another array of bytes.
+    }
+    {parameter pos,
+        the ordinal position of the first byte in this
+        Blob object to be copied;numbering starts at 1;
+        must not be less than 1 and must be less than or equal
+        to the length of this Blob object        
+    }
+    {parameter len,
+        length the number of bytes to be copied.
+        it must be larger than 1
+    }
+    {return-vals ByteArray,
+        Returns an ByteArary which the current Blob contains
+    }
+  }
+  {method public {get-bytes pos:int64, len:int}:ByteArray
+    {if len > self.length then
+        set len = self.length asa int
+    }
+    {if len < 0 then
+        {error "Invalid arguments: length cannot be less that 0"}
+     elseif (pos < 1 or len - pos < 0) and len > 0 then
+        {error "Invalid arguments: position cannot be less that 1"}
+    }
+    {dec pos} || correct pos to array index
+    {return {self.bytes.clone-range pos asa int, len}}        
+  }
+  
+  {doc-next
+    {purpose
+        Deserializes from serialization stream.
+    }
+    {details
+        Constructs a new instance by deserializing it from a SerializeInputStream
+    }
+    {parameter in,
+        a SerializeInputStream.
+    }
+  }
+  {constructor public {object-deserialize in:SerializeInputStream}
+    {in.read-class-version}
+    {construct-super.AbstractExtraSerializableType.object-deserialize in}   
+    set self.bytes = {deserialize in, ByteArray}
+    set self.length = self.bytes.size
+  }
+  
+  {doc-next
+    {purpose
+        serializes from serialization stream.
+    }
+    {details
+        Called by the serialization code when the class instance is to be written
+    }
+    {parameter out,
+        The SerializeOutputStream that called this method.
+    }
+  }
+  {method public {object-serialize out:SerializeOutputStream}:void
+    {out.write-class-version 0}
+    {super.object-serialize out}
+    {out.write-one self.bytes}
+  }
+  
+  {doc-next
+    {purpose
+        Constructs a Blob object that is a serialized version of
+        the given byte array.
+    }
+    {parameter bytes,
+        it is a object of {Array-of uint8}.Use it to construct a Blob object.
+        
+    }
+  }
+  {constructor public {default bytes:ByteArray}
+    set self.length = bytes.size
+    set self.bytes = bytes
+  }
+}

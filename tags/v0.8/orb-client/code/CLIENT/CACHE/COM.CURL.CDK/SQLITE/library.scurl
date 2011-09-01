@@ -1,0 +1,2896 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+{doc-next
+    {purpose
+        Curl language interface to SQLite C APIs.
+    }
+    {details
+        This is used to access code from external shared library
+        for what {ctext "libsqlite"} references in the manifest.
+        The library will be copied to local disk if it is at an http
+        Url.
+
+        At present you need privilege to use this interface.
+    }
+    {since 7.0}
+}
+{define-dll-class public final SQLiteInterface
+  {defaults 
+    || This is the normal calling convention for DLLs.
+    calling-convention = cdecl,
+    || Note: we could use UTF16 if we used the right API names everywhere.
+    string-rep = CStringUTF8
+  }
+  || Many of the methods handle converting C enum's or #define values into
+  || Curl language enums, or other similar conversions that define-dll-class
+  || doesn't handle.  Many of the callbacks require conversion of their
+  || arguments, and all require wrapping the function in a CdeclCallback-to,
+  || which is handled by constructing the various *PointerType objects
+  || from the proc that converts the arguments and return values.
+  ||
+  || In each of these cases there is a similar method named *-internal
+  || that is the actual function in the dll.
+  ||
+  || The SQLite3 library has 'userdata' arguments for many callbacks,
+  || but we do not expose those on any of the public functions because
+  || the Curl language closure is better.
+
+  let private library-url:#Url
+  || Holds singleton instance.
+  let private interface:#SQLiteInterface
+  {define-proc public {set-library-url u:Url}:void
+    {if-built-in
+        {if not {process-privileged?} then
+            {throw
+                {SecurityException
+                    {lmessage Only privileged processes can set the library url.}
+                }
+            }
+        }
+    }
+    set SQLiteInterface.library-url = u
+  }
+
+  {constructor private {create}
+    let u:Url =
+        {if-non-null library-url = SQLiteInterface.library-url then
+            library-url
+         else
+            let default-url:Url = 
+                {abs-url
+                    "curl://install/lib/" &
+                    {platform-switch
+                     case "win32" do
+                        "sqlite_3-6-10.dll"
+                     case "linux" do
+                        "sqlite_3-6-10.so"
+                     case "mac" do
+                        "sqlite_3-6-10.dylib"
+                     else
+                        {unreachable}
+                    }
+                }
+            {if-built-in
+                {PrivilegedUrl default-url, has-execute-permission? = true}
+             else
+                default-url
+            }
+        }
+    {construct-super {SharedLibrary.from-url u}}
+    {self.activate-see ""} ||""
+    {self.initialize}
+  }
+
+  {method protected {reclaim-resources}:void
+    || close up SharedLibrary and other clean up on exit.
+    set SQLiteInterface.interface = null
+    || This could recurse, but deactivate won't do anything if not {active?}.
+    {self.deactivate}
+     || TODO: when can we safely do this?  Testing implies that upto 80-130k
+     || may be kept around until this is called.
+    || {self.shutdown}
+  }
+
+  {doc-next
+    {purpose
+        Constructs a {ctext SQLiteInterface} object.
+    }
+    {details
+        This is a singleton object. So calling {ctext {SQLiteInterface}}
+        will return the same {ctext SQLiteInterface} object in a given
+        Curl process.
+    }
+  }
+  {factory public {default}:SQLiteInterface
+    {return
+        {if-non-null interface = SQLiteInterface.interface then
+            interface
+         else
+            let interface:SQLiteInterface = {SQLiteInterface.create}
+            set SQLiteInterface.interface = interface
+            interface
+        }
+    }
+  }
+
+  || setup
+  || ----------
+  {doc-next
+    {purpose
+        This function opens the SQLite database file specified in
+        {param filename}.
+    }
+    {parameter filename,
+        The name of the database file to open, this must be the result of
+        {docref Url.local-filename}.
+    }
+    {parameter sqlite3,
+        SQLite database handle.
+    }
+    {parameter read-only?,
+        If {ctext true} open the database for reading only.
+    }
+    {parameter fail-if-missing?,
+        If {ctext true} fail to open if the file does not already exist,
+        if {ctext false} create the file if it does not already exist.
+        This is implicitly {ctext true} if {param read-only?} is {ctext true}.
+    }
+    {return-vals
+        On success it returns {ctext SQLiteStatus.OK} otherwise it
+        will return an error {docref SQLiteStatus} code.
+    }
+    {notes
+        The database handle is returned in {param sqlite3} even if an
+        error occurs. This can be used to get the error message.
+    }
+    {details
+        If the database file does not exist, then a new database will
+        be created as needed.
+
+        Resources associated with the database handle should be
+        released by calling {docref SQLiteInterface.close}.
+    }
+  }
+  {method package {open
+                      filename:String,
+                      fail-if-missing?:bool = false,
+                      read-only?:bool = false
+                  }:(SQLiteStatus, LowSQLiteDatabaseHandle)
+    let constant SQLITE_OPEN_READONLY:int = 0x1
+    let constant SQLITE_OPEN_READWRITE:int = 0x2
+    let constant SQLITE_OPEN_CREATE:int = 0x4
+    let constant flags:int =
+        {if fail-if-missing? then 0 else SQLITE_OPEN_CREATE} +
+        {if read-only? then SQLITE_OPEN_READONLY else SQLITE_OPEN_READWRITE}
+    let db-ptr:{Pointer-to LowSQLiteDatabaseHandle} =
+        {new {Pointer-to LowSQLiteDatabaseHandle}}
+    let status:SQLiteStatus = 
+        {SQLiteStatus
+            index = {self.open-internal filename, db-ptr, flags, null}
+        }
+    {return status, db-ptr.value}
+  }
+
+  {dll-method private {open-internal ("sqlite3_open_v2") ||""
+                          filename:String,
+                          sqlite3:{Pointer-to LowSQLiteDatabaseHandle},
+                          flags:int,
+                          vfs-module:#String
+                      }:int
+  }
+
+  {doc-next
+    {purpose
+        Closes the database connection.
+    }
+    {parameter sqlite3,
+        SQLite database handle.
+    }
+    {return-vals
+        If successful, it returns {ctext SQLiteStatus.OK}. If {param
+        sqlite3} is not a valid database handle returned by {docref
+        SQLiteInterface.open} or if the database was closed
+        previously, it will return {ctext SQLiteStatus.ERROR}. If there are
+        prepared statements that have not been finalized, it will
+        return {ctext SQLiteStatus.BUSY}.
+    }
+  }
+  {method package {close
+                     sqlite3:LowSQLiteDatabaseHandle
+                  }:SQLiteStatus
+    {return {SQLiteStatus index = {self.close-internal sqlite3}}}
+  }
+
+  {dll-method private {close-internal ("sqlite3_close") ||""
+                          sqlite3:LowSQLiteDatabaseHandle
+                      }:int
+  }
+
+  || query
+  || ----------
+||--  {doc-next
+||--    {purpose
+||--        Executes one or more statements of SQL.
+||--    }
+||--    {parameter sqlite3,
+||--        SQLite database handle.
+||--    }
+||--    {parameter sql,
+||--        The SQL statement to be executed.
+||--    }
+||--    {parameter callback,
+||--        The callback function that will be called once for each row of
+||--        the query result.
+||--
+||--        The {param callback} should normally return {ctext false}. If it
+||--        returns {ctext true} then the query is aborted and all
+||--        subsequent SQL statements are skipped and then this function
+||--        will then return {ctext SQLiteStatus.ABORT}.
+||--
+||--        The first argument is the values of the row and the second
+||--        argument is the names the columns.
+||--    }
+||--    {return-vals
+||--        If all the SQL commands, {param sql} succeed, the return value
+||--        is {ctext SQLiteStatus.OK}, otherwise it is the appropriate error
+||--        code. The particular return value depends on the type of
+||--        error. If the query could not be executed because a database
+||--        file is locked or busy, then this function returns {ctext
+||--        SQLiteStatus.BUSY}.
+||--
+||--        The second return value is the error message if an error occurs while
+||--        parsing or evaluating the SQL statement {param sql}.
+||--    }
+||--    {notes
+||--        If one or more of SQL statements in {param sql} are queries,
+||--        then the callback function {param callback} will be called once
+||--        for each row of the query result.
+||--    }
+||--  }
+||--  {method public {exec
+||--                     sqlite3:SQLiteDatabaseHandle,
+||--                     sql:String,
+||--                     callback:#{proc-type
+||--                                   {data:StringArray,
+||--                                    column-names:StringArray
+||--                                   }:bool
+||--                               }
+||--                 }:(SQLiteStatus, errmsg:String)
+||--    let errmsg-pointer:{Pointer-to CStringUTF8} = {{Pointer-to CStringUTF8}}
+||--    let constant exec-callback-ptr:SQLiteExecCallbackPointerType =
+||--        {if-non-null callback then
+||--            {SQLiteExecCallbackPointerType
+||--                 {proc
+||--                     {userdata-ptr:CPointer,
+||--                     number-of-columns:int,
+||--                     data-pointer:CPointer,
+||--                     columns-pointer:CPointer
+||--                     }:int
+||--                     || Extract the info from above and then call the
+||--                     || callback proc that was passed and return its value.
+||--                     let constant data:StringArray =
+||--                         {StringArray efficient-size = number-of-columns}
+||--                     let constant column-names:StringArray =
+||--                         {StringArray efficient-size = number-of-columns}
+||--
+||--                     {for i = 0 below number-of-columns do
+||--                         let column-name:CStringUTF8 = 
+||--                             {unsafe-memory-get 
+||--                                 CStringUTF8, columns-pointer, index = i
+||--                             }
+||--                         {column-names.append {column-name.to-String}}
+||--                         let val:CStringUTF8 = 
+||--                             {unsafe-memory-get 
+||--                                 CStringUTF8, data-pointer, index = i
+||--                             }
+||--                         {data.append {val.to-String}}
+||--                     }
+||--                     || The columns and data-pointer will be freed for us.
+||--                     {return 
+||--                         {if {callback data, column-names} then 1 else 0}
+||--                     }
+||--                 }
+||--            }
+||--         else
+||--            {uninitialized-value-for-type SQLiteExecCallbackPointerType}
+||--        }
+||--    let status-code:int =
+||--        {self.exec-internal sqlite3, sql, exec-callback-ptr, 0, errmsg-pointer}
+||--    let errmsg:String = ""
+||--    {if status-code != SQLiteStatus.OK.index then
+||--        set errmsg = {errmsg-pointer.value.to-String}
+||--        {self.free errmsg-pointer.value}
+||--    }
+||--    {return {SQLiteStatus index = status-code}, errmsg}
+||--  }
+||--
+  {method public {exec
+                     sqlite3:LowSQLiteDatabaseHandle,
+                     sql:String
+                 }:(SQLiteStatus, errmsg:String)
+    let errmsg-pointer:{Pointer-to CStringUTF8} = {{Pointer-to CStringUTF8}}
+    let status-code:int =
+        {self.exec-internal
+            sqlite3, sql, 
+            {uninitialized-value-for-type SQLiteExecCallbackPointerType},
+            0, errmsg-pointer
+        }
+    let errmsg:String = ""
+    {if status-code != SQLiteStatus.OK.index then
+        set errmsg = {errmsg-pointer.value.to-String}
+        {self.free errmsg-pointer.value}
+    }
+    {return {SQLiteStatus index = status-code}, errmsg}
+  }
+
+  {dll-method private {exec-internal ("sqlite3_exec") ||""
+                          sqlite3:LowSQLiteDatabaseHandle,
+                          sql:String,
+                          callback:SQLiteExecCallbackPointerType,
+                          userdata:CPointer,
+                          errmsg:#{Pointer-to CStringUTF8}
+                      }:int
+  }
+
+||--  {doc-next
+||--    {purpose
+||--        Executes one or more statements of SQL and stores the result
+||--        of a query in memory.
+||--    }
+||--    {parameter sqlite3,
+||--        SQLite database handle.
+||--    }
+||--    {parameter sql,
+||--        The SQL statement to be executed.
+||--    }
+||--    {parameter result,
+||--        Result of the query.
+||--    }
+||--    {parameter nrow,
+||--        Number of result rows.
+||--    }
+||--    {parameter ncolumn,
+||--        Number of result columns.
+||--    }
+||--    {parameter errmsg,
+||--        Points to the error message if an error occurs while parsing
+||--        or evaluating the SQL statement {param sql}.
+||--
+||--        The calling function is responsible for freeing this memory by
+||--        calling {docref SQLiteInterface.free}.
+||--    }
+||--    {return-vals
+||--        If all the SQL commands, {param sql} succeed, the return value
+||--        is {ctext SQLiteStatus.OK}, otherwise it is the appropriate error
+||--        code. The particular return value depends on the type of
+||--        error. If the query could not be executed because a database
+||--        file is locked or busy, then this function returns {ctext
+||--        SQLiteStatus.BUSY}.
+||--    }
+||--    {details
+||--        This function is just a wrapper around {docref
+||--        SQLiteInterface.exec}. Instead of invoking a user supplied
+||--        callback function for each row of the result, this function
+||--        stores each row of the result in memory and returns the entire
+||--        result of the query in the memory. The caller is responsible
+||--        to free this memory by calling {docref
+||--        SQLiteInterface.free-table} method.
+||--    }
+||--  }
+||--  {method public {get-table
+||--                     sqlite3:SQLiteDatabaseHandle,
+||--                     sql:String
+||--                 }:(SQLiteStatus, errmsg:String,
+||--                    columns:StringArray, 
+||--                    result:{Array-2-of String})
+||--    let errmsg-pointer:{Pointer-to CStringUTF8} = {{Pointer-to CStringUTF8}}
+||--    let result-pointer-pointer:CPointerPtr = {CPointerPtr value = 0}
+||--    let nrow-pointer:{Pointer-to int} = {{Pointer-to int}}
+||--    let ncolumn-pointer:{Pointer-to int} = {{Pointer-to int}}
+||--    let status-code:int =
+||--        {self.get-table-internal
+||--            sqlite3,
+||--            sql,
+||--            result-pointer-pointer,
+||--            nrow-pointer,
+||--            ncolumn-pointer,
+||--            errmsg-pointer
+||--        }
+||--    let status:SQLiteStatus = {SQLiteStatus index = status-code}
+||--    let errmsg:String = ""
+||--    {if status != SQLiteStatus.OK then
+||--        set errmsg = {errmsg-pointer.value.to-String}
+||--    }
+||--    {self.free errmsg-pointer.value}
+||--
+||--    {if status != SQLiteStatus.OK then
+||--        {return 
+||--            status,
+||--            errmsg,
+||--            {uninitialized-value-for-type StringArray},
+||--            {uninitialized-value-for-type {Array-2-of String}}
+||--        }
+||--    }
+||--
+||--    let constant result-pointer:CPointer = result-pointer-pointer.value
+||--    let constant nrow:int = nrow-pointer.value
+||--    let constant ncolumn:int = ncolumn-pointer.value
+||--    let constant columns:StringArray = {StringArray efficient-size = ncolumn}
+||--
+||--    {for i = 0 below ncolumn do
+||--        let col:CStringUTF8 = 
+||--            {unsafe-memory-get CStringUTF8, result-pointer, index = i}
+||--        {columns.append {col.to-String}}
+||--    }
+||--    let constant result:{Array-2-of String} = 
+||--        {new {Array-2-of String}, ncolumn, nrow}
+||--
+||--    let index:int = ncolumn
+||--    {for j = 0 below nrow do
+||--        {for i = 0 below ncolumn do
+||--            let val:CStringUTF8 = 
+||--                {unsafe-memory-get 
+||--                    CStringUTF8, result-pointer, index = index
+||--                }
+||--            set result[i, j] = {val.to-String}
+||--            {inc index}
+||--        }
+||--    }
+||--    
+||--    || Now free the allocated table.
+||--    {self.free-table result-pointer}
+||--
+||--    {return status, errmsg, columns, result}
+||--  }
+||--
+||--  {dll-method private {get-table-internal ("sqlite3_get_table") ||""
+||--                          sqlite3:SQLiteDatabaseHandle,
+||--                          sql:String,
+||--                          result:CPointerPtr,
+||--                          nrow:{Pointer-to int},
+||--                          ncolumn:{Pointer-to int},
+||--                          errmsg:{Pointer-to CStringUTF8}
+||--                      }:int
+||--  }
+
+  {doc-next
+    {purpose
+        Prepares a SQL statement for execution by compiling it into a
+        byte-code program readable by the SQLite virtual machine.
+    }
+    {parameter sql,
+        The SQL statement to be compiled.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+
+        In case of an error or if there is no input SQL text this is
+        {ctext null}.
+
+        This compiled statement can be executed by calling {docref
+        SQLiteStatementHandle.step} method. 
+
+        The calling function is responsible to delete the memory
+        allocated for this compiled statement by calling {docref
+        SQLiteInterface.finalize} method after it has finished with
+        it.
+    }
+    {parameter tail,
+        Points to the unused portion of {param sql}.
+
+        The {docref SQLiteDatabaseHandle.prepare-statement} compiles the first
+        statement in {param sql}, so {param tail} is left pointing to
+        what remains uncompiled.
+    }
+    {return-vals
+        On success it returns {ctext SQLiteStatus.OK} otherwise it
+        will return an error {docref SQLiteStatus} code.
+
+        The second return value is the unused text from {param sql},
+        if any.
+    }
+  }
+  {method package {prepare
+                      sqlite3:LowSQLiteDatabaseHandle,
+                      sql:String
+                  }:(SQLiteStatus, stmt:LowSQLiteStatementHandle, tail:#String)
+    let sql-utf8:CStringUTF8 = {CStringUTF8 sql}
+    let tail-ptr:{Pointer-to CStringUTF8} = {new {Pointer-to CStringUTF8}}
+    let stmt-ptr:{Pointer-to LowSQLiteStatementHandle} =
+        {new {Pointer-to LowSQLiteStatementHandle}}
+    let status:SQLiteStatus =
+        {SQLiteStatus
+            index =
+                {self.prepare-internal
+                    sqlite3,
+                    sql-utf8,
+                    -1,
+                    stmt-ptr,
+                    tail-ptr
+                }
+        }
+    {return
+        status,
+        stmt-ptr.value,
+        {tail-ptr.value.to-String-or-null}
+    }
+  }
+
+  {dll-method private {prepare-internal ("sqlite3_prepare_v2") ||""
+                         sqlite3:CPointer,
+                         || Declare this as CStringUTF8 so that we can
+                         || control the lifetime of it in the caller, so
+                         || that tail will point to valid storage.
+                         sql:CStringUTF8,
+                         nbytes:int,
+                         stmt:{Pointer-to LowSQLiteStatementHandle},
+                         tail:{Pointer-to CStringUTF8}
+                     }:int
+  }  
+
+  {doc-next
+    {purpose
+        Executes a prepared query.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {return-vals
+        The return value is either {ctext SQLiteStatus.BUSY}, {ctext
+        SQLiteStatus.DONE}, {ctext SQLiteStatus.ROW}, {ctext
+        SQLiteStatus.ERROR} or
+        {ctext SQLiteStatus.MISUSE}.
+
+        {ctext SQLiteStatus.DONE} means that the statement has finished
+        executing successfully. {ctext SQLiteStatementHandle.step} should
+        not be called again on this virtual machine without calling
+        {docref SQLiteStatementHandle.reset}.
+
+        If the SQL statement being executed returns any data, then
+        {ctext SQLiteStatus.ROW} is returned for each time a row of data is
+        ready for processing by the caller. The values can be accessed
+        by using {ctext SQLiteInterface.column-*} method. Subsequent
+        rows are retrieved by calling {ctext SQLiteStatementHandle.step}
+        method.
+    }
+  }
+  {method package {step stmt:LowSQLiteStatementHandle}:SQLiteStatus
+    {return {SQLiteStatus index = {self.step-internal stmt}}}
+  }
+
+  {dll-method private {step-internal ("sqlite3_step") ||""
+                          stmt:LowSQLiteStatementHandle
+                      }:int
+  }
+
+  {doc-next
+    {purpose
+        Returns the number of values in the current row of the result
+        set.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {return-vals
+        If called before {docref SQLiteStatementHandle.step} or after {ctext
+        SQLiteStatementHandle.step} has returned a value that is not {ctext
+        SQLiteStatus.ROW}, the return value is zero. Otherwise it is the
+        number of values in the current row of the result set.
+    }
+  }
+  {method public {data-count
+                     stmt:SQLiteStatementHandle
+                 }:int
+    {return {self.data-count-internal stmt._handle}}
+  }
+
+  {dll-method private {data-count-internal ("sqlite3_data_count") ||""
+                          stmt:LowSQLiteStatementHandle
+                      }:int
+  }
+
+  {doc-next
+    {purpose
+        Returns the number of columns in the result set.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {return-vals
+        Returns the number of columns in the result set. It is zero if
+        {param stmt} is an SQL statement that does not return data.
+    }
+  }
+  {method public {column-count
+                     stmt:SQLiteStatementHandle
+                 }:int
+    {return {self.column-count-internal stmt._handle}}
+  }
+
+  {dll-method private {column-count-internal ("sqlite3_column_count") ||""
+                          stmt:LowSQLiteStatementHandle
+                      }:int
+  }
+  
+  {doc-next
+    {purpose
+        Column name in a prepared SQL statement.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {parameter column-index,
+        The column ordinal for which the column name is to be
+        retrieved. The column index is zero-based.
+    }
+    {return-vals
+        The column name.
+    }
+  }
+  {method public {column-name
+                     stmt:SQLiteStatementHandle,
+                     column-index:int
+                 }:String
+    {return {self.column-name-internal stmt._handle, column-index}}
+  }
+  {dll-method private {column-name-internal ("sqlite3_column_name") ||""
+                          stmt:LowSQLiteStatementHandle,
+                          column-index:int
+                      }:String
+  }
+  
+  {doc-next
+    {purpose
+        Returns a data type of a column.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {parameter column-index,
+        The column ordinal for which the column type is to be
+        retrieved. The column index is zero-based.
+    }
+    {return-vals
+        Returns the storage class of a given column with ordinal
+        {param column-index} in the result set of {param stmt}.
+
+        See also {docref SQLiteInterface.column-decltype}.
+    }
+  }
+  || QUESTION: Define storage class?
+  || Note: It is safe to return the enum because it's index and value are
+  || the same.
+  {method public {column-type
+                     stmt:SQLiteStatementHandle,
+                     column-index:int
+                 }:SQLiteDatatype
+    {return
+        {SQLiteDatatype
+            index = {self.column-type-internal stmt._handle, column-index}
+        }
+    }
+  }
+  {dll-method private {column-type-internal ("sqlite3_column_type") ||""
+                          stmt:LowSQLiteStatementHandle,
+                          column-index:int
+                      }:int
+  }
+
+  || TODO: why not defined ?
+||--  {dll-method public {column-numeric-type ("sqlite3_column_numeric_type") ||""
+||--                         stmt:SQLiteStatementHandle,
+||--                         column-index:int
+||--                     }:int
+||--  }
+
+  {doc-next
+    {purpose
+        Returns the declared type of a column.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {parameter column-index,
+        The column ordinal for which the column declared type is to be
+        retrieved. The column index is zero-based.
+    }
+    {return-vals
+        Returns the declared type of a column, as it is defined in the
+        {ctext CREATE TABLE} statement in the database.
+
+        If the column does not correspond to an actual table column
+        {ctext null} is returned.
+    }
+  }
+  {method public {column-decltype
+                     stmt:SQLiteStatementHandle,
+                     column-index:int
+                 }:#String
+    {return {self.column-decltype-internal stmt._handle, column-index}}
+  }
+  {dll-method private {column-decltype-internal ("sqlite3_column_decltype") ||""
+                         stmt:LowSQLiteStatementHandle,
+                         column-index:int
+                     }:#String
+  }
+
+  {doc-next
+    {purpose
+        Returns the value, as a {ctext int}, of a
+        column of the current row in a result set.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {parameter column-index,
+        The column ordinal for which the column value is to be
+        retrieved. The column index is zero-based.
+    }
+    {return-vals
+        The value of the column as a {ctext int}.
+    }
+    {notes
+        If the statement handle is currently not pointing to a valid
+        row, or if the column index is out of range, the result is
+        undefined.
+
+        If the item is {ctext null} in the table, you will get a
+        0. In order to distinguish between a {ctext null} value or a
+        value with 0 one can use {docref SQLiteInterface.column-type}.
+    }
+  }
+  {method public {column-int
+                     stmt:SQLiteStatementHandle,
+                     column-index:int
+                 }:int
+    {return {self.column-int-internal stmt._handle, column-index}}
+  }
+  {dll-method private {column-int-internal ("sqlite3_column_int") ||""
+                          stmt:LowSQLiteStatementHandle,
+                          column-index:int
+                      }:int
+  }
+
+  {doc-next
+    {purpose
+        Returns the value, as a {ctext int64}, of a
+        column of the current row in a result set.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {parameter column-index,
+        The column ordinal for which the column value is to be
+        retrieved. The column index is zero-based.
+    }
+    {return-vals
+        The value of the column as a {ctext int64}.
+    }
+    {notes
+        If the statement handle is currently not pointing to a valid
+        row, or if the column index is out of range, the result is
+        undefined.
+
+        If the item is {ctext null} in the table, you will get a
+        0. In order to distinguish between a {ctext null} value or a
+        value with 0 one can use {docref SQLiteInterface.column-type}.
+    }
+  }
+  {method public {column-int64
+                     stmt:SQLiteStatementHandle,
+                     column-index:int
+                 }:int64
+    {return {self.column-int64-internal stmt._handle, column-index}}
+  }
+  {dll-method private {column-int64-internal ("sqlite3_column_int64") ||""
+                          stmt:LowSQLiteStatementHandle,
+                          column-index:int
+                      }:int64
+  }
+
+  {doc-next
+    {purpose
+        Returns the value, as a {ctext double}, of a
+        column of the current row in a result set.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {parameter column-index,
+        The column ordinal for which the column value is to be
+        retrieved. The column index is zero-based.
+    }
+    {return-vals
+        The value of the column as a {ctext double}.
+    }
+    {notes
+        If the statement handle is currently not pointing to a valid
+        row, or if the column index is out of range, the result is
+        undefined.
+
+        If the item is {ctext null} in the table, you will get a
+        0. In order to distinguish between a {ctext null} value or a
+        value with 0 one can use {docref SQLiteInterface.column-type}.
+    }
+  }
+  {method public {column-double
+                     stmt:SQLiteStatementHandle,
+                     column-index:int
+                 }:double
+    {return {self.column-double-internal stmt._handle, column-index}}
+  }
+  {dll-method private {column-double-internal ("sqlite3_column_double") ||""
+                          stmt:LowSQLiteStatementHandle,
+                          column-index:int
+                      }:double
+  }
+
+  {doc-next
+    {purpose
+        Returns the value, as a {docref String}, of a
+        column of the current row in a result set.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {parameter column-index,
+        The column ordinal for which the column value is to be
+        retrieved. The column index is zero-based.
+    }
+    {return-vals
+        The value of the column as a {docref String}.
+    }
+    {notes
+        If the statement handle is currently not pointing to a valid
+        row, or if the column index is out of range, the result is
+        undefined.
+    }
+  }
+  {method public {column-text
+                         stmt:SQLiteStatementHandle,
+                         column-index:int
+                     }:#String
+    {return {self.column-text-internal stmt._handle, column-index}}
+  }
+  {dll-method private {column-text-internal ("sqlite3_column_text") ||""
+                          stmt:LowSQLiteStatementHandle,
+                          column-index:int
+                      }:#String
+  }
+
+  {doc-next
+    {purpose
+        Returns the value, as a {docref ByteArray}, of a
+        column of the current row in a result set.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {parameter column-index,
+        The column ordinal for which the column value is to be
+        retrieved. The column index is zero-based.
+    }
+    {return-vals
+        The value of the column as a {docref ByteArray}.
+    }
+    {notes
+        If the statement handle is currently not pointing to a valid
+        row, or if the column index is out of range, the result is
+        undefined.
+
+        One can use {docref SQLiteInterface.column-bytes} to get the
+        number of bytes in the {ctext blob}.
+    }
+  }
+  {method public {column-blob
+                     stmt:SQLiteStatementHandle,
+                     column-index:int,
+                     out:#ByteArray = null
+                 }:#ByteArray
+    || Note: you must call this before column-bytes according to SQLite docs
+    let _bytes:CPointer = {self.column-blob-internal stmt._handle, column-index}
+    {if _bytes == 0 then
+        {return null}
+    }
+    let length:int = {self.column-bytes stmt, column-index}
+    {return {bytes-to-ByteArray _bytes, length, out = out}}
+  }
+
+  {dll-method private {column-blob-internal ("sqlite3_column_blob") ||""
+                         stmt:LowSQLiteStatementHandle,
+                         column-index:int
+                     }:CPointer
+  }
+
+  {doc-next
+    {purpose
+        Returns the number of bytes it will take to hold the
+        the value of the column of the current row.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {parameter column-index,
+        The column ordinal for which the column value is to be
+        retrieved. The column index is zero-based.
+    }
+    {return-vals
+        The number of bytes it will take to hold the
+        the value of the column of the current row.
+    }
+    {notes
+        If the statement handle is currently not pointing to a valid
+        row, or if the column index is out of range, the result is
+        undefined.
+    }
+  }
+  {method public {column-bytes
+                         stmt:SQLiteStatementHandle,
+                         column-index:int
+                     }:int
+    {return {self.column-bytes-internal stmt._handle, column-index}}
+  }
+  {dll-method private {column-bytes-internal ("sqlite3_column_bytes") ||""
+                          stmt:LowSQLiteStatementHandle,
+                          column-index:int
+                      }:int
+  }
+
+  {doc-next
+    {purpose
+        Deletes a prepared SQL statement.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {return-vals
+        Returns the status code of the most recent step or
+        prepare of the statement.
+    }
+    {notes
+        All prepared statements must be finalized before calling
+        {docref SQLiteInterface.close}, otherwise {ctext
+        SQLiteInterface.close} will fail and return {ctext
+        SQLiteStatus.BUSY}.
+
+        This function can be called at any point during the execution
+        of the virtual machine. If the virtual machine has not
+        completed execution when this routine is called, it is like
+        encountering an error or an interrupt. In this case, incomplete
+        updates may be rolled back and transactions canceled,
+        depending on the circumstances, and {ctext
+        SQLiteInterface.finalize} will return {ctext
+        SQLiteStatus.ABORT}.
+    }
+  }
+  {method package {finalize
+                      handle:LowSQLiteStatementHandle
+                  }:SQLiteStatus
+    {return {SQLiteStatus index = {self.finalize-internal handle}}}
+  }
+
+  {dll-method private {finalize-internal ("sqlite3_finalize") ||""
+                          stmt:LowSQLiteStatementHandle
+                      }:int
+  }
+
+  {doc-next
+    {purpose
+        Resets a prepared SQL statement.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {notes
+        After this call {param stmt} is ready to be re-executed. Any
+        SQL parameters that have values bound to them will retain
+        their values on the subsequent execution.
+    }
+  }
+  {method package {reset
+                      stmt:LowSQLiteStatementHandle
+                  }:SQLiteStatus
+    {return {SQLiteStatus index = {self.reset-internal stmt}}}
+  }
+
+  {dll-method private {reset-internal ("sqlite3_reset") ||""
+                          stmt:LowSQLiteStatementHandle
+                      }:int
+  }
+
+  || parameters
+  || ----------
+  {doc-next
+    {purpose
+        Assigns (or binds) an {ctext int} to a parameter in a prepared SQL
+        statement.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {parameter index,
+        Index of the parameter to be set. 
+
+        All parameters are identified by an index or a
+        number. Positional parameters, for example, are numbered using
+        sequential integer values, starting with 1 for the first
+        parameter.
+    }
+    {parameter val,
+        The value to bind to the parameter with the index {param index}.
+    }
+    {notes
+        This method must be called after {docref
+        SQLiteDatabaseHandle.prepare-statement} or {docref SQLiteStatementHandle.reset} and
+        before {docref SQLiteStatementHandle.step}. Bindings are not reset
+        by the {ctext SQLiteStatementHandle.reset} method. Unbound
+        parameters are interpreted as NULL.
+    }
+  }
+  {method public {bind-int
+                     stmt:SQLiteStatementHandle,
+                     index:int,
+                     val:int
+                 }:SQLiteStatus
+    {return
+        {SQLiteStatus index = {self.bind-int-internal stmt._handle, index, val}}
+    }
+  }
+  {dll-method private {bind-int-internal ("sqlite3_bind_int") ||""
+                          stmt:LowSQLiteStatementHandle,
+                          index:int,
+                          val:int
+                      }:int
+  }
+
+  {doc-next
+    {purpose
+        Assigns (or binds) an {ctext int64} to a parameter in a prepared SQL
+        statement.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {parameter index,
+        Index of the parameter to be set. 
+
+        All parameters are identified by an index or a
+        number. Positional parameters, for example, are numbered using
+        sequential integer values, starting with 1 for the first
+        parameter.
+    }
+    {parameter val,
+        The value to bind to the parameter with the index {param index}.
+    }
+    {notes
+        This method must be called after {docref
+        SQLiteDatabaseHandle.prepare-statement} or {docref SQLiteStatementHandle.reset} and
+        before {docref SQLiteStatementHandle.step}. Bindings are nor reset
+        by the {ctext SQLiteStatementHandle.reset} method. Unbound
+        parameters are interpreted as NULL.
+    }
+  }
+  {method public {bind-int64
+                     stmt:SQLiteStatementHandle,
+                     index:int,
+                     val:int64
+                 }:SQLiteStatus
+    {return
+        {SQLiteStatus
+            index = {self.bind-int64-internal stmt._handle, index, val}
+        }
+    }
+  }
+  {dll-method private {bind-int64-internal ("sqlite3_bind_int64") ||""
+                          stmt:LowSQLiteStatementHandle,
+                          index:int,
+                          val:int64
+                      }:int
+  }
+
+  {doc-next
+    {purpose
+        Assigns (or binds) a {ctext double} to a parameter in a prepared SQL
+        statement.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {parameter index,
+        Index of the parameter to be set. 
+
+        All parameters are identified by an index or a
+        number. Positional parameters, for example, are numbered using
+        sequential integer values, starting with 1 for the first
+        parameter.
+    }
+    {parameter val,
+        The value to bind to the parameter with the index {param
+        index}.
+    }
+    {notes
+        This method must be called after {docref
+        SQLiteDatabaseHandle.prepare-statement} or {docref SQLiteStatementHandle.reset} and
+        before {docref SQLiteStatementHandle.step}. Bindings are nor reset
+        by the {ctext SQLiteStatementHandle.reset} method. Unbound
+        parameters are interpreted as NULL.
+    }
+  }
+  {method public {bind-double
+                     stmt:SQLiteStatementHandle,
+                     index:int,
+                     val:double
+                 }:SQLiteStatus
+    {return
+        {SQLiteStatus
+            index = {self.bind-double-internal stmt._handle, index, val}
+        }
+    }
+  }
+  {dll-method private {bind-double-internal ("sqlite3_bind_double") ||""
+                          stmt:LowSQLiteStatementHandle,
+                          index:int,
+                          val:double
+                      }:int
+  }
+
+  {doc-next
+    {purpose
+        Assigns (or binds) a {ctext null} value to a parameter in a
+        prepared SQL statement.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {parameter index,
+        Index of the parameter to be set. 
+
+        All parameters are identified by an index or a
+        number. Positional parameters, for example, are numbered using
+        sequential integer values, starting with 1 for the first
+        parameter.
+    }
+    {notes
+        This method must be called after {docref
+        SQLiteDatabaseHandle.prepare-statement} or {docref SQLiteStatementHandle.reset} and
+        before {docref SQLiteStatementHandle.step}. Bindings are nor reset
+        by the {ctext SQLiteStatementHandle.reset} method. Unbound
+        parameters are interpreted as NULL.
+    }
+  }
+  {method public {bind-null
+                     stmt:SQLiteStatementHandle,
+                     index:int
+                 }:SQLiteStatus
+    {return
+        {SQLiteStatus index = {self.bind-null-internal stmt._handle, index}}
+    }
+  }
+  {dll-method private {bind-null-internal ("sqlite3_bind_null") ||""
+                         stmt:LowSQLiteStatementHandle,
+                         index:int
+                     }:int
+  }
+
+  {doc-next
+    {purpose
+        Assigns (or binds) a {docref String} value to a parameter in a
+        prepared SQL statement.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {parameter index,
+        Index of the parameter to be set. 
+
+        All parameters are identified by an index or a
+        number. Positional parameters, for example, are numbered using
+        sequential integer values, starting with 1 for the first
+        parameter.
+    }
+    {parameter val,
+        The value to bind to the parameter with the index {param
+        index}.
+    }
+    {notes
+        This method must be called after {docref
+        SQLiteDatabaseHandle.prepare-statement} or {docref SQLiteStatementHandle.reset} and
+        before {docref SQLiteStatementHandle.step}. Bindings are nor reset
+        by the {ctext SQLiteStatementHandle.reset} method. Unbound
+        parameters are interpreted as NULL.
+    }
+  }
+  {method public {bind-text
+                     stmt:SQLiteStatementHandle,
+                     index:int,
+                     val:String
+                 }:SQLiteStatus
+    {return
+        {SQLiteStatus
+            index = 
+                {self.bind-text-internal 
+                    stmt._handle, index, val, -1, SQLiteTransient
+                }
+        }
+    }
+  }
+
+  || Notes:
+  || nval: Number of bytes in {param val}.  It does not include the
+  ||     zero-terminator at the end of the {param val}. A value of -1
+  ||     means that till a null value is found.
+
+  || free: Destructor used to dispose the text after SQLite has
+  ||       finished with it.
+  ||
+  ||       If it is a special value {docref SQLiteStatic} then the
+  ||       library assumes that the information is in static, unmanaged
+  ||       space and does not need to be freed. If it is {docref
+  ||       SQLiteTransient}, then SQLite makes its own copy of the data
+  ||       before returning and automatically cleans it up when the query
+  ||       is finalized.
+  ||
+  {dll-method private {bind-text-internal ("sqlite3_bind_text") ||""
+                         stmt:LowSQLiteStatementHandle,
+                         index:int,
+                         val:String,
+                         nval:int,
+                         free:CPointer
+                     }:int
+  }
+
+  {doc-next
+    {purpose
+        Assigns (or binds) a {docref ByteArray} to a parameter in
+        a prepared SQL statement.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {parameter index,
+        Index of the parameter to be set. 
+
+        All parameters are identified by an index or a
+        number. Positional parameters, for example, are numbered using
+        sequential integer values, starting with 1 for the first
+        parameter.
+    }
+    {parameter val,
+        The value to bind to the parameter with the index {param
+        index}.
+    }
+    {notes
+        This method must be called after {docref
+        SQLiteDatabaseHandle.prepare-statement} or {docref SQLiteStatementHandle.reset} and
+        before {docref SQLiteStatementHandle.step}. Bindings are nor reset
+        by the {ctext SQLiteStatementHandle.reset} method. Unbound
+        parameters are interpreted as NULL.
+    }
+  }
+  {method public {bind-blob
+                     stmt:SQLiteStatementHandle,
+                     index:int,
+                     val:ByteArray
+                 }:SQLiteStatus
+    {return
+        {SQLiteStatus
+            index =
+            {self.bind-blob-internal
+                stmt._handle, index, val.underlying-FastArray, val.size,
+                SQLiteTransient
+            }
+        }
+    }
+  }
+
+  || nval: Number of bytes in {param val}.
+  || free: Destructor used to dispose the blob after SQLite has
+  ||       finished with it.
+  || If it is a special value {docref SQLiteStatic} then the library
+  || assumes that the information is in static, unmanaged space and
+  || does not need to be freed. If it is {docref SQLiteTransient},
+  || then SQLite makes its own copy of the data before returning and
+  || automatically cleans it up when the query is finalized.
+  {dll-method private {bind-blob-internal ("sqlite3_bind_blob") ||""
+                         stmt:LowSQLiteStatementHandle,
+                         index:int,
+                         val:CPointer,
+                         nval:int,
+                         free:CPointer
+                     }:int
+  }
+
+  {doc-next
+    {purpose
+        Number of parameters in the precompiled statement.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {return-vals
+        The number of parameters in {param stmt}.
+    }
+  }
+  {method public {bind-parameter-count
+                     stmt:SQLiteStatementHandle
+                 }:int
+    {return {self.bind-parameter-count-internal stmt._handle}}
+  }
+  {dll-method private {bind-parameter-count-internal
+                          ("sqlite3_bind_parameter_count") ||""
+                          stmt:LowSQLiteStatementHandle
+                      }:int
+  }
+
+  {doc-next
+    {purpose
+        The name of a parameter in the precompiled statement.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+        
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {parameter index,
+        Index of the parameter whose name is to be retrieved. 
+
+        All parameters are identified by an index or a
+        number. Positional parameters, for example, are numbered using
+        sequential integer values, starting with 1 for the first
+        parameter.
+    }
+    {return-vals
+        The name of the parameter at {param index} in {param stmt}.
+    }
+  }
+  {method public {bind-parameter-name
+                     stmt:SQLiteStatementHandle,
+                     index:int
+                 }:#String
+    {return {self.bind-parameter-name-internal stmt._handle, index}}
+  }
+
+  {dll-method private {bind-parameter-name-internal
+                          ("sqlite3_bind_parameter_name") ||""
+                          stmt:LowSQLiteStatementHandle,
+                          index:int
+                      }:#String
+  }
+  
+  {doc-next
+    {purpose
+        The index of the parameter in the precompiled statement.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+    {parameter name,
+        The name of the parameter whose index is requested.
+    }
+    {return-vals
+        The index of the parameter with the given name.
+
+        The name must match exactly. If there is no parameter with the
+        given name, this method returns 0.
+    }
+  }
+  {method public {bind-parameter-index
+                     stmt:SQLiteStatementHandle,
+                     name:String
+                 }:int
+    {return {self.bind-parameter-index-internal stmt._handle, name}}
+  }
+  {dll-method private {bind-parameter-index-internal
+                          ("sqlite3_bind_parameter_index") ||""
+                         stmt:LowSQLiteStatementHandle,
+                         name:String
+                     }:int
+  }
+
+
+  {doc-next
+    {purpose
+        Clear any bindings for parameters in a prepared statement.
+    }
+    {parameter stmt,
+        The handle of the compiled statement.
+
+        See Also: {docref SQLiteDatabaseHandle.prepare-statement}.
+    }
+  }
+  {method public {clear-bindings
+                     stmt:SQLiteStatementHandle
+                 }:SQLiteStatus
+    {return {SQLiteStatus index = {self.clear-bindings-internal stmt._handle}}}
+  }
+
+  {dll-method private {clear-bindings-internal ("sqlite3_clear_bindings") ||""
+                          stmt:LowSQLiteStatementHandle
+                      }:int
+  }
+
+  || callbacks
+  || ----------
+  {doc-next
+    {purpose
+        Registers a callback function that may be invoked whenever an
+        attempt is made to open a table that another thread
+        or process has locked.
+    }
+    {parameter sqlite3,
+        SQLite database handle.
+    }
+    {parameter callback,
+        The callback procedure.
+        
+        It has one argument, which is
+        the number of prior calls to the {param callback} for the same
+        lock.
+
+        If the callback returns {ctext false}, then no additional attempts are
+        made to access the table, and the blocked API call will
+        return {ctext SQLiteStatus.BUSY}. If it returns {ctext true} then
+        another attempt is made by the API function to access the table,
+        and the cycle repeats itself.
+
+        If the {param callback} argument is set to {ctext null}, then
+        this will effectively remove the callback function, if one was
+        previously registered.
+    }
+    {parameter userdata,
+        Application specific data that is passed back to the callback
+        function as its first argument.
+    }
+    {details
+        If a callback function is registered, SQLite may call it
+        rather than the SQLite methods return {ctext
+        SQLiteStatus.BUSY}.
+
+        The presence of a busy handler does not guarantee that it will
+        be invoked whenever there is a lock contention. If SQLite
+        determines that invoking the busy handler could result in a
+        deadlock, it will return {ctext SQLiteStatus.BUSY} instead.
+
+        Since SQLite is re-entrant, the busy handler could in theory
+        start a new query. However, the busy handler will delete data
+        structures out from under the executing query and will
+        probably result in crashing the program.
+    }
+    {return-vals
+        On success it returns {ctext SQLiteStatus.OK} otherwise it
+        will return an error {docref SQLiteStatus} code.
+
+        The second return value is a pointer to the internal version of
+        the callback, which must be kept alive.
+    }
+  }
+  {method package {busy-handler
+                      sqlite3:SQLiteDatabaseHandle,
+                      callback:#SQLiteBusyHandlerProcType
+                  }:(SQLiteStatus, SQLiteBusyHandlerPointerType)
+    let ret:SQLiteBusyHandlerPointerType =
+        {if-non-null callback then
+            {SQLiteBusyHandlerPointerType
+                {proc
+                    {userdata-ptr:CPointer,
+                     ncalls:int
+                    }:int
+                    {with sqlite3._change-lock-out? = true do
+                        {with-defered-exceptions
+                            {return {if {callback ncalls} then 1 else 0}}
+                        }
+                    }
+                    {return 0}
+                }
+            }
+         else
+            {uninitialized-value-for-type SQLiteBusyHandlerPointerType}
+        }
+    {return
+        {SQLiteStatus
+            index = {self.busy-handler-internal sqlite3.non-null-sqlite3, ret, 0}
+        },
+        ret
+    }
+  }
+  {dll-method private {busy-handler-internal ("sqlite3_busy_handler") ||""
+                          sqlite3:LowSQLiteDatabaseHandle,
+                          callback:SQLiteBusyHandlerPointerType,
+                          userdata:CPointer
+                      }:int
+  }
+
+  {doc-next
+    {purpose
+        Sets the time out of the busy handler in milliseconds.
+    }
+    {parameter sqlite3,
+        SQLite database handle.
+    }
+    {parameter ms,
+        The least time that will cause calls that can not complete due
+        to competing table locks to fail with {ctext SQLiteStatus.BUSY}.
+
+        If {param ms} is non-positive it will turn off all the busy
+        handlers.
+
+        {param ms} is a number of milliseconds.
+    }
+  }
+  {method package {busy-timeout
+                     sqlite3:LowSQLiteDatabaseHandle,
+                     ms:int
+                  }:SQLiteStatus
+    {return {SQLiteStatus index = {self.busy-timeout-internal sqlite3, ms}}}
+  }
+
+  {dll-method private {busy-timeout-internal ("sqlite3_busy_timeout") ||""
+                          sqlite3:LowSQLiteDatabaseHandle,
+                          ms:int
+                      }:int
+  }
+
+  {doc-next
+    {purpose
+        Registers a callback function with a database connection, that
+        will be invoked whenever a row is updated, inserted or deleted.
+    }
+    {parameter sqlite3,
+        SQLite database handle.
+    }
+    {parameter callback,
+        The callback procedure.
+
+        The first argument is {ctext SQLiteOperation.INSERT},
+        {ctext SQLiteOperation.DELETE} or {ctext
+        SQLiteOperation.UPDATE}, depending on the operation that
+        caused the callback to be invoked.
+
+        The second and third arguments identify the database and the
+        table name containing the effected row and the final callback
+        argument is the {ctext ROWID} of the row. In case of an
+        update, this is the {ctext ROWID} after the update takes
+        place.
+    }
+    {return-vals
+        The return value is a pointer to the internal version of
+        the callback, which must be kept alive.
+    }
+    {details
+        The {param callback} is not invoked when internal system
+        tables are modified.
+
+        See also {docref SQLiteInterface.commit-hook} and {docref
+        SQLiteInterface.rollback-hook}.
+    }
+  }
+  {method package {update-hook
+                      sqlite3:SQLiteDatabaseHandle,
+                      callback:#SQLiteUpdateHookProcType
+                  }:SQLiteUpdateCallbackPointerType
+    let constant ret:SQLiteUpdateCallbackPointerType =
+        {if-non-null callback then
+            {SQLiteUpdateCallbackPointerType
+                {proc
+                    {userdata-ptr:CPointer,
+                     which:int,
+                     database:CStringUTF8,
+                     table:CStringUTF8,
+                     rowid:int64
+                    }:void
+                    {with sqlite3._change-lock-out? = true do
+                        {with-defered-exceptions
+                            {callback 
+                                {SQLiteOperation index = which}, 
+                                {database.to-String}, {table.to-String}, rowid
+                            }
+                        }
+                    }
+                }
+            }
+         else
+            {uninitialized-value-for-type SQLiteUpdateCallbackPointerType}
+        }
+    {self.update-hook-internal sqlite3.non-null-sqlite3, ret, 0}
+    {return ret}
+  }
+
+  {dll-method private {update-hook-internal ("sqlite3_update_hook") ||""
+                          sqlite3:LowSQLiteDatabaseHandle,
+                          callback:SQLiteUpdateCallbackPointerType,
+                          userdata:CPointer
+                      }:CPointer
+  }
+
+  {doc-next
+    {purpose
+        Registers a callback function with a database connection, that
+        will be invoked whenever a new transaction is completed.
+    }
+    {parameter sqlite3,
+        SQLite database handle.
+    }
+    {parameter callback,
+        The callback procedure.
+
+        If {param callback} returns {ctext true} then the commit is
+        converted into a rollback.
+    }
+    {return-vals
+        The return value is a pointer to the internal version of
+        the callback, which must be kept alive.
+    }
+  }
+  {method package {commit-hook
+                      sqlite3:SQLiteDatabaseHandle,
+                      callback:#SQLiteCommitHookProcType
+                  }:SQLiteCommitCallbackPointerType
+    let constant ret:SQLiteCommitCallbackPointerType =
+        {if-non-null callback then
+            {SQLiteCommitCallbackPointerType
+                {proc {userdata-ptr:CPointer}:int
+                    {with sqlite3._change-lock-out? = true do
+                        {with-defered-exceptions
+                            {return {if {callback} then 1 else 0}}
+                        }
+                    }
+                    {return 1}
+                }
+            }
+         else
+            {uninitialized-value-for-type SQLiteCommitCallbackPointerType}
+        }
+    {self.commit-hook-internal sqlite3.non-null-sqlite3, ret, 0}
+    {return ret}
+  }
+
+  {dll-method private {commit-hook-internal ("sqlite3_commit_hook") ||""
+                         sqlite3:LowSQLiteDatabaseHandle,
+                         callback:SQLiteCommitCallbackPointerType,
+                         userdata:CPointer
+                     }:CPointer
+  }
+  
+  {doc-next
+    {purpose
+        Registers a callback function with a database connection, that
+        will be invoked whenever a transaction is rolled back.
+    }
+    {parameter sqlite3,
+        SQLite database handle.
+    }
+    {parameter callback,
+        The callback procedure.
+    }
+    {return-vals
+        The return value is a pointer to the internal version of
+        the callback, which must be kept alive.
+    }
+    {notes
+        The {param callback} will be invoked if an explicit {ctext
+        ROLLBACK} statement is executed, or an error or constraint
+        causes an implicit rollback to occur. It will not be invoked
+        if a transaction is automatically rolled back because the
+        database connection is closed.
+    }
+  }
+  {method package {rollback-hook
+                      sqlite3:SQLiteDatabaseHandle,
+                      callback:#SQLiteRollbackHookProcType
+                  }:SQLiteRollbackCallbackPointerType
+    let ret:SQLiteRollbackCallbackPointerType =
+        {if-non-null callback then
+            {SQLiteRollbackCallbackPointerType
+                {proc {userdata-ptr:CPointer}:void
+                    {with sqlite3._change-lock-out? = true do
+                        {with-defered-exceptions
+                            {callback}
+                        }
+                    }
+                }
+            }
+         else
+            {uninitialized-value-for-type SQLiteRollbackCallbackPointerType}
+        }
+    {self.rollback-hook-internal sqlite3.non-null-sqlite3, ret, 0}
+    {return ret}
+  }
+
+  {dll-method private {rollback-hook-internal ("sqlite3_rollback_hook") ||""
+                         sqlite3:LowSQLiteDatabaseHandle,
+                         callback:SQLiteRollbackCallbackPointerType,
+                         userdata:CPointer
+                     }:CPointer
+  }
+
+  || functions
+  || ----------
+  {doc-next
+    {purpose
+        Adds SQL functions or aggregates or redefines the behavior of
+        an existing SQL function or an aggregate.
+    }
+    {parameter sqlite3,
+        SQLite database handle.
+    }
+    {parameter name,
+        The name of the function or aggregate.
+
+        The length of {param name} is limited to {ctext 255} bytes, exclusive of
+        the zero-terminator. Note that the name length limit is in
+        bytes, not characters. Any attempt to create a function with a
+        longer name will result in an {ctext SQLiteStatus.ERROR}.
+    }
+    {parameter num-args,
+        The number of arguments that the SQL function or aggregate
+        takes. If this parameter is negative, then the SQL function or
+        aggregate may take any number of arguments.
+    }
+  }
+  || The sixth, seventh and eighth parameters, xFunc, xStep and
+  || xFinal, are pointers to C-language functions that implement the
+  || SQL function or aggregate. A scalar SQL function requires an
+  || implementation of the xFunc callback only, NULL pointers should
+  || be passed as the xStep and xFinal parameters. An aggregate SQL
+  || function requires an implementation of xStep and xFinal and NULL
+  || should be passed for xFunc. To delete an existing SQL function or
+  || aggregate, pass NULL for all three function callback.
+
+  {method package {create-function
+                      sqlite3:LowSQLiteDatabaseHandle,
+                      name:String,
+                      num-args:int,
+                      xfunc:#SQLiteFunctionProcType,
+                      xstep:#SQLiteFunctionProcType,
+                      xfinal:#SQLiteFinalFunctionProcType
+                  }:(SQLiteStatus, 
+                      xfunc:SQLiteFunctionPointerType,
+                      xstep:SQLiteFunctionPointerType,
+                      xfinal:SQLiteFinalFunctionPointerType)
+    let constant xfunc-ret:SQLiteFunctionPointerType =
+        {if-non-null xfunc then
+            {SQLiteFunctionPointerType
+                {proc {context:SQLiteContextHandle,
+                       num-args:int,
+                       args:LowSQLiteValueHandleArray
+                      }:void
+                    {xfunc
+                        context,
+                        {LowSQLiteValueHandleArray-to-Array args, num-args}
+                    }
+                }
+            }
+         else
+            {uninitialized-value-for-type SQLiteFunctionPointerType}
+        }
+    let constant xstep-ret:SQLiteFunctionPointerType =
+        {if-non-null xstep then
+            {SQLiteFunctionPointerType
+                {proc {context:SQLiteContextHandle,
+                       num-args:int,
+                       args:LowSQLiteValueHandleArray
+                      }:void
+                    {xstep
+                        context,
+                        {LowSQLiteValueHandleArray-to-Array args, num-args}
+                    }
+                }
+            }
+         else
+            {uninitialized-value-for-type SQLiteFunctionPointerType}
+        }
+    let constant xfinal-ret:SQLiteFinalFunctionPointerType =
+        {if-non-null xfinal then
+            {SQLiteFinalFunctionPointerType xfinal}
+         else
+            {uninitialized-value-for-type SQLiteFinalFunctionPointerType}
+        }
+    {return
+        {SQLiteStatus
+            index =
+                {self.create-function-internal 
+                    sqlite3, name, num-args, SQLITE_UTF8, 0,
+                    xfunc-ret, xstep-ret, xfinal-ret
+                }
+        },
+        xfunc-ret,
+        xstep-ret,
+        xfinal-ret
+    }
+  }
+
+  {dll-method private {create-function-internal ("sqlite3_create_function") ||""
+                         sqlite3:LowSQLiteDatabaseHandle,
+                         name:String,
+                         num-args:int,
+                         textrep:int,
+                         userdata:CPointer,
+                         xfunc:SQLiteFunctionPointerType,
+                         xstep:SQLiteFunctionPointerType,
+                         xfinal:SQLiteFinalFunctionPointerType
+                     }:int
+  }
+
+  {doc-next
+    {purpose
+        Returns the data type of {param val} for a function created with 
+        {docref SQLiteInterface.create-function}.
+    }
+    {parameter val,
+        The object whose type is to be retrieved.
+    }
+    {return-vals
+        The type of {param val}.
+    }
+  }
+  {method package {value-type
+                      val:SQLiteValueHandle
+                  }:SQLiteDatatype
+    {return
+        {SQLiteDatatype
+            index = {self.value-type-internal val}
+        }
+    }
+  }
+  {dll-method private {value-type-internal ("sqlite3_value_type") ||""
+                          val:SQLiteValueHandle
+                      }:int
+  }
+
+  || QUESTION: Since we did not expose column-numeric-type do we need
+  || to expose this one?
+||--  {dll-method public {value-numeric-type ("sqlite3_value_numeric_type") ||""
+||--                         val:SQLiteValueHandle
+||--                     }:int
+||--  }
+
+  {doc-next
+    {purpose
+        Returns {param val} as a {ctext int}, for a function created with 
+        {docref SQLiteInterface.create-function}.
+    }
+    {parameter val,
+        The object that is to be retrieved as an {ctext int}.
+    }
+    {return-vals
+        The value of {param val} as a {ctext int}.
+    }
+  }
+  {dll-method package {value-int ("sqlite3_value_int") ||""
+                          val:SQLiteValueHandle
+                      }:int
+  }
+
+  {doc-next
+    {purpose
+        Returns {param val} as a {ctext int64}, for a function created with 
+        {docref SQLiteInterface.create-function}.
+    }
+    {parameter val,
+        The object that is to be retrieved as an {ctext int64}.
+    }
+    {return-vals
+        The value of {param val} as a {ctext int64}.
+    }
+  }
+  {dll-method package {value-int64 ("sqlite3_value_int64") ||""
+                          val:SQLiteValueHandle
+                      }:int64
+  }
+
+  {doc-next
+    {purpose
+        Returns {param val} as a {ctext double}, for a function created with 
+        {docref SQLiteInterface.create-function}.
+    }
+    {parameter val,
+        The object that is to be retrieved as an {ctext double}.
+    }
+    {return-vals
+        The value of {param val} as a {ctext double}.
+    }
+  }
+  {dll-method package {value-double ("sqlite3_value_double") ||""
+                          val:SQLiteValueHandle
+                      }:double
+  }
+
+  {doc-next
+    {purpose
+        Returns {param val} as a {docref String}, for a function created
+        with {docref SQLiteInterface.create-function}.
+    }
+    {parameter val,
+        The object that is to be retrieved as an String.
+    }
+    {return-vals
+        The value of {param val} as a String.
+    }
+  }
+  {dll-method package {value-text ("sqlite3_value_text") ||""
+                          val:SQLiteValueHandle
+                      }:#String
+  }
+
+  {doc-next
+    {purpose
+        Returns {param val} as a {docref ByteArray}, for a function created
+        with {docref SQLiteInterface.create-function}.
+    }
+    {parameter val,
+        The object that is to be retrieved as a {docref ByteArray}.
+    }
+    {return-vals
+        The value of {param val} as a {docref ByteArray}.
+    }
+  }
+  {method package {value-blob
+                      val:SQLiteValueHandle,
+                      out:#ByteArray = null
+                  }:#ByteArray
+    || Note: you must call this before column-bytes according to SQLite docs
+    let _bytes:CPointer = {self.value-blob-internal val}
+    {if _bytes == 0 then
+        {return null}
+    }
+    let length:int = {self.value-bytes val}
+    {return {bytes-to-ByteArray _bytes, length, out = out}}
+  }
+
+  {dll-method private {value-blob-internal ("sqlite3_value_blob") ||""
+                          val:SQLiteValueHandle
+                      }:CPointer
+  }
+
+  {doc-next
+    {purpose
+        Returns the number of bytes it will take to hold {param val}.
+    }
+    {parameter val, 
+        The object for which we want to retrieve the length in bytes of.
+    }
+    {return-vals
+        The number of bytes it will take to hold {param val}.
+    }
+  }
+  {dll-method package {value-bytes ("sqlite3_value_bytes") ||""
+                          val:SQLiteValueHandle
+                      }:int
+  }
+
+  {doc-next
+    {purpose
+        Set an aggregate context value for aggregate functions
+        created with {docref SQLiteInterface.create-function}.
+    }
+    {parameter context,
+        Context passed to an aggregate function
+        created with {docref SQLiteInterface.create-function}.
+    }
+    {parameter val,
+        Value to set.
+    }
+  }
+  {method package {set-aggregate-context-int
+                      context:SQLiteContextHandle,
+                      val:int
+                  }:void
+    set {self.aggregate-context context, 4}.value = val
+  }
+
+  {doc-next
+    {purpose
+        Get an aggregate context value for aggregate functions
+        created with {docref SQLiteInterface.create-function}.
+    }
+    {parameter context,
+        Context passed to an aggregate function
+        created with {docref SQLiteInterface.create-function}.
+    }
+    {return-vals
+        Saved context value.
+    }
+    {notes
+        Return will be 0 if a value has not been set for this context.
+    }
+  }
+  {method package {get-aggregate-context-int
+                      context:SQLiteContextHandle
+                  }:int
+    {return {self.aggregate-context context, 4}.value}
+  }
+
+  || TODO: this is really returning a pointer to whatever you want,
+  || But it is easier to handle if it is just pointer to an int.
+  {dll-method private {aggregate-context ("sqlite3_aggregate_context") ||""
+                         context:SQLiteContextHandle,
+                         n:int
+                     }:{Reference-to int}
+  }
+
+  {doc-next
+    {purpose
+        Sets the return value to {ctext null} for a function
+        created with {docref SQLiteInterface.create-function}.
+    }
+    {parameter context,
+        Context passed to a function
+        created with {docref SQLiteInterface.create-function}.
+    }
+  }
+  {dll-method package {result-null ("sqlite3_result_null") ||""
+                          context:SQLiteContextHandle
+                      }:void
+  }
+
+  {doc-next
+    {purpose
+        Sets the return value to an {ctext int} for a function
+        created with {docref SQLiteInterface.create-function}.
+    }
+    {parameter context,
+        Context passed to a function
+        created with {docref SQLiteInterface.create-function}.
+    }
+    {parameter val,
+        The value to set.
+    }
+  }
+  {dll-method package {result-int ("sqlite3_result_int") ||""
+                          context:SQLiteContextHandle,
+                          val:int
+                      }:void
+  }
+
+  {doc-next
+    {purpose
+        Sets the return value to an {ctext int64} for a function
+        created with {docref SQLiteInterface.create-function}.
+    }
+    {parameter context,
+        Context passed to a function
+        created with {docref SQLiteInterface.create-function}.
+    }
+    {parameter val,
+        The value to set.
+    }
+  }
+  {dll-method package {result-int64 ("sqlite3_result_int64") ||""
+                          context:SQLiteContextHandle,
+                          val:int64
+                      }:void
+  }
+
+  {doc-next
+    {purpose
+        Sets the return value to an {ctext double} for a function
+        created with {docref SQLiteInterface.create-function}.
+    }
+    {parameter context,
+        Context passed to a function
+        created with {docref SQLiteInterface.create-function}.
+    }
+    {parameter val,
+        The value to set.
+    }
+  }
+  {dll-method package {result-double ("sqlite3_result_double") ||""
+                          context:SQLiteContextHandle,
+                          val:double
+                      }:void
+  }
+
+  {doc-next
+    {purpose
+        Sets the return value to an {docref String} for a function
+        created with {docref SQLiteInterface.create-function}.
+    }
+    {parameter context,
+        Context passed to a function
+        created with {docref SQLiteInterface.create-function}.
+    }
+    {parameter val,
+        The value to set.
+    }
+  }
+  {method package {result-text context:SQLiteContextHandle, val:String}:void
+    {self.result-text-internal context, val, -1, SQLiteTransient} 
+  }
+
+  || Notes:
+  || nval: Number of bytes in {param val}.  It does not include the
+  ||     zero-terminator at the end of the {param val}. A value of -1
+  ||     means that till a null value is found.
+
+  || free: Destructor used to dispose the text after SQLite has
+  ||       finished with it.
+  ||
+  ||       If it is a special value {docref SQLiteStatic} then the
+  ||       library assumes that the information is in static, unmanaged
+  ||       space and does not need to be freed. If it is {docref
+  ||       SQLiteTransient}, then SQLite makes its own copy of the data
+  ||       before returning and automatically cleans it up when the query
+  ||       is finalized.
+  ||
+  {dll-method private {result-text-internal ("sqlite3_result_text") ||""
+                          context:SQLiteContextHandle,
+                          val:String,
+                          nval:int,
+                          free:CPointer
+                      }:void
+  }
+
+  {doc-next
+    {purpose
+        Sets the return value to an {docref ByteArray} for a function
+        created with {docref SQLiteInterface.create-function}.
+    }
+    {parameter context,
+        Context passed to a function
+        created with {docref SQLiteInterface.create-function}.
+    }
+    {parameter val,
+        The value to set.
+    }
+  }
+  {method package {result-blob context:SQLiteContextHandle, val:ByteArray}:void
+    {self.result-blob-internal
+        context, val.underlying-FastArray, val.size, SQLiteTransient
+    }
+  }
+
+
+  || nval: The length of {param val} in bytes.
+
+  || free: Destructor used to dispose the blob after SQLite has
+  ||       finished with it.
+  ||      If it is a special value {docref SQLiteStatic} then the
+  ||      library assumes that the information is in static, unmanaged
+  ||      space and does not need to be freed. If it is {docref
+  ||      SQLiteTransient}, then SQLite makes its own copy of the data
+  ||      before returning and automatically cleans it up when the
+  ||      query is finalized.
+  {dll-method private {result-blob-internal ("sqlite3_result_blob") ||""
+                          context:SQLiteContextHandle,
+                          val:CPointer,
+                          nval:int,
+                          free:CPointer
+                      }:void
+  }
+
+  {doc-next
+    {purpose
+        Sets the return value to an error {docref String} for a function
+        created with {docref SQLiteInterface.create-function}.
+    }
+    {parameter context,
+        Context passed to a function
+        created with {docref SQLiteInterface.create-function}.
+    }
+    {parameter val,
+        The value to set.
+    }
+  }
+  {method package {result-error
+                      context:SQLiteContextHandle,
+                      val:String
+                  }:void
+    {self.result-error-internal context, val, -1}
+  }
+  {dll-method private {result-error-internal ("sqlite3_result_error") ||""
+                          context:SQLiteContextHandle,
+                          val:String,
+                          nval:int
+                      }:void
+  }
+
+  {doc-next
+    {purpose
+        Sets the return value to an error code for a function
+        created with {docref SQLiteInterface.create-function}.
+    }
+    {parameter context,
+        Context passed to a function
+        created with {docref SQLiteInterface.create-function}.
+    }
+    {parameter val,
+        The value to set.
+    }
+  }
+  || Added in SQLite 3.5.6
+  {method package {result-error-code
+                      context:SQLiteContextHandle,
+                      val:SQLiteStatus
+                  }:void
+    {self.result-error-code-internal context, val.index}
+  }
+
+  {dll-method private {result-error-code-internal ("sqlite3_result_error_code") ||""
+                          context:SQLiteContextHandle,
+                          error-code:int
+                      }:void
+  }
+
+  || deallocation
+  || ----------
+  {doc-next
+    {purpose
+        Frees a previously allocated memory.
+    }
+    {parameter sql,
+        The memory to free.
+    }
+    {notes
+        It frees the memory obtained from the error message generated
+        from {docref SQLiteInterface.exec}.
+    }
+  }
+  || NOTE: If you add mprintf or vmprintf then mention them in the
+  || notes section as well.
+  {dll-method package {free ("sqlite3_free") ||""
+                          sql:CPointer
+                      }:void
+  }
+
+||--  {doc-next
+||--    {purpose
+||--        Frees the memory generated from {docref
+||--        SQLiteInterface.get-table}.
+||--    }
+||--  }
+||--  {dll-method public {free-table ("sqlite3_free_table") ||""
+||--                         result:CPointer
+||--                     }:void
+||--  }
+
+  || info
+  || ----------
+  {doc-next
+    {purpose
+        Returns the number of database rows that were updated,
+        inserted or deleted, by the most recently completed {ctext
+        UPDATE}, {ctext INSERT} or a {ctext DELETE} statement.
+    }
+    {parameter sqlite3,
+        SQLite database handle.
+    }
+    {notes
+        Only changes that are directly specified by the {ctext
+        UPDATE}, {ctext INSERT} or {ctext DELETE} statement are
+        counted. Auxiliary changes caused by the triggers are not
+        counted.
+
+        If it is called within a trigger, it reports the number of
+        rows that where changed for the most recently completed {ctext
+        UPDATE}, {ctext INSERT} or {ctext DELETE} statement within
+        that trigger.
+
+        SQLite implements the command {ctext DELETE FROM table},
+        without a where clause, by dropping and recreating the
+        table. Because of this optimization, the change count for
+        {ctext DELETE FROM table} will be zero regardless of the
+        number of records that were originally in the table. To obtain
+        the actual number of rows deleted, use {ctext DELETE FROM
+        table WHERE 1} instead, which disables the optimization.
+
+        See also: {docref SQLiteInterface.total-changes}.
+    }
+  }
+  {method public {changes
+                     handle:SQLiteDatabaseHandle
+                 }:int
+    {return {self.changes-internal handle.non-null-sqlite3}}
+  }
+   
+  {dll-method private {changes-internal ("sqlite3_changes") ||""
+                          sqlite3:LowSQLiteDatabaseHandle
+                      }:int
+  }
+   
+  {doc-next
+    {purpose
+        Returns the total number of database rows that were modified,
+        inserted or deleted, since the database connection was created.
+    }
+    {parameter sqlite3,
+        SQLite database handle.
+    }
+    {notes
+        All changes are counted, including changes by triggers and
+        changes to temp and auxiliary databases. Changes on
+        internal tables, caused by statements
+        such as {ctext CREATE TABLE} are not counted. Changes counted
+        when an entire table is deleted using {ctext DROP TABLE} are
+        not counted either.
+
+        SQLite implements the command {ctext DELETE FROM table},
+        without a where clause, by dropping and recreating the
+        table. Because of this optimization, the change count for
+        {ctext DELETE FROM table} will be zero regardless of the
+        number of records that were originally in the table. To obtain
+        the actual number of rows deleted, use {ctext DELETE FROM
+        table WHERE 1} instead, which disables the optimization.
+
+        If the database connection is not open, this method will
+        return 0.
+
+        See also: {docref SQLiteInterface.changes}.
+    }
+  }
+  {method public {total-changes
+                     handle:SQLiteDatabaseHandle
+                 }:int
+    {return {self.total-changes-internal handle.non-null-sqlite3}}
+  }
+
+  {dll-method package {total-changes-internal ("sqlite3_total_changes") ||""
+                          sqlite3:LowSQLiteDatabaseHandle
+                      }:int
+  }
+
+  {doc-next
+    {purpose
+        Returns the auto-increment primary key value generated from the
+        last successful {ctext INSERT} statement.
+    }
+    {parameter sqlite3,
+        SQLite database handle.
+    }
+    {return-vals
+        The primary key value.
+    }
+    {notes
+        Each entry in a SQLite table has a unique integer key. The key
+        is the value of the {ctext INTEGER PRIMARY KEY} column if
+        there is such a column, otherwise the key is generated at
+        random. The unique key is always available as the {ctext
+        ROWID}, {ctext OID}, OR {ctext _ROWID_}.
+    }
+  }
+  {method public {last-insert-rowid
+                     handle:SQLiteDatabaseHandle
+                 }:int64
+    {return {self.last-insert-rowid-internal handle.non-null-sqlite3}}
+  }
+  {dll-method private {last-insert-rowid-internal ("sqlite3_last_insert_rowid") ||""
+                          sqlite3:LowSQLiteDatabaseHandle
+                      }:int64
+  }
+
+  || status
+  || ----------
+  {doc-next
+    {purpose
+        Returns the error code for the most recently failed {docref
+        SQLiteInterface} API call.
+    }
+    {parameter sqlite3,
+        SQLite database handle.
+    }
+    {return-vals
+        The error code from the most recently failed API call
+        associated with {param sqlite3} database handle.
+    }
+    {notes
+        If a prior API call fails but the most recent API call
+        succeeds, the return value from this function is undefined.
+    }
+  }
+  {method public {errcode sqlite3:SQLiteDatabaseHandle}:SQLiteStatus
+    {return
+        {SQLiteStatus value = {self.errcode-internal sqlite3.non-null-sqlite3}}
+    }
+  }
+
+  {dll-method private {errcode-internal ("sqlite3_errcode") ||""
+                          sqlite3:LowSQLiteDatabaseHandle
+                      }:int
+  }
+
+  {doc-next
+    {purpose
+        Returns the error message in {docref String} for the most
+        recently failed {docref SQLiteInterface} API call.
+    }
+    {parameter sqlite3,
+        SQLite database handle.
+    }
+    {return-vals
+        Error message in {ctext English} for the most recently failed
+        API call.
+    }
+    {notes
+        The message {ctext not an error} is returned when the most
+        recent API call is successful.
+    }
+  }
+  {method public {errmsg
+                     sqlite3:SQLiteDatabaseHandle
+                 }:String
+    {return {self.errmsg-internal sqlite3.non-null-sqlite3}}
+  }
+
+  {dll-method private {errmsg-internal ("sqlite3_errmsg") ||""
+                         sqlite3:LowSQLiteDatabaseHandle
+                     }:String
+  }
+
+  || info
+  || ----------
+  {doc-next
+    {purpose
+        Returns the version of the SQLite library as a {docref String}.
+    }
+  }
+  {dll-method public {libversion ("sqlite3_libversion") ||""
+                     }:String
+  }
+
+  {doc-next
+    {purpose
+        The version of the SQLite library as a number.
+    }
+    {details
+        If a version number looks like X.Y.Z then this number will be
+        X*1000000 + Y*1000 + Z.
+    }
+  }
+  {dll-method public {libversion-number ("sqlite3_libversion_number") ||""
+                     }:int
+  }
+
+  || reflection
+  || ----------
+  {doc-next
+    {purpose
+        Provide information about a column in a table.
+    }
+    {parameter sqlite3,
+        SQLite database handle.
+    }
+    {parameter database-name,
+        Name of the database to look for the table in.  If {ctext null}
+        search all attached databases for the table.
+    }
+    {parameter table-name,
+        Name of the table to look for the column in.
+    }
+    {parameter column-name,
+        Name of the column to get metadata for.
+    }
+    {return-vals
+        If the first return value is not {ctext SQLiteStatus.OK}, then the
+        return of the return values are undefined.
+    }
+    {notes
+        This may return a {ctext auto-increment?} of {ctext false} for columns
+        which are an alias for the {ctext ROWID}, even though the
+        {ctext ROWID} is basically auto-increment.
+    }
+  }
+  {method public {table-column-metadata
+                     sqlite3:SQLiteDatabaseHandle,
+                     database-name:#String,
+                     table-name:String,
+                     column-name:String
+                 }:(status:SQLiteStatus, datatype:#String, collation:#String,
+                    not-null?:bool, primary-key?:bool, auto-increment?:bool)
+    def datatype:{Pointer-to CStringUTF8} = {new {Pointer-to CStringUTF8}}
+    def collation:{Pointer-to CStringUTF8} = {new {Pointer-to CStringUTF8}}
+    def non-null:{Pointer-to int} = {new {Pointer-to int}}
+    def primary-key:{Pointer-to int} = {new {Pointer-to int}}
+    def auto-increment:{Pointer-to int} = {new {Pointer-to int}}
+    def status =
+        {self.table-column-metadata-internal
+            sqlite3.non-null-sqlite3,
+            database-name,
+            table-name,
+            column-name,
+            datatype,
+            collation,
+            non-null,
+            primary-key,
+            auto-increment
+        }
+    def datatype-string = {datatype.value.to-String-or-null}
+    def collation-string = {collation.value.to-String-or-null}
+    def primary-key? = primary-key.value != 0
+    {return 
+        {SQLiteStatus index = status},
+        datatype-string,
+        collation-string,
+        non-null.value != 0,
+        primary-key.value != 0,
+        auto-increment.value != 0 or
+        || For some reason auto-increment? is not true for rowid if there is
+        || not an explicitly declared column that is being used as the rowid,
+        || so fake it.
+        (primary-key? and
+         datatype-string == "INTEGER" and ||""
+         ({column-name.equal? "rowid", ignore-case? = true} or ||""
+          {column-name.equal? "oid", ignore-case? = true} or ||""
+          {column-name.equal? "_rowid_", ignore-case? = true})) ||""
+    }
+  }
+
+  || NOTE: not in default library, must be compiled with
+  || SQLITE_ENABLE_COLUMN_METADATA 
+  {dll-method private {table-column-metadata-internal
+                          ("sqlite3_table_column_metadata") ||""
+
+                          sqlite3:LowSQLiteDatabaseHandle,
+                          dbname:#String,
+                          tablename:String,
+                          columnname:String,
+                          datatype:{Pointer-to CStringUTF8},
+                          collseq:{Pointer-to CStringUTF8},
+                          notnull:{Pointer-to int},
+                          primarykey:{Pointer-to int},
+                          autotinc:{Pointer-to int}
+                      }:int
+    {if-missing
+        {return SQLiteStatus.CURL-INTERNAL-MISSING-API.index}
+    }
+  }
+
+  {doc-next
+    {purpose
+        Interrupt an executing operation.
+    }
+    {parameter sqlite3,
+        SQLite database handle.
+    }
+    {notes
+        Normally called from a callback of some sort.
+    }
+  }
+  {method public {interrupt
+                     handle:SQLiteDatabaseHandle
+                 }:void
+    {self.interrupt-internal handle.non-null-sqlite3}
+  }
+  {dll-method private {interrupt-internal ("sqlite3_interrupt") ||""
+                          sqlite3:LowSQLiteDatabaseHandle
+                      }:void
+  }
+
+  {doc-next
+    {purpose
+        Set the progress handler that will get called periodically
+        when executing a statement takes more than {param instruction-count}
+        instructions.
+    }
+    {parameter sqlite3,
+        SQLite database handle.
+    }
+    {parameter instruction-count,
+        Number of instructions that must be executed before calling
+        {param callback}.
+    }
+    {parameter callback,
+        The callback procedure.
+    }
+    {notes
+        The {param callback} may not be invoked for all statements, if
+        the statement takes less than {param instruction-count} instructions
+        to complete.  If the {param callback} returns {ctext true}
+        then the executing statement will be terminated.
+
+        Providing a {ctext null} {param callback} will uninstall the
+        progress handler.
+    }
+  }
+  {method package {progress-handler
+                      sqlite3:SQLiteDatabaseHandle,
+                      instruction-count:int,
+                      callback:#SQLiteProgressHandlerProcType
+                  }:SQLiteProgressHandlerPointerType
+    let constant ret:SQLiteProgressHandlerPointerType =
+        {if-non-null callback then
+            {SQLiteProgressHandlerPointerType
+                {proc {userdata:CPointer}:int
+                    {with sqlite3._change-lock-out? = true do
+                        {with-defered-exceptions
+                            {return {if {callback} then 1 else 0}}
+                        }
+                    }
+                    {return 1}
+                }
+            }
+         else
+            {uninitialized-value-for-type SQLiteProgressHandlerPointerType}
+        }
+    {self.progress-handler-internal
+        sqlite3.non-null-sqlite3,
+        instruction-count,
+        ret,
+        0
+    }
+    {return ret}
+  }
+
+  {dll-method private {progress-handler-internal ("sqlite3_progress_handler") ||""
+                          sqlite3:LowSQLiteDatabaseHandle,
+                          instruction-count:int,
+                          callback:SQLiteProgressHandlerPointerType,
+                          userdata:CPointer
+                      }:void
+  }
+
+  {doc-next
+    {purpose
+        Registers a callback function with the database connection that
+        will be invoked whenever a statement is prepared.
+    }
+    {parameter sqlite3,
+        SQLite database handle.
+    }
+    {parameter callback,
+        The callback procedure.
+    }
+    {notes
+        The {param callback} can return {ctext SQLiteAuthorizerReturnCode.OK}
+        to allow an statement to proceed,
+        {ctext SQLiteAuthorizerReturnCode.DENY} to fail a statement,
+        or when the operation is {ctext SQLiteOperation.READ},
+        it can return {ctext SQLiteAuthorizerReturnCode.IGNORE} to
+        disallow access to a particular table column.
+
+        The first parameter to {param callback} is the {docref SQLiteOperation}         describing the operation being considered, and the next 4 arguments
+        provide various information depending on the operation.
+        The second argument is usually the name of the entity being operated
+        on, and the third argument is the name of the other entity being
+        operated on, if appropriate.  The fourth argument is usually the
+        database name, and the fifth argument is the name of the inner-most
+        trigger or view if there is one.
+
+        Setting {param callback} to {ctext null} will uninstall any
+        authorizer callback.
+    }
+  }
+  {method package {set-authorizer
+                      sqlite3:SQLiteDatabaseHandle,
+                      callback:#SQLiteAuthorizerProcType
+                  }:(SQLiteStatus, SQLiteAuthorizerPointerType)
+    let constant ret:SQLiteAuthorizerPointerType =
+        {if-non-null callback then
+            {SQLiteAuthorizerPointerType
+                {proc {userdata:CPointer, operation:int,
+                       data1:CStringUTF8, data2:CStringUTF8,
+                       data3:CStringUTF8, data4:CStringUTF8
+                      }:int
+                    {with sqlite3._change-lock-out? = true do
+                        {with-defered-exceptions
+                            {return
+                                {callback
+                                    {SQLiteOperation index = operation},
+                                    {data1.to-String-or-null},
+                                    {data2.to-String-or-null},
+                                    {data3.to-String-or-null},
+                                    {data4.to-String-or-null}
+                                }.index
+                            }
+                        }
+                    }
+                    {return SQLiteAuthorizerReturnCode.DENY.index}
+                }
+            }
+         else
+            {uninitialized-value-for-type SQLiteAuthorizerPointerType}
+        }
+    
+    {return 
+        {SQLiteStatus
+            index =
+                {self.set-authorizer-internal
+                    sqlite3.non-null-sqlite3,
+                    ret,
+                    0
+                }
+        },
+        ret
+    }
+  }
+
+  {dll-method private {set-authorizer-internal ("sqlite3_set_authorizer") ||""
+                          sqlite3:LowSQLiteDatabaseHandle,
+                          callback:SQLiteAuthorizerPointerType,
+                          userdata:CPointer
+                      }:int
+  }
+
+  {define-proc package {make-key-bytearray
+                           encryption-type:SQLiteEncryptionType,
+                           key:#ByteArray
+                       }:#ByteArray
+    {if encryption-type == SQLiteEncryptionType.none or
+        key == null or key.size == 0
+     then
+        {return null}
+    }
+    {if-built-in
+        {license-feature-require LicenseFeature.encryption}
+    }
+    let prefix:String = 
+        {switch encryption-type
+         case SQLiteEncryptionType.rc4 do
+            "rc4:" ||""
+         case SQLiteEncryptionType.aes128 do
+            "aes128:" ||""
+         case SQLiteEncryptionType.aes256 do
+            "aes256:" ||""
+         else
+            {unreachable}
+        }
+    let nn-key:ByteArray = {non-null key}
+    let bytes:ByteArray = {ByteArray efficient-size = nn-key.size + prefix.size}
+    || safe because prefix is always ascii
+    {for c in prefix do
+        {bytes.append c asa byte}
+    }
+    {bytes.concat nn-key}
+    {return bytes}
+  }
+
+  {doc-next
+    {purpose
+        Set the encryption key for the main database.
+    }
+  }
+  {method public {set-key
+                      handle:SQLiteDatabaseHandle,
+                      encryption-type:SQLiteEncryptionType,
+                      key:#ByteArray
+                  }:SQLiteStatus
+    let key-bytes:#ByteArray =
+        {SQLiteInterface.make-key-bytearray encryption-type, key}
+    {return
+        {SQLiteStatus
+            index =
+                {self.set-key-internal
+                    handle.non-null-sqlite3,
+                    {if-non-null key-bytes then
+                        key-bytes.underlying-FastArray
+                     else
+                        null
+                    },
+                    {if-non-null key-bytes then key-bytes.size else 0}
+                }
+        }
+    }
+  }
+
+  {dll-method private {set-key-internal ("sqlite3_key") ||""
+                          sqlite3:LowSQLiteDatabaseHandle,
+                          key:CPointer,
+                          nkey:int
+                       }:int
+    {if-missing
+        {return
+            {if key == 0 or nkey < 1 then
+                SQLiteStatus.OK.index
+             else
+                SQLiteStatus.CURL-INTERNAL-MISSING-API.index
+            }
+        }
+    }
+  }
+
+  {method public {rekey
+                      handle:SQLiteDatabaseHandle,
+                      encryption-type:SQLiteEncryptionType,
+                      key:#ByteArray
+                  }:SQLiteStatus
+    let key-bytes:#ByteArray =
+        {SQLiteInterface.make-key-bytearray encryption-type, key}
+    {return
+        {SQLiteStatus
+            index =
+                {self.rekey-internal
+                    handle.non-null-sqlite3,
+                    {if-non-null key-bytes then
+                        key-bytes.underlying-FastArray
+                     else
+                        null
+                    },
+                    {if-non-null key-bytes then key-bytes.size else 0}
+                }
+        }
+    }
+  }
+  {dll-method private {rekey-internal ("sqlite3_rekey") ||""
+                          sqlite3:LowSQLiteDatabaseHandle,
+                          key:CPointer,
+                          nkey:int
+                       }:int
+    {if-missing
+        {return
+            {if key == 0 or nkey < 1 then
+                SQLiteStatus.OK.index
+             else
+                SQLiteStatus.CURL-INTERNAL-MISSING-API.index
+            }
+        }
+    }
+  }
+
+  {dll-method private {activate-see ("sqlite3_activate_see") ||""
+                         key:String
+                      }:void
+    {if-missing
+        {return}
+    }
+  }
+
+  {dll-method private {initialize ("sqlite3_initialize") ||""
+                      }:void
+  }
+|#
+  {dll-method private {shutdown ("sqlite3_shutdown") ||""
+                      }:void
+  }
+#|
+
+
+  || FIXME: no support for sqlite3_create_module(), but it requires lots
+  || of structs and such.
+  || FIXME: no support for sqlite3_create_collation
+}

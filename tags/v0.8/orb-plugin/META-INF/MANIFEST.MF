@@ -1,0 +1,16 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: com.curlap.orb.plugin
+Bundle-SymbolicName: com.curlap.orb.plugin;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Activator: com.curlap.orb.plugin.OrbPlugin
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ org.apache.velocity,
+ org.apache.commons.logging,
+ org.eclipse.jdt.core,
+ org.eclipse.jdt.ui,
+ org.eclipse.core.resources,
+ org.eclipse.jface.text
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6

@@ -1,0 +1,75 @@
+{import * from TESTS1}
+{import * from COM.CURL.ORB}
+
+{define-class public Foo2 {inherits HttpSessionClient}
+ 
+  {constructor public {default} 
+    {construct-super.HttpSessionClient "tests2.Foo"} 
+  } 
+
+  {method public {get-person}:#Person 
+    {return {self.invoke "getPerson"}} 
+  } 
+
+  {method public {get-person-hitoshi}:#PersonHitoshi 
+    {return {self.invoke "getPersonHitoshi"}} 
+  }
+
+  || added by hokada    
+  {method public {get-bar}:#String 
+    {return {self.invoke "getBar"}} 
+  }
+
+  {method public {set-bar v0:String}:void 
+    {self.invoke "setBar", arguments = {{FastArray-of any} v0}}
+  }
+
+  {method public {echo v0:String}:String 
+    {return {self.invoke "echo", arguments = {{FastArray-of any} v0}}} 
+  }
+  {method public {echo-date v0:DateTime}:DateTime 
+    {return {self.invoke "echoDate", arguments = {{FastArray-of any} v0}}} 
+  }
+  {method public {exec-service
+                     v0:String,
+                     v1:{FastArray-of #CounterDto},
+                     v2:{FastArray-of #StringDto},
+                     v3:{FastArray-of #DoubleDto},
+                     v4:{FastArray-of #LongDto},
+                     v5:{FastArray-of #NullIndexDto}
+                 }:#{FastArray-of any} 
+    {return
+        {self.invoke
+            "execService",
+            arguments = {FastArray v0, v1, v2, v3, v4, v5}
+        }
+    } 
+  }
+  {method public {exec-service-for-list
+                     v0:String,
+                     v1:Array, || #CounterDto
+                     v2:Array, || #StringDto
+                     v3:Array, || #DoubleDto
+                     v4:Array, || #LongDto
+                     v5:Array  || #NullIndexDto
+                 }:#Array 
+    {return
+        {self.invoke
+            "execServiceForList",
+            arguments = {FastArray v0, v1, v2, v3, v4, v5}
+        }
+    } 
+  }
+  {method public {exec-service-for-map
+                     v0:String,
+                     v1:HashTable, || #CounterDto, #StringDto
+                     v2:HashTable  || #CounterDto, #StringDto
+                 }:#HashTable 
+    {return
+        {self.invoke
+            "execServiceForMap",
+            arguments = {FastArray v0, v1, v2}
+        }
+    } 
+  }
+} 

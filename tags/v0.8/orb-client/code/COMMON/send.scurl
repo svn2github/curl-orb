@@ -1,0 +1,332 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||  Commnets from William Bardwell
+|||
+
+{import InflateByteInputStream from CURL.IO.ZSTREAM}
+
+||
+|| send proc
+||
+{doc-next {purpose send requests to ORB server synchronously.}}
+{define-proc public inline {send 
+                               action-url:Url,
+                               request:InstanceManagementRequest,
+                               http-request-headers:#HttpRequestHeaders = null
+                           }:(any, HttpResponseHeaders, #HashTable)
+    let http-response-headers:#HttpResponseHeaders
+    def make-stream =
+        {proc {hi-stream:HttpByteInputStream}:SerializeInputStream
+            set http-response-headers = hi-stream.response-headers
+            def (fmt, inflate?) = {is-inflate-stream? hi-stream}
+            {return
+                {SerializeInputStream
+                    {if inflate? then
+                        {InflateByteInputStream hi-stream, compression-format = fmt}
+                     else
+                        hi-stream
+                    }
+                }
+            }
+        }
+    {with-open-streams
+        serialize-stream =
+            {make-stream
+                {({action-url.instantiate-File} asa HttpFile).http-read-open-byte
+                    request-method = HttpRequestMethod.post,
+                    request-headers = http-request-headers,
+                    request-data = {make-request request} 
+                }
+            }
+     do
+        || supported InstanceManagementResponse since v0.7
+        def response = {serialize-stream.read-one} asa InstanceManagementResponse
+        def response-data = response.body
+        {type-switch response-data
+         case ec:ExceptionContent do
+            || handle exceptions on server side.
+            def (exception-type, exist?) =
+                {{get-exceptions}.get-if-exists ec.exception-name}
+            {if exist? then
+                {throw {create-exception exception-type, ec}}
+            }
+            {throw {ORBServerException ec}}
+        }
+        {return (response-data, {non-null http-response-headers}, response.header)}
+    }
+}
+
+||
+|| async-send proc
+||
+{doc-next {purpose send requests to ORB server asynchronously.}}
+{define-proc public inline {async-send
+                               action-url:Url,
+                               request:InstanceManagementRequest,
+                               http-request-headers:#HttpRequestHeaders = null,
+                               receive-server-pushing?:bool = false,
+                               ...:EventHandler
+                           }:AsyncWorker 
+    def event-target = {InnerAsyncCallbackEventTarget ...}
+    def do-callback =
+        {proc {exception:#Exception = null,
+               response-data:any = null,
+               http-response-headers:#HttpResponseHeaders = null,
+               orb-response-headers:#HashTable = null
+              }:void
+            {event-target.handle-event
+                {AsyncCallbackEvent
+                    exception,
+                    response-data,
+                    http-response-headers,
+                    orb-response-headers
+                }
+            }
+        }
+    
+    def http-file = {action-url.instantiate-File} asa HttpFile
+    || handle response
+    def handle-response =
+        {proc {e:AsyncStreamReadEvent,
+               http-response-headers:#HttpResponseHeaders
+              }:void
+            || NOTE: SerializeInputStream is read synchronously.
+            {with-open-streams
+                si-stream = {SerializeInputStream {ByteArrayInputStream e.data asa ByteArray}}
+             do
+                def response = {si-stream.read}[0] asa InstanceManagementResponse
+                def orb-response-headers = response.header
+                def response-data = response.body
+                {type-switch response-data
+                 case ec:ExceptionContent do
+                    || failed
+                    def (exception-type, exist?) =
+                        {{get-exceptions}.get-if-exists ec.exception-name}
+                    {if exist? then
+                        {do-callback
+                            exception = {create-exception exception-type, ec},
+                            http-response-headers = http-response-headers,
+                            orb-response-headers = orb-response-headers
+                        }
+                        {return}
+                    }
+                    {do-callback
+                        exception = {ORBServerException ec},
+                        http-response-headers = http-response-headers,
+                        orb-response-headers = orb-response-headers
+                    }
+                 else
+                    || succeeded
+                    {do-callback
+                        response-data = response-data,
+                        http-response-headers = http-response-headers,
+                        orb-response-headers = orb-response-headers
+                    }
+                }
+            }
+        }
+    
+    def worker = {HttpAsyncWorker} || The wrapped AsyncWorker 
+    def opener-event-handler =
+        {on e:AsyncFileOpenEvent do
+            {if-non-null ex = e.exception then
+                || failed
+                {do-callback exception = ex}
+             elseif e.canceled? then
+                || failed
+                {do-callback exception = {ORBClientException "The file open request was canceled."}}
+             else
+                {if-non-null bi-stream = e.stream asa #HttpByteInputStream then 
+                    def http-response-headers = bi-stream.response-headers
+                    def make-stream =
+                        {proc {hi-stream:HttpByteInputStream}:ByteInputStream
+                            def (fmt, inflate?) = {is-inflate-stream? hi-stream}
+                            {return
+                                {if inflate? then
+                                    {InflateByteInputStream hi-stream, compression-format = fmt}
+                                 else
+                                    hi-stream
+                                }
+                            }
+                        }
+                    
+                    def i-stream = {make-stream bi-stream}
+                    || NOTE: switch receive-server-pushing? or not
+                    set worker.inner-worker = 
+                        {if receive-server-pushing? then
+                            || NOTE: Comet architecture 
+                            {i-stream.async-read
+                                partial? = true,
+                                {on e:AsyncStreamReadEvent do
+                                    {if-non-null ex = e.exception then
+                                        || failed
+                                        {do-callback
+                                            exception = ex,
+                                            http-response-headers = http-response-headers
+                                        }
+                                     elseif e.done? then
+                                        {i-stream.close}
+                                        {bi-stream.close}
+                                     else
+                                        {handle-response e, http-response-headers}
+                                    }
+                                }
+                            }
+                         else
+                            || NOTE: Non Comet Architecture
+                            {i-stream.async-read
+                                {on e:AsyncStreamReadEvent do
+                                    {if-non-null ex = e.exception then
+                                        || failed
+                                        {do-callback
+                                            exception = ex,
+                                            http-response-headers = http-response-headers
+                                        }
+                                     elseif e.done? then
+                                        {handle-response e, http-response-headers}
+                                     else
+                                        || failed
+                                        {do-callback
+                                            exception = {ORBClientException "The async request was canceled."},
+                                            http-response-headers = http-response-headers
+                                        }
+                                    }
+                                    {i-stream.close}
+                                    {bi-stream.close}
+                                }
+                            }
+                        }
+                 else
+                    || failed
+                    {do-callback exception = {ORBClientException "The client received null stream."}}
+                }
+            }
+        }
+
+    set worker.inner-worker = 
+        {http-file.http-async-read-open-byte
+            request-method = HttpRequestMethod.post,
+            request-headers = http-request-headers,
+            request-data = {make-request request}, 
+            opener-event-handler
+        }
+    {return worker}
+}
+
+||
+|| No send the request to server. for ClientInterceptor.handle-stop-request
+{define-class package DummyAsyncWorker
+  {inherits AsyncWorker}
+  
+  {getter public {done?}:bool
+    {return true}
+  }
+  {method public {cancel}:bool
+    {return false} || do nothing
+  }
+}
+||{define-proc public inline {send-dummy}:any }
+{define-proc public inline {async-send-dummy
+                               return-val:any,
+                               ...:EventHandler
+                           }:AsyncWorker
+    def event-target = {InnerAsyncCallbackEventTarget ...}
+    {event-target.handle-event
+        {AsyncCallbackEvent null, return-val, null, null}
+    }
+    {return {DummyAsyncWorker}}
+}
+
+
+{define-proc package inline {make-request
+                                request:InstanceManagementRequest
+                            }:SingleByteArrayHttpRequestData
+    def bytes = {ByteArray}
+    {with-open-streams
+        so-stream = {SerializeOutputStream {ByteArrayOutputStream bytes}}
+     do
+        {so-stream.write-one request}
+    }
+    {bytes.append SerializeCode.end-of-stream}
+    {return {SingleByteArrayHttpRequestData bytes}}
+}
+
+{define-proc package inline {is-inflate-stream?
+                                his:HttpByteInputStream
+                            }:(String, bool)
+    def (fmt, found?) = {his.response-headers.get-if-exists "Content-Encoding"}
+    {return
+        (fmt, (found? and (fmt == "gzip" or fmt == "zlib")))
+    }
+}
+
+||
+|| HttpAsyncWorker
+||
+{define-class package HttpAsyncWorker
+  {inherits AsyncWorker}
+
+  || NOTE: This value is changable.(AsyncFileOpener, AsyncStreamReader)
+  field package inner-worker:#AsyncWorker
+
+  {constructor package {default}
+    || Create the instance from only asyn-send proc.
+  }
+  
+  || Override
+  {getter public {done?}:bool
+    {return self.inner-worker != null and self.inner-worker.done?}
+  }
+
+  || Override
+  {method public {cancel}:bool
+    {return self.inner-worker != null and {self.inner-worker.cancel}}
+  }
+}
+
+|| create exception from ExceptionContent
+{define-proc package inline {create-exception
+                                exception-type:ClassType,
+                                exception-content:ExceptionContent
+                            }:Exception
+    def exception =
+        {new-object-from-type
+            exception-type,
+            {if-non-null message = exception-content.message then
+                message
+             else
+                ""
+            }
+        }
+    let index:int = 0
+    {if-non-null ef = exception-content.exception-fields then
+        {if ef.size > 0 and exception-type == {type-of exception} then
+            {for member in {exception-type.get-members
+                               search-superclasses? = false,
+                               filter = ClassMember.setter-filter
+                           }
+             do
+                {{exception-type.get-setter
+                     member.name,
+                     search-superclasses? = false
+                 }.set-value exception, {ef.get index}}
+                {inc index}
+            }
+        }
+    }
+    {return exception}
+}

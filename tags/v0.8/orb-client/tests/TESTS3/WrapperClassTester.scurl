@@ -1,0 +1,17 @@
+
+{import * from COM.CURL.ORB}
+
+{define-class public WrapperClassTester {inherits HttpSessionClient}
+
+  {constructor public {default} 
+    {construct-super.HttpSessionClient "tests3.WrapperClassTester"} 
+  } 
+
+  {method public {download-dto}:#Dto 
+    {return {self.invoke "downloadDto"}} 
+  } 
+
+  {method public {upload-dto v0:Dto}:void 
+    {self.invoke "uploadDto", arguments = {FastArray v0}} 
+  } 
+} 

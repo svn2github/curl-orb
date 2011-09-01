@@ -1,0 +1,81 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+{import * from TESTS1}
+{import * from COM.CURL.ORB}
+
+{include "resources/support-interceptor.scurl"} || interceptor classes
+
+|||
+||| This test case is to insert interceptors. 
+|||
+{TestSuite "interceptor cases",
+
+    ||
+    || interceptor
+    ||
+    {test-case "interceptor",
+        {register-orb-interceptors 
+            {InterceptorA}, {InterceptorB}
+        }
+        {TestCondition.assert interceptor-result.size == 0}
+
+        let foo:Foo = {Foo}
+        {TestCondition.assert {foo.echo "foo"} == "foo"}
+        {TestCondition.assert interceptor-result.size == 4} || (+ new --> until 0.7)
+
+        let fuga:Fuga = {Fuga}
+        {TestCondition.assert {fuga.method2 "fuga", 10, true} == "fuga10true"}
+        {fuga.destroy-instance}
+        {TestCondition.assert interceptor-result.size == 8} || (+ new and destroy --> until 0.7)
+
+        {foo.echo "foo"}
+||--        {foo.async-sleeping 10}
+        {clear-orb-interceptors}
+        {interceptor-result.clear}
+    },
+    
+    || since 0.8
+    || TODO: caching tests
+    || FIXME: (Bugs) server/client method name
+    {test-case "stop server request",
+        {register-orb-interceptors
+            {InterceptorC}
+        }
+        def foo = {Foo}
+        
+        || sync
+        {TestCondition.assert {foo.echo "fooooo"} == "STOP-REQUEST"}
+        
+        || async
+        let done?:bool
+        let result:#String
+        {foo.async-echo 
+            "fooooo",
+            {on e:AsyncCallbackEvent do
+                set result = e.obj asa String
+                set done? = true
+            }
+        }
+        {while not done? do 
+            {dispatch-events true}
+        }
+        {TestCondition.assert result == "STOP-REQUEST"}
+        {clear-orb-interceptors}
+    }
+}

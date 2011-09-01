@@ -1,0 +1,313 @@
+||| Copyright (C) 1998-2010, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+||| Interceptor functionality
+||| since 0.6
+
+|| NOTE:
+||  1. The class procedure doesn't work.
+||  2. When creating new AbstractClient, all interceptors are set to AbstractClient.
+{doc-next {purpose ClientInterceptor class}}
+{define-class public abstract ClientInterceptor
+
+  || ClientInterceptors
+  def private interceptors = {{Array-of ClientInterceptor}}
+
+  || deprecated since 0.8 (See register-orb-interceptors proc)
+  {doc-next
+    {purpose register ClientInterceptor}
+    {parameter interceptor, ClinetInterceptor}
+  }
+  {define-proc package inline {register interceptor:ClientInterceptor}:void
+    {ClientInterceptor.interceptors.append interceptor}
+  }
+
+  || deprecated since 0.8 (See unregister-orb-interceptors proc)
+  {doc-next
+    {purpose Unregister the ClientInterceptor.}
+    {parameter interceptor, ClientInterceptor}
+  }
+  {define-proc package inline {unregister interceptor:ClientInterceptor}:void
+    def interceptors = ClientInterceptor.interceptors
+    def index = {interceptors.find interceptor}
+    {if index != -1 then
+        {interceptors.remove index}
+    }
+  }
+
+  || deprecated since 0.8 (See clear-orb-interceptors proc)
+  {doc-next {purpose clear all}}
+  {define-proc package inline {clear}:void
+    {ClientInterceptor.interceptors.clear}
+  }
+  
+  || This proc is called in Abstract constructor
+  {define-proc package {register-inteceptors client:AbstractClient}:void
+    {for interceptor in ClientInterceptor.interceptors do
+        {interceptor.register-interceptor client}
+    }
+  }
+
+  || AbstractClient filter
+  field protected client-filter:{proc-type {AbstractClient}:bool}
+  
+  {doc-next
+    {purpose create new instance}
+    {parameter client-filter, filter for AbstractClient}
+  }
+  {constructor protected {default
+                             client-filter:{proc-type {AbstractClient}:bool} =
+                                 {fn client => true}
+                         }
+    set self.client-filter = client-filter
+  }
+
+  {doc-next
+    {purpose register an interceptor to AbstractClient's interceptor}
+    {parameter client, AbstractClient}
+  }
+  {method protected open {register-interceptor
+                             client:AbstractClient
+                         }:void
+    {if not {self.client-filter client} then
+        {return}
+    }
+    {client.interceptor.append self}
+  }
+
+  
+  {method protected open {build-server-url
+                             server-url:Url
+                         }:Url
+    {return server-url}
+  }
+  
+  || No support since 0.8 (see handle-before-reqest or handle-after-response
+||--  {method protected open {build-http-request-headers
+||--                             headers:#HttpRequestHeaders
+||--                         }:#HttpRequestHeaders
+||--    {return headers}
+||--  }
+  
+||--  {method protected open {build-orb-request-headers
+||--                             headers:#HashTable
+||--                         }:#HashTable
+||--    {return headers}
+||--  }
+
+||--  {method protected open {handle-http-response-headers
+||--                             headers:#HttpResponseHeaders
+||--                         }:void }
+
+  || Support since 0.7
+||--  {method protected open {handle-orb-response-headers
+||--                             headers:#HashTable
+||--                         }:void }
+    
+  || like BeforeAdvice (only method)
+  {method protected open {handle-before-request ||before-advice
+                             http-request-headers:#HttpRequestHeaders,
+                             orb-request-hearders:#HashTable,
+                             method:Method,
+                             arguments:#FastArray
+                         }:(http-request-headers:#HttpRequestHeaders, orb-request-headers:#HashTable)
+    {return http-request-headers, orb-request-hearders}
+  }
+
+  || like AfterReturning (only method)
+  {method protected open {handle-after-response ||after-returning-advice
+                             http-response-headers:#HttpResponseHeaders,
+                             orb-response-hearders:#HashTable,
+                             method:Method,
+                             arguments:#FastArray,
+                             return-value:any
+                         }:(http-response-headers:#HttpResponseHeaders, orb-response-hearders:#HashTable)
+    {return http-response-headers, orb-response-hearders}
+  }
+
+  || like ThrowAdvice (only method)
+  {method protected open {handle-exception ||throw-advice
+                             method:Method,
+                             arguments:#FastArray,
+                             exception:Exception
+                         }:void }
+  
+  || stop the server request
+  || since 0.8
+  {method protected open {handle-stop-request
+                             method:Method,
+                             arguments:#FastArray
+                         }:(stop-request?:bool, return-val:any) 
+    {return false, null}
+  }
+}
+
+
+|| ClientInterceptorChain
+{define-class package ClientInterceptorChain
+  {inherits {Array-of ClientInterceptor}}
+
+  {method package {build-server-url
+                      server-url:Url
+                  }:Url
+    let u:Url = server-url
+    {for interceptor in self do
+        set u = {interceptor.build-server-url u}
+    }
+    {return u}
+  }
+  
+  || No support since 0.8 (see handle-before-reqest or handle-after-response
+||--  {method package {build-http-request-headers
+||--                      headers:#HttpRequestHeaders
+||--                  }:#HttpRequestHeaders
+||--    let h:#HttpRequestHeaders = headers
+||--    {for interceptor in self do
+||--        set h = {interceptor.build-http-request-headers h}
+||--    }
+||--    {return h}
+||--  }
+||--
+||--  {method package {build-orb-request-headers
+||--                      headers:#HashTable
+||--                  }:#HashTable
+||--    let h:#HashTable = headers
+||--    {for interceptor in self do
+||--        set h = {interceptor.build-orb-request-headers h}
+||--    }
+||--    {return h}
+||--  }
+||--  
+||--  {method package {handle-http-response-headers
+||--                      headers:#HttpResponseHeaders
+||--                  }:void
+||--    {for interceptor in self do
+||--        {interceptor.handle-http-response-headers headers}
+||--    }
+||--  }
+||--
+||--  || Support next version(0.7)
+||--  {method package {handle-orb-response-headers
+||--                      headers:#HashTable
+||--                  }:void
+||--    {for interceptor in self do
+||--        {interceptor.handle-orb-response-headers headers}
+||--    }
+||--  }
+  
+  {method protected open {handle-before-request ||before-advice
+                             http-request-headers:#HttpRequestHeaders,
+                             orb-request-hearders:#HashTable,
+                             method:#Method,
+                             arguments:#FastArray
+                         }:(http-request-headers:#HttpRequestHeaders, orb-request-headers:#HashTable)
+    {self.assert-orb-version method}
+    let http-rh:#HttpRequestHeaders = http-request-headers
+    let orb-rh:#HashTable = orb-request-hearders
+    {for interceptor in self do
+        set (http-rh, orb-rh) = 
+            {interceptor.handle-before-request http-rh, orb-rh, {non-null method}, arguments}
+    }
+    {return http-rh, orb-rh}
+  }
+  
+  || like AfterReturning (only method)
+  {method protected open {handle-after-response ||after-returning-advice
+                             http-response-headers:#HttpResponseHeaders,
+                             orb-response-hearders:#HashTable,
+                             method:#Method,
+                             arguments:#FastArray,
+                             return-value:any
+                         }:(http-response-headers:#HttpResponseHeaders, orb-response-hearders:#HashTable)
+    {self.assert-orb-version method}
+    let http-rh:#HttpResponseHeaders = http-response-headers
+    let orb-rh:#HashTable = orb-response-hearders
+    {for interceptor in self do
+        set (http-rh, orb-rh) = 
+            {interceptor.handle-after-response
+                http-rh, orb-rh, {non-null method}, arguments, return-value
+            }
+    }
+    {return http-rh, orb-rh}
+  }
+
+  {method package {handle-exception 
+                      method:#Method,
+                      arguments:#FastArray,
+                      exception:Exception
+                  }:void
+    {self.assert-orb-version method}
+    {for interceptor in self do
+        {interceptor.handle-exception {non-null method}, arguments, exception}
+    }
+  }
+  
+  || stop the server request
+  || since 0.8
+  {method package {handle-stop-request
+                      method:#Method,
+                      arguments:#FastArray
+                  }:(stop-request?:bool, return-val:any)
+    {self.assert-orb-version method}
+    {for interceptor in self do
+        def (stop-request?, return-val) =
+            {interceptor.handle-stop-request {non-null method}, arguments}
+        {if stop-request? then
+            {return stop-request?, return-val}
+        }
+    }
+    {return false, null}
+  }
+  
+  {method private {assert-orb-version method:#Method}:void
+    {if self.size > 0 and method == null then
+        {error "The class generated by old generator won't be allowed to use ClientInterceptor."}
+    }
+  }
+}
+
+|| procedures
+|| since 0.8
+{doc-next
+    {purpose register ClientInterceptors.}
+}
+{define-proc public {register-orb-interceptors
+                        ...:ClientInterceptor
+                    }:void
+    {for ci in {splice ...} do
+        {ClientInterceptor.register ci}
+    }
+}
+
+{doc-next
+    {purpose unregister ClientInterceptors.}
+}
+{define-proc public {unregister-orb-interceptors
+                        ...:ClientInterceptor
+                    }:void
+    {for ci in {splice ...} do
+        {ClientInterceptor.unregister ci}
+    }
+}
+
+{doc-next
+    {purpose unregister all ClientInterceptors.}
+}
+{define-proc public {clear-orb-interceptors}:void
+    {ClientInterceptor.clear}
+}

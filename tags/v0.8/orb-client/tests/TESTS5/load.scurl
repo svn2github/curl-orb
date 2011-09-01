@@ -1,0 +1,7 @@
+{curl 6.0, 7.0, 8.0 package} 
+{package TESTS5,
+   {compiler-directives careful? = true}
+} 
+{include "LoginService.scurl"}
+{include "SecureService.scurl"}
+{include "AuthException.scurl"}
