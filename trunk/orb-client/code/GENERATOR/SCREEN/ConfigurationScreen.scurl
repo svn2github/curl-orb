@@ -31,6 +31,7 @@
   field private _file-bt:#CustomCommandButton
   field private _v60-cb:#CheckButton
   field private _v70-cb:#CheckButton
+  field private _v80-cb:#CheckButton
   field private _body:#Graphic
   field private _save-bt:#CustomCommandButton
   field private _cancel-bt:#CustomCommandButton
@@ -91,6 +92,7 @@
         def rv = {get-persistent-data "RTE version"} asa {HashTable-of String, bool}
         set self.v60-check-button.value = rv["6.0"]
         set self.v70-check-button.value = rv["7.0"]
+        set self.v80-check-button.value = rv["8.0"]
         set self.base-dir.tooltip = {Tooltip self.base-dir.value}
         {return true}
      catch not-found:KeyNotFoundException do
@@ -98,6 +100,7 @@
         set self.base-dir.value = ""
         set self.v60-check-button.value = false
         set self.v70-check-button.value = false
+        set self.v80-check-button.value = false
     }
     {return false}
   }
@@ -176,6 +179,17 @@
     {return {non-null self._v70-cb}}
   }
 
+  {getter public {v80-check-button}:CheckButton
+    {if {equal? self._v80-cb, null} then
+        set self._v80-cb =
+            {CheckButton
+                label = {text color = FONT-COLOR|#"white"#|, 8.0},
+                font-size = 12pt
+            }
+    }
+    {return {non-null self._v80-cb}}
+  }
+
   {getter public {save-button}:CustomCommandButton
     {if {equal? self._save-bt, null} then
         set self._save-bt =
@@ -198,7 +212,8 @@
                         set rte-version =
                             {{HashTable-of String, bool}
                                 "6.0", self.v60-check-button.value,
-                                "7.0", self.v70-check-button.value
+                                "7.0", self.v70-check-button.value,
+                                "8.0", self.v80-check-button.value
                             }
                         {set-persistent-data "RTE version", rte-version}
                         {commit-persistent-data}
@@ -265,7 +280,8 @@
                                 {create-sepc-label "RTE version"},
                                 {spaced-hbox
                                     self.v60-check-button,
-                                    self.v70-check-button
+                                    self.v70-check-button,
+                                    self.v80-check-button
                                 }
                             }
                         },

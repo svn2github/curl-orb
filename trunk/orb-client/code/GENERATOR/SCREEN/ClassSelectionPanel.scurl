@@ -237,7 +237,7 @@
         {set-persistent-data "default server url", DEFAULT-SERVER-URL}
         set base-dir = ""
         {set-persistent-data "base dir url", base-dir}
-        set rte-version = {{HashTable-of String, bool} "6.0", false, "7.0", false}
+        set rte-version = {{HashTable-of String, bool} "6.0", false, "7.0", false, "8.0", false}
         {set-persistent-data "RTE version", rte-version}
     }    
     {return true}

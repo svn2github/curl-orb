@@ -1427,6 +1427,12 @@
             {with-open-streams out = {write-open localfile.url} do
                 def buf = {StringBuf}
                 {if-non-null rv = rte-version then
+                    {rv.sort 
+                        comparison-proc =
+                            {proc {s1:String, s2:String}:bool
+                                {return {String-leq? s1, s2}}
+                            }
+                    }
                     {for v key i in rv do
                         {if i != 0 then
                             {buf.concat ", "}
