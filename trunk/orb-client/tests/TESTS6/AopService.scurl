@@ -16,7 +16,23 @@
   } 
 
   {method public {echo v0:String}:#String 
-    {return {self.invoke "echo", client-method-name = "echo", arguments = {FastArray v0}} asa #String} 
+    {return
+        {self.invoke
+            "echo", 
+            client-method-name = "echo",
+            arguments = {FastArray v0}
+        } asa #String
+    } 
   } 
- 
+  
+  {method public {async-echo v0:String, ...:EventHandler}:AsyncWorker 
+    {return 
+        {self.async-invoke
+            "echo", 
+            client-method-name = "echo",
+            arguments = {FastArray v0},
+            {splice ...}
+        } asa AsyncWorker
+    } 
+  }
 }

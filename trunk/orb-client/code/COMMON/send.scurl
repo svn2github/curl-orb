@@ -32,6 +32,13 @@
     def make-stream =
         {proc {hi-stream:HttpByteInputStream}:SerializeInputStream
             set http-response-headers = hi-stream.response-headers
+            {if http-response-headers.mime-type != "application/octet-stream" then
+                || Thrown UnexpectedORBResponseException if receiving no binary data. 
+                ||  e.g. Return html page when system is down.
+                || NOTE: Should check if content-type is "application/octet-stream;charset=UTF-8"?
+                {throw {UnexpectedORBResponseException hi-stream}}
+            }
+            
             def (fmt, inflate?) = {is-inflate-stream? hi-stream}
             {return
                 {SerializeInputStream
@@ -49,7 +56,8 @@
                 {({action-url.instantiate-File} asa HttpFile).http-read-open-byte
                     request-method = HttpRequestMethod.post,
                     request-headers = http-request-headers,
-                    request-data = {make-request request} 
+                    request-data = {make-request request}, 
+                    always-return-response-headers? = true || For status code 301
                 }
             }
      do
@@ -152,6 +160,12 @@
              else
                 {if-non-null bi-stream = e.stream asa #HttpByteInputStream then 
                     def http-response-headers = bi-stream.response-headers
+                    {if http-response-headers.mime-type != "application/octet-stream" then
+                        || Thrown UnexpectedORBResponseException if receiving no binary data. 
+                        ||  e.g. Return html page when system is down.
+                        {do-callback exception = {UnexpectedORBResponseException bi-stream}}
+                        {return}
+                    }
                     def make-stream =
                         {proc {hi-stream:HttpByteInputStream}:ByteInputStream
                             def (fmt, inflate?) = {is-inflate-stream? hi-stream}
@@ -221,7 +235,8 @@
         {http-file.http-async-read-open-byte
             request-method = HttpRequestMethod.post,
             request-headers = http-request-headers,
-            request-data = {make-request request}, 
+            request-data = {make-request request},
+            always-return-response-headers? = true, || For status code 301
             opener-event-handler
         }
     {return worker}

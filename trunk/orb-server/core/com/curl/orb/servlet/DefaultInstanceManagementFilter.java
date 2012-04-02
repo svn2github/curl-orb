@@ -164,13 +164,14 @@ public class DefaultInstanceManagementFilter implements Filter
 			Map<String, Object> options
 	) throws InstanceManagementException
 	{
+		response.setContentType("application/octet-stream;charset=UTF-8");
 		OutputStream ostream = null;
 		try
 		{
-			response.setStatus(200);
 			ostream = response.getOutputStream();
 			// support Response header
 			serializer.serialize(new InstanceManagementResponse(obj), options, ostream);
+			response.setStatus(200);
 		}
 		catch (IOException e)
 		{
@@ -205,16 +206,17 @@ public class DefaultInstanceManagementFilter implements Filter
 			Throwable exception
 	)
 	{
+		response.setContentType("application/octet-stream;charset=UTF-8");
 		OutputStream ostream = null;
 		try
 		{
-			response.setStatus(200);
 			ostream = response.getOutputStream();
 			serializer.serialize(
 					new InstanceManagementResponse(new ExceptionContent(exception)),
 					null,
 					ostream
 			);
+			response.setStatus(200);
 			log.info(exception.getMessage(), exception);
 		}
 		catch (InstanceManagementException e)

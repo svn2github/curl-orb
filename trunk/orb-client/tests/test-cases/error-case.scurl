@@ -19,6 +19,7 @@
 {import * from TESTS1}
 {import * from TESTS2}
 {import * from TESTS3}
+{import * from TESTS6}
 
 {import * from COM.CURL.ORB}
 
@@ -214,5 +215,45 @@
         }
         {TestCondition.assert worker.done?}
         {clear-exceptions}
+    },
+    
+    || since 0.9
+    {test-case "unexpected response",
+        || sync - Test to receive HTML or text.
+        def service = 
+            {AopService 
+                server-url = {url "http://developers.curl.com"}
+            }
+        {try
+            {service.echo "Sync Test"}
+            {TestCondition.assert
+                false, 
+                message = "UnexpectedORBResponseException must happen."
+            }
+         catch e:UnexpectedORBResponseException do
+            {TestCondition.assert {e.input-stream.read-anys}.size > 0}
+            {e.input-stream.close}
+        }
+        
+        || async - same as above
+        let worker:AsyncWorker =
+            {service.async-echo
+                "Async Test",
+                {on e:AsyncCallbackEvent do
+                    {if e.exception != null then
+                        {TestCondition.assert 
+                            e.exception isa UnexpectedORBResponseException
+                        }
+                        def ex = e.exception asa UnexpectedORBResponseException
+                        {TestCondition.assert {ex.input-stream.read-anys}.size > 0}
+                        {ex.input-stream.close}
+                     else
+                        {TestCondition.assert
+                            false,
+                            message = "UnexpectedORBResponseException must happen."
+                        }
+                    }
+                }
+            }
     }
 }
