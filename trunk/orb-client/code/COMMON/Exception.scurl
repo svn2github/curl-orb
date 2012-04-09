@@ -94,7 +94,12 @@
 ||
 || UnexpectedORBResponseException (since 0.9)
 ||
-{doc-next {purpose {The exception not to be serialized}}}
+{doc-next
+    {purpose
+        The exception not to be able to serialized.
+        For instance, receives HTML or text response.
+    }
+}
 {define-class public open UnexpectedORBResponseException
   {inherits Exception}
   
