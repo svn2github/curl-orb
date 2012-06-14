@@ -63,6 +63,8 @@
             {Int8Domain}
          case int16 do
             {Int16Domain}
+         case Decimal do
+            {DecimalDomain}
          else
             {Domain.from-type self._domain}
         }
@@ -142,7 +144,7 @@
     {in.read-class-version}
     def data = {deserialize in, {HashTable-of any, any}}
     def key-iterator = {data.keys-to-Iterator}
-    {construct-super}    
+    {construct-super}
     {for item in key-iterator do
         {self.set item, {data.get item}}
     }
@@ -208,7 +210,7 @@
     {out.write-class-version 0}
     def fields = self.fields
     def field-size = fields.size
-    ||if the field is RecordFiled, then covert it to SerializableRecordField
+    || if the field is RecordFiled, then covert it to SerializableRecordField
     def field-array = {{Array-of #SerializableRecordField}}    
     {if-non-null fields then
         {for item in fields do
@@ -231,12 +233,12 @@
         }
     }
     {out.write-one {{FastArray-of #SerializableRecordField} {splice field-array}}}
-    ||modified by ucai.zhang 2009-05-26
-    ||Becuase of java side ignoring the detail element type in Array-of ,
-    ||But curl side can detect the elements
-    ||def results = {{Array-of SerializableRecordData}}
+    || modified by ucai.zhang 2009-05-26
+    || Becuase of java side ignoring the detail element type in Array-of ,
+    || But curl side can detect the elements
+    || def results = {{Array-of SerializableRecordData}}
     def results = {Array}
-    ||modified end
+    || modified end
     {for r in self do
         def record = {SerializableRecordData}
         {for f in r.record-set.fields do

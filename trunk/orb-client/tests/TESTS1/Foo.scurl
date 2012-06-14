@@ -42,6 +42,10 @@
     {return {self.invoke "getPersonAkira", client-method-name = "get-person-akira", arguments = {FastArray v0, v1}} asa #PersonAkira} 
   } 
   
+  {method public {echo-list v0:Array}:#Array 
+    {return {self.invoke "echoList", client-method-name = "echo-list", arguments = {FastArray v0}} asa #Array} 
+  } 
+  
   {method public {async-echo-record-set v0:SerializableRecordSet, ...:EventHandler}:AsyncWorker 
     {return {self.async-invoke "echoRecordSet", client-method-name = "echo-record-set", arguments = {FastArray v0}, {splice ...}} asa AsyncWorker} 
   } 

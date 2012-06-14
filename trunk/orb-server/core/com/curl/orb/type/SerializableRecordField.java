@@ -137,6 +137,7 @@ public class SerializableRecordField implements java.io.Serializable
 	 */
 	public void setDomain(Class<?> domain)
 	{
+		System.out.println("#### domain #### " + domain);
 		this.domain = domain;
 	}
 

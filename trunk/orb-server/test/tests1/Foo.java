@@ -87,13 +87,12 @@ public class Foo extends SuperFoo {
 		akira.setHobby(hobby);
 		return akira;
 	}
-
+	
 	// RecordSet test
 	public SerializableRecordSet echoRecordSet(SerializableRecordSet recordSet) {
 		return recordSet;
 	}
 	
-	// RecordSet test
 	// RecordSet test
 	public SerializableRecordSet createRecordSet() throws DataTypeException
 	{

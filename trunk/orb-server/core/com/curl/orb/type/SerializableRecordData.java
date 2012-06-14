@@ -25,8 +25,8 @@ public class SerializableRecordData implements java.io.Serializable {
 	private static final long serialVersionUID = 1L;
 
 	private HashMap<String, Object> data;
-
-	public SerializableRecordData(){
+	
+	public SerializableRecordData() {
 		data = new HashMap<String, Object>();
 	}
 
@@ -58,4 +58,3 @@ public class SerializableRecordData implements java.io.Serializable {
 		data.clear();
 	}
 }
-

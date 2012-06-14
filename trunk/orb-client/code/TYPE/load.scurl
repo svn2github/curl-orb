@@ -42,5 +42,6 @@
     "ClobDomain.scurl",
     "Int16Domain.scurl",
     "Int8Domain.scurl",
+    "DecimalDomain.scurl",
     "proc.scurl"
 }
