@@ -162,8 +162,8 @@
   }
 
   {method private {inner-print-stack-trace ec:ExceptionContent}:void
-    {output ec.exception-name}
-    {output "  " & ec.message}
+    {output {format "%s - %s", ec.exception-name, ec.message}}
+    {output ec.stack-trace}
     {if-non-null cause = ec.cause then
         {output "caused by "}
         {self.inner-print-stack-trace cause}
@@ -183,6 +183,7 @@
   field private _exception-name:String = {uninitialized-value-for-type String}
   field private _message:#String
   field private _cause:#ExceptionContent
+  field private _stack-trace:#String
   field private _exception-fields:#Array
 
   {constructor public {default}
@@ -230,6 +231,15 @@
   {doc-next {purpose cause}}
   {getter public open {cause}:#ExceptionContent
     {return self._cause}
+  }
+  
+  {doc-next {purpose stack trace}}
+  {setter public open {stack-trace stack-trace:#String}:void
+    set self._stack-trace = stack-trace
+  }
+  {doc-next {purpose stack trace}}
+  {getter public open {stack-trace}:#String
+    {return self._stack-trace}
   }
 
   {doc-next {purpose exception's fields of server-side exception}}

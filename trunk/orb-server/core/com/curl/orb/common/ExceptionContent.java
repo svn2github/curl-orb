@@ -32,6 +32,7 @@ public class ExceptionContent implements java.io.Serializable
 	private String exceptionName;
     private String message;
     private ExceptionContent cause;
+    private String stackTrace;
     private List<Object> exceptionFields;
 
     /**
@@ -53,6 +54,14 @@ public class ExceptionContent implements java.io.Serializable
         	throw new InstanceManagementException();
         }
         cause = (throwable.getCause() != null ? new ExceptionContent(throwable.getCause()) : null);
+        StringBuffer buf = new StringBuffer();
+        final String br = System.getProperty("line.separator");
+        for (StackTraceElement st : throwable.getStackTrace()) {
+        	buf.append("    at ");
+        	buf.append(st.toString());
+        	buf.append(br);
+        }
+        stackTrace = buf.toString();
     }
     
     // NOTE: To deserialize an exception object
@@ -78,6 +87,12 @@ public class ExceptionContent implements java.io.Serializable
     public ExceptionContent getCause() 
     {
         return cause;
+    }
+    
+	/* (non-Javadoc) */
+    public String getStackTrace() 
+    {
+        return stackTrace;
     }
     
 	/* (non-Javadoc) */

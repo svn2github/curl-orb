@@ -33,7 +33,7 @@
     ||
     {test-case "class not found",
         || not found class
-        {require-exception ORBServerException do
+        {require-exception ORBServerException do 
             || "java.lang.ClassNotFoundException"
             let orb:HttpSessionClient = {HttpSessionClient "tests1.Fooooooo"}
         }
